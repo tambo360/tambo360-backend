@@ -79,7 +79,7 @@ class UserService {
       throw new Error('Error al crear el usuario');
     }
 
-    const link = `${process.env.FRONTEND_URL}/auth/verify?token=${rawToken}`;
+    const link = `${process.env.FRONTEND_URL}/verificar?token=${rawToken}`;
 
     await sendVerificationEmail(result.correo, link);
 
@@ -177,7 +177,7 @@ class UserService {
       throw new Error('Error al generar el token de verificación');
     }
 
-    const link = `${process.env.FRONTEND_URL}/auth/verify?token=${rawToken}`;
+    const link = `${process.env.FRONTEND_URL}/verificar?token=${rawToken}`;
 
     await sendVerificationEmail(user.correo, link);
   }
@@ -238,7 +238,7 @@ class UserService {
       throw new Error('Error al generar el token de recuperación');
     }
 
-    const link = `${process.env.FRONTEND_URL}/auth/reset-password?token=${rawToken}`;
+    const link = `${process.env.FRONTEND_URL}/recuperar-contrasena?token=${rawToken}`;
 
     await sendPasswordResetEmail(user.correo, link);
   }
