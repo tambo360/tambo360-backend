@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Unidad {
+  kg
+  litros
+}
+
+enum Moneda {
+  USD
+  EUR
+  ARS
+}
+
+enum Categoria {
+  quesos
+  leches
+}
+
+enum TipoToken {
+  verificacion
+  recuperacion
+}
+
+enum TipoMerma {
+  Natural
+  Tecnica
+  Administrativa
+  Danio
+}
+
+enum ConceptoCosto {
+  insumos_basicos
+  leche_cruda
+  cuajo_y_fermentos
+  refrigeracion
+}
+
+model Usuario {
+  idUsuario        String            @id @default(uuid())
+  correo           String            @unique
+  contrasena       String
+  nombre           String            @db.VarChar(50)
+  verificado       Boolean           @default(false)
+  fechaCreacion    DateTime          @default(now())
+  establecimientos Establecimiento[]
+  tokens           VerificarToken[]
+}
+
+model Establecimiento {
+  idEstablecimiento String           @id @default(uuid())
+  nombre            String
+  localidad         String
+  provincia         String
+  fechaCreacion     DateTime         @default(now())
+  idUsuario         String
+  usuario           Usuario          @relation(fields: [idUsuario], references: [idUsuario])
+  loteProducciones  LoteProduccion[]
+}
+
+model Producto {
+  idProducto       String           @id @default(uuid())
+  nombre           String
+  categoria        Categoria
+  loteProducciones LoteProduccion[]
+}
+
+model LoteProduccion {
+  idLote            String          @id @default(uuid())
+  numeroLote        Int             @default(autoincrement())
+  fechaProduccion   DateTime        @default(now())
+  idProducto        String
+  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
+  cantidad          Decimal
+  unidad            Unidad
+  idEstablecimiento String
+  estado            Boolean         @default(false)
+  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  mermas            Merma[]
+  costosDirectos    CostosDirecto[]
+}
+
+model Merma {
+  idMerma       String         @id @default(uuid())
+  tipo          TipoMerma
+  observacion   String?
+  cantidad      Decimal
+  fechaCreacion DateTime       @default(now())
+  idLote        String
+  lote          LoteProduccion @relation(fields: [idLote], references: [idLote])
+}
+
+model CostosDirecto {
+  idCostoDirecto String         @id @default(uuid())
+  concepto       ConceptoCosto
+  monto          Decimal        @db.Decimal(13, 2)
+  observaciones  String?        @default("")
+  fechaCreacion  DateTime       @default(now())
+  idLote         String
+  lote           LoteProduccion @relation(fields: [idLote], references: [idLote])
+}
+
+model VerificarToken {
+  tokenid   String    @id @default(uuid())
+  idUsuario String
+  usuario   Usuario   @relation(fields: [idUsuario], references: [idUsuario])
+  tipo      TipoToken
+  tokenHash String
+  expiraEn  DateTime
+  usadoEn   DateTime?
+  creadoEn  DateTime  @default(now())
+
+  @@index([idUsuario, tipo])
+}

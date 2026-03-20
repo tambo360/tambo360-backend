@@ -1,0 +1,55 @@
+{
+  "name": "example-auth-backend",
+  "version": "1.0.0",
+  "description": "Backend for Example Auth application",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only --poll src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "seed": "ts-node src/lib/seedProductos.ts"
+  },
+  "prisma": {
+    "seed": "ts-node src/lib/seedProductos.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.19",
+    "express": "^4.22.1",
+    "jsonwebtoken": "^9.0.3",
+    "mailtrap": "^4.4.0",
+    "nodemailer": "^7.0.13",
+    "prisma": "^5.22.0",
+    "resend": "^6.9.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.33",
+    "@types/nodemailer": "^6.4.23",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "dotenv": "^17.3.1",
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  },
+  "keywords": [
+    "express",
+    "auth",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT"
+}
