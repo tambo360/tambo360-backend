@@ -149,3 +149,126 @@ const html = `
 
   await sendMailViaVercel(to, subject, text, html);
 }
+
+
+// ---------------------------------------------
+// Función: enviar correo de contacto (landing)
+// ---------------------------------------------
+export async function sendContactEmail(
+  name: string,
+  email: string,
+  phone: string,
+  message: string
+) {
+  // Sanitización básica (evita HTML injection en el mail)
+  const escape = (str: string) =>
+    str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+
+  const safeName = escape(name);
+  const safeEmail = escape(email);
+  const safePhone = escape(phone || "-");
+  const safeMessage = escape(message);
+
+  const subject = `Nuevo contacto - ${safeName}`;
+
+  const text = `
+Nuevo mensaje de contacto
+
+Nombre: ${safeName}
+Email: ${safeEmail}
+Teléfono: ${safePhone}
+Mensaje:
+${safeMessage}
+`;
+
+  const html = `
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nuevo contacto</title>
+  </head>
+  <body style="background-color:#f4f4f0; font-family: Georgia, serif; color:#1a1a1a; padding:40px 16px;">
+    <div style="max-width:560px; margin:0 auto;">
+
+      <!-- Header -->
+      <div style="background-color:#1a1a1a; border-radius:16px 16px 0 0; padding:36px 40px 28px;">
+        <div style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#888; font-family:'Courier New', monospace;">
+          Nuevo mensaje de contacto
+        </div>
+        <div style="font-size:20px; color:#ffffff; font-weight:700; margin-top:2px;">
+          Tambo360 — Formulario web
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div style="background:#ffffff; padding:36px 40px; border-left:1px solid #e8e8e4; border-right:1px solid #e8e8e4;">
+
+        <p style="font-size:13px; color:#666; margin-bottom:28px; font-family:'Courier New', monospace;">
+          Se recibió una consulta a través del sitio web
+        </p>
+
+        <div style="margin-bottom:22px;">
+          <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#3a7d1e; font-weight:700;">
+            Nombre
+          </div>
+          <div style="font-size:16px;">${safeName}</div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #ebebeb; margin:8px 0 24px;" />
+
+        <div style="margin-bottom:22px;">
+          <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#3a7d1e; font-weight:700;">
+            Email
+          </div>
+          <div style="font-size:16px;">
+            <a href="mailto:${safeEmail}" style="color:#3a7d1e; text-decoration:none;">
+              ${safeEmail}
+            </a>
+          </div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #ebebeb; margin:8px 0 24px;" />
+
+        <div style="margin-bottom:22px;">
+          <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#3a7d1e; font-weight:700;">
+            Teléfono
+          </div>
+          <div style="font-size:16px;">${safePhone}</div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid #ebebeb; margin:8px 0 24px;" />
+
+        <div style="margin-bottom:22px;">
+          <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#3a7d1e; font-weight:700;">
+            Mensaje
+          </div>
+          <div style="background:#f8f8f5; border-left:3px solid #3a7d1e; border-radius:0 8px 8px 0; padding:16px 20px; font-size:15px; line-height:1.65; white-space:pre-wrap;">
+            ${safeMessage}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div style="background-color:#1a1a1a; border-radius:0 0 16px 16px; padding:22px 40px; font-size:11px; color:#555; font-family:'Courier New', monospace;">
+        Equipo Tambo360
+      </div>
+
+    </div>
+  </body>
+</html>
+`;
+
+  await sendMailViaVercel(
+    "t360.arg@gmail.com",
+    subject,
+    text,
+    html
+  );
+}
