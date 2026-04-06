@@ -8,6 +8,7 @@ import RutasMermas from "./mermas";
 import RutasCostos from "./cost";
 import RutasProductos from "./product";
 import RutasDashboard from "./dashboard"
+import RutasLanding from "./landing";
 
 
 import RutasAlertas from "./alertRoutes";
@@ -24,5 +25,7 @@ router.use('/costos', RutasCostos);
 router.use('/productos', RutasProductos);
 router.use('/alertas', RutasAlertas);
 router.use('/dashboard', RutasDashboard)
+router.use('/landing', RutasLanding)
 
 export default router;
+    
