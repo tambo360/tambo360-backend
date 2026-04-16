@@ -4,6 +4,15 @@ import apiRoutes from "./routes";
 import config from "./config";
 import { setupSwagger } from "./swagger";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
+
+//1000 requests por IP cada 15 minutos (límite suave para evitar bloqueos innecesarios)
+export const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000, 
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 
 const app = express();
@@ -15,7 +24,7 @@ setupSwagger(app);
 
 import { errorHandler } from "./middleware/errorMiddleware";
 
-app.use("/api", apiRoutes);
+app.use("/api",globalLimiter, apiRoutes);
 
 // handler de errores global
 app.use(errorHandler);
