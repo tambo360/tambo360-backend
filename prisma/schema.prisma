@@ -42,6 +42,12 @@ enum ConceptoCosto {
   refrigeracion
 }
 
+enum NivelAlerta {
+  bajo
+  medio
+  alto
+}
+
 model Usuario {
   idUsuario        String            @id @default(uuid())
   correo           String            @unique
@@ -117,4 +123,33 @@ model VerificarToken {
   creadoEn  DateTime  @default(now())
 
   @@index([idUsuario, tipo])
+}
+
+//Modelos del back de IA
+
+model Alerta {
+  id                String      @id @default(uuid())
+  idEstablecimiento String
+  idLote            String
+  producto          String
+  categoria         Categoria
+  nivel             NivelAlerta
+  descripcion       String      @db.Text
+  creadoEn          DateTime    @default(now())
+  visto             Boolean     @default(false)
+
+  @@index([idEstablecimiento, creadoEn])
+}
+
+model PromedioCategoria {
+  id                String    @id @default(uuid())
+  idEstablecimiento String
+  categoria         Categoria
+
+  produccionAcumulada Float @default(0)
+  mermaAcumulada      Float @default(0)
+  pctMermaPromedio    Float @default(0)
+  cantidadLotes       Int   @default(0)
+
+  @@unique([idEstablecimiento, categoria])
 }
