@@ -228,6 +228,7 @@ export class LoteService {
             include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
         });
 
+
         if (!lote) {
             throw new AppError("El lote no existe", 404);
         }
@@ -235,15 +236,26 @@ export class LoteService {
         if (lote.establecimiento.idUsuario !== idUsuario) {
             throw new AppError("No tiene permisos para ver este lote", 403);
         }
+     
 
-        const alertas = await TamboEngineService.getAlertasPorLote(
-            lote.establecimiento.idEstablecimiento,
-            idLote
-        );
+        let alertas = null;
+        let alertasError = null;
+
+        try {
+            alertas = await TamboEngineService.getAlertasPorLote(
+                lote.establecimiento.idEstablecimiento,
+                idLote
+            );
+        } catch (error) {
+            console.error("Error obteniendo alertas:", error);
+            alertasError = "No se pudieron obtener las alertas";
+        }
+
 
         return {
             ...lote,
-            alertas
+            alertas,
+            alertasError
         };
     }
 

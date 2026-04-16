@@ -4,7 +4,6 @@ import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { passwordValidationSchema, registerSchema } from "../schemas/authSchema";
 import jwt from "jsonwebtoken";
-import { config } from "node:process";
 
 
 // FUncion para registrar un nuevo usuario
