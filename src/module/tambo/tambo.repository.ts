@@ -1,75 +1,132 @@
+// src/modules/tambo/tambo.repository.ts
+
 import { prisma } from "../../lib/prisma";
+import { Categoria, NivelAlerta } from "./tambo.types";
 
 export const tamboRepository = {
-  /**
-   * Obtiene el promedio de merma para una categoría específica
-   * dentro de un establecimiento.
-   *
-   * @param idEstablecimiento - ID del establecimiento
-   * @param categoria - Categoría del lote (ej: quesos, leches)
-   * @returns Registro de promedio de la categoría o null si no existe
-   */
-  async getPromedio(idEstablecimiento: string, categoria: string) {
-    return prisma.promedioCategoria.findFirst({
+  // -----------------------------
+  // PROMEDIOS
+  // -----------------------------
+  async getPromedio(idEstablecimiento: string, categoria: Categoria) {
+    return prisma.promedioCategoria.findUnique({
       where: {
-        idEstablecimiento,
-        categoria,
+        idEstablecimiento_categoria: {
+          idEstablecimiento,
+          categoria,
+        },
       },
     });
   },
 
-  /**
-   * Crea un nuevo registro de promedio de categoría.
-   *
-   * @param data - Datos del promedio a crear
-   * @param data.idEstablecimiento - ID del establecimiento
-   * @param data.categoria - Categoría del lote
-   * @param data.produccionAcumulada - Producción total acumulada (opcional)
-   * @param data.mermaAcumulada - Merma total acumulada (opcional)
-   * @param data.pctMermaPromedio - Porcentaje promedio de merma (opcional)
-   * @param data.cantidadLotes - Cantidad de lotes considerados (opcional)
-   * @returns Registro creado en la base de datos
-   */
   async createPromedio(data: {
     idEstablecimiento: string;
-    categoria: string;
-    produccionAcumulada?: number;
-    mermaAcumulada?: number;
-    pctMermaPromedio?: number;
-    cantidadLotes?: number;
+    categoria: Categoria;
+    produccionAcumulada: number;
+    mermaAcumulada: number;
+    pctMermaPromedio: number;
+    cantidadLotes: number;
   }) {
-    return prisma.promedioCategoria.create({
-      data,
-    });
+    return prisma.promedioCategoria.create({ data });
   },
 
-  /**
-   * Actualiza un registro de promedio de categoría existente.
-   *
-   * @param id - ID del registro a actualizar
-   * @param data - Campos a actualizar
-   * @param data.produccionAcumulada - Nueva producción acumulada (opcional)
-   * @param data.mermaAcumulada - Nueva merma acumulada (opcional)
-   * @param data.pctMermaPromedio - Nuevo porcentaje promedio de merma (opcional)
-   * @param data.cantidadLotes - Nueva cantidad de lotes (opcional)
-   * @param data.categoria - Nueva categoría (opcional)
-   * @param data.idEstablecimiento - Nuevo ID de establecimiento (opcional)
-   * @returns Registro actualizado
-   */
   async updatePromedio(
-    id: string,
+    idEstablecimiento: string,
+    categoria: Categoria,
     data: {
       produccionAcumulada?: number;
       mermaAcumulada?: number;
       pctMermaPromedio?: number;
       cantidadLotes?: number;
-      categoria?: string;
-      idEstablecimiento?: string;
     }
   ) {
     return prisma.promedioCategoria.update({
-      where: { id },
+      where: {
+        idEstablecimiento_categoria: {
+          idEstablecimiento,
+          categoria,
+        },
+      },
       data,
     });
   },
+
+  // -----------------------------
+  // ALERTAS
+  // -----------------------------
+  async createAlerta(data: {
+    idEstablecimiento: string;
+    idLote: string;
+    producto: string;
+    categoria: Categoria;
+    nivel: NivelAlerta;
+    descripcion: string;
+  }) {
+    return prisma.alerta.create({
+      data,
+    });
+  },
+
+  async getAlertas(idEstablecimiento: string, rangoDias?: number) {
+    const where: any = {
+      idEstablecimiento,
+    };
+
+    if (rangoDias) {
+      const fecha = new Date();
+      fecha.setDate(fecha.getDate() - rangoDias);
+
+      where.creadoEn = {
+        gte: fecha,
+      };
+    }
+
+    return prisma.alerta.findMany({
+      where,
+      orderBy: {
+        creadoEn: "desc",
+      },
+    });
+  },
+
+  async getUltimasAlertas(idEstablecimiento: string) {
+    return prisma.alerta.findMany({
+      where: {
+        idEstablecimiento,
+      },
+      orderBy: {
+        creadoEn: "desc",
+      },
+      take: 2,
+    });
+  },
+
+  async marcarAlertaVisto(idAlerta: string) {
+    return prisma.alerta.update({
+      where: { id: idAlerta },
+      data: { visto: true },
+    });
+  },
+
+  async countAlertasNoVistas(idEstablecimiento: string) {
+    const count = await prisma.alerta.count({
+      where: {
+        idEstablecimiento,
+        visto: false,
+      },
+    });
+
+    return { cantidad: count };
+  },
+
+  async getAlertasPorLote(idEstablecimiento: string, idLote: string) {
+    return prisma.alerta.findMany({
+      where: {
+        idEstablecimiento,
+        idLote,
+      },
+      orderBy: {
+        creadoEn: "desc",
+      },
+    });
+  }
 };
