@@ -3,7 +3,8 @@ import { PrismaClient, Categoria } from "@prisma/client"
 import { seedCategoryAverages, evaluateSingleLote } from "../tambo.engine"
 
 const db = new PrismaClient()
-
+/*
+Se comento el archivo de testeo porque se esta usando para probar la logica de los metodos del tambo engine, y no es un test unitario, sino mas bien una prueba de concepto. Se puede volver a habilitar cuando se quiera hacer un test unitario de esos metodos.
 async function run() {
     const data = {
         idEstablecimiento: "test-establecimiento",
@@ -55,3 +56,4 @@ run()
     .finally(async () => {
         await db.$disconnect()
     })
+*/

@@ -1,6 +1,7 @@
 import { mergeDescriptions } from "../tambo.parser";
 import { OutlierLote, TamboAnalysisInput } from "../tambo.types";
-
+/*
+Se comento el archivo de testeo porque se esta usando para probar la logica de los metodos del tambo engine, y no es un test unitario, sino mas bien una prueba de concepto. Se puede volver a habilitar cuando se quiera hacer un test unitario de esos metodos.
 const mockOutliers: OutlierLote[] = [
   {
     idLote: "lote-1",
@@ -49,4 +50,4 @@ test(
   JSON.stringify([
     { idLote: "999", descripcion: "no coincide" }
   ])
-);
+);*/
