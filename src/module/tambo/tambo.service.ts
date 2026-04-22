@@ -1,5 +1,3 @@
-// src/modules/tambo/tambo.service.ts
-
 import {
   TamboAnalysisInput,
   TamboAnalysisOutput,
@@ -18,10 +16,11 @@ import { buildPrompt } from "./tambo.prompt";
 import { mergeDescriptions } from "./tambo.parser";
 
 import { aiService } from "./ia.service";
+import { tamboRepository } from "./tambo.repository";
 
-// -------------------------------------------------
-// CALL MODEL (equivalente a Python call_model)
-// -------------------------------------------------
+// -----------------------------
+// IA CALL
+// -----------------------------
 async function callModel(messages: ChatMessage[]): Promise<string> {
   const request: ChatRequest = {
     messages,
@@ -29,51 +28,61 @@ async function callModel(messages: ChatMessage[]): Promise<string> {
     max_tokens: 1500,
     stream: false,
   };
-  console.log("LLAMANDO IA...");
 
   const response = await aiService.chatCompletion(request);
 
-  // Protección básica (en Python esto se asumía válido)
   return response?.choices?.[0]?.message?.content || "";
 }
 
-// -------------------------------------------------
-// MAIN ANALYZE (equivalente a Python analyze)
-// -------------------------------------------------
-export async function analyze(data: TamboAnalysisInput): Promise<TamboAnalysisOutput> {
+// -----------------------------
+// ANALYZE
+// -----------------------------
+export async function analyze(
+  data: TamboAnalysisInput
+): Promise<TamboAnalysisOutput> {
   let outliers: OutlierLote[] = [];
-  console.log("OUTLIERS:", outliers);
-  // 1. Engine (igual Python)
+
+  // 1. ENGINE
   if (data.lotes.length >= 15) {
     outliers = await seedCategoryAverages(data);
   } else {
     outliers = await evaluateSingleLote(data);
   }
 
-
   let alertas: AlertaLote[] = [];
 
-  // 2. IA solo si hay outliers
+  // 2. IA
   if (outliers.length > 0) {
     const messages = buildPrompt(outliers, data);
 
-    // mismo comportamiento que Python
     if (messages.length > 0) {
       try {
-        const rawResponse = await callModel(messages);
-
-        // 3. merge + fallback interno (parser se encarga de todo)
-        alertas = mergeDescriptions(rawResponse, outliers, data);
-      } catch (error) {
-        // ⚠️ NO romper flujo (igual Python)
-        console.warn("AI call failed, using fallback:", error);
-
+        const raw = await callModel(messages);
+        alertas = mergeDescriptions(raw, outliers, data);
+      } catch (err) {
+        console.warn("[IA fallback]", err);
         alertas = mergeDescriptions("", outliers, data);
       }
     }
   }
 
-  // 4. Output final
+  // 3. PERSISTENCIA ALERTAS (DB)
+  if (alertas.length > 0) {
+    await Promise.all(
+      alertas.map((a) =>
+        tamboRepository.createAlerta({
+          idEstablecimiento: data.idEstablecimiento,
+          idLote: a.idLote,
+          producto: a.producto,
+          categoria: a.categoria,
+          nivel: a.nivel,
+          descripcion: a.descripcion,
+        })
+      )
+    );
+  }
+
+  // 4. OUTPUT
   return {
     idEstablecimiento: data.idEstablecimiento,
     alertas_detectadas: alertas,
