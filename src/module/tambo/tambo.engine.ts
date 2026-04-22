@@ -1,261 +1,205 @@
-import { PrismaClient, Categoria } from "@prisma/client"
+// src/modules/tambo/tambo.engine.ts
 
-type Merma = {
-    cantidad: number
-}
-
-type Lote = {
-    idLote: string
-    numeroLote: number
-    producto: string
-    categoria: Categoria
-    cantidad: number
-    unidad: string
-    mermas: Merma[]
-}
-
-type InputData = {
-    idEstablecimiento: string
-    lotes: Lote[]
-}
+import {
+  TamboAnalysisInput,
+  OutlierLote,
+  NivelAlerta,
+  Categoria,
+} from "./tambo.types";
+import { tamboRepository } from "./tambo.repository";
 
 const THRESHOLDS = {
-    bajo: 3,
-    medio: 5
-}
+  bajo: 3,
+  medio: 5,
+};
 
 // -------------------------------------------------
-// SEED
+// SEED (≥15 lotes)
 // -------------------------------------------------
 export async function seedCategoryAverages(
-    data: InputData,
-    db: PrismaClient
-) {
-    const categoryTotals: Record<string, any> = {}
-    const lotMermaTotals: Record<string, number> = {}
-    const lotMermaPcts: Record<string, number> = {}
-    const categoryAvgPct: Record<string, number> = {}
+  data: TamboAnalysisInput
+): Promise<OutlierLote[]> {
+  const categoryTotals: Record<
+    Categoria,
+    { merma: number; produccion: number; cantidad_lotes: number }
+  > = {
+    quesos: { merma: 0, produccion: 0, cantidad_lotes: 0 },
+    leches: { merma: 0, produccion: 0, cantidad_lotes: 0 },
+  };
 
-    const outliers: any[] = []
+  const lotMermaTotals: Record<string, number> = {};
+  const lotMermaPcts: Record<string, number> = {};
 
-    // 1. ACUMULAR
-    for (const lote of data.lotes) {
-        const mermaTotal = lote.mermas.reduce(
-            (sum, m) => sum + Number(m.cantidad),
-            0
-        )
+  // 1. Acumular
+  for (const lote of data.lotes) {
+    const mermaTotal = lote.mermas.reduce((sum, m) => sum + m.cantidad, 0);
 
-        const pct =
-            lote.cantidad > 0
-                ? (mermaTotal / Number(lote.cantidad)) * 100
-                : 0
+    const pct = lote.cantidad > 0 ? (mermaTotal / lote.cantidad) * 100 : 0;
 
-        if (!categoryTotals[lote.categoria]) {
-            categoryTotals[lote.categoria] = {
-                merma: 0,
-                produccion: 0,
-                cantidadLotes: 0,
-            }
+    lotMermaTotals[lote.idLote] = mermaTotal;
+    lotMermaPcts[lote.idLote] = pct;
+
+    categoryTotals[lote.categoria].merma += mermaTotal;
+    categoryTotals[lote.categoria].produccion += lote.cantidad;
+    categoryTotals[lote.categoria].cantidad_lotes += 1;
+  }
+
+  const categoryAvgPct: Record<Categoria, number> = {
+    quesos: 0,
+    leches: 0,
+  };
+
+  // 2. Guardar en DB (OVERWRITE como Python)
+  for (const categoria of Object.keys(categoryTotals) as Categoria[]) {
+    const totals = categoryTotals[categoria];
+
+    const avg =
+      totals.produccion > 0
+        ? (totals.merma / totals.produccion) * 100
+        : 0;
+
+    categoryAvgPct[categoria] = avg;
+
+    const record = await tamboRepository.getPromedio(
+      data.idEstablecimiento,
+      categoria
+    );
+
+    if (!record) {
+      await tamboRepository.createPromedio({
+        idEstablecimiento: data.idEstablecimiento,
+        categoria,
+        produccionAcumulada: totals.produccion,
+        mermaAcumulada: totals.merma,
+        pctMermaPromedio: avg,
+        cantidadLotes: totals.cantidad_lotes,
+      });
+    } else {
+      await tamboRepository.updatePromedio(
+        data.idEstablecimiento,
+        categoria,
+        {
+          produccionAcumulada: totals.produccion,
+          mermaAcumulada: totals.merma,
+          pctMermaPromedio: avg,
+          cantidadLotes: totals.cantidad_lotes,
         }
-
-        categoryTotals[lote.categoria].merma += mermaTotal
-        categoryTotals[lote.categoria].produccion += Number(lote.cantidad)
-        categoryTotals[lote.categoria].cantidadLotes += 1
-
-        lotMermaTotals[lote.idLote] = mermaTotal
-        lotMermaPcts[lote.idLote] = pct
+      );
     }
+  }
 
-    // 2. PROMEDIOS + DB (ACUMULANDO BIEN)
-    for (const categoria in categoryTotals) {
-        const totals = categoryTotals[categoria]
+  // 3. Detectar outliers
+  const outliers: OutlierLote[] = [];
 
-        const record = await db.promedioCategoria.findUnique({
-            where: {
-                idEstablecimiento_categoria: {
-                    idEstablecimiento: data.idEstablecimiento,
-                    categoria: categoria as Categoria,
-                },
-            },
-        })
+  for (const lote of data.lotes) {
+    const total = lotMermaTotals[lote.idLote];
+    const pct = lotMermaPcts[lote.idLote];
+    const avgPct = categoryAvgPct[lote.categoria];
 
-        let newMerma = totals.merma
-        let newProduccion = totals.produccion
-        let newCantidadLotes = totals.cantidadLotes
+    if (avgPct === 0) continue;
 
-        if (record) {
-            newMerma += Number(record.mermaAcumulada)
-            newProduccion += Number(record.produccionAcumulada)
-            newCantidadLotes += record.cantidadLotes
-        }
+    const pctOver = ((pct - avgPct) / avgPct) * 100;
 
-        const avgPct =
-            newProduccion > 0
-                ? (newMerma / newProduccion) * 100
-                : 0
+    if (pctOver <= 0) continue;
 
-        categoryAvgPct[categoria] = avgPct
+    let nivel: NivelAlerta;
+    if (pctOver <= THRESHOLDS.bajo) nivel = "bajo";
+    else if (pctOver <= THRESHOLDS.medio) nivel = "medio";
+    else nivel = "alto";
 
-        if (!record) {
-            await db.promedioCategoria.create({
-                data: {
-                    idEstablecimiento: data.idEstablecimiento,
-                    categoria: categoria as Categoria,
-                    produccionAcumulada: newProduccion,
-                    mermaAcumulada: newMerma,
-                    pctMermaPromedio: avgPct,
-                    cantidadLotes: newCantidadLotes,
-                },
-            })
-        } else {
-            await db.promedioCategoria.update({
-                where: {
-                    idEstablecimiento_categoria: {
-                        idEstablecimiento: data.idEstablecimiento,
-                        categoria: categoria as Categoria,
-                    },
-                },
-                data: {
-                    produccionAcumulada: newProduccion,
-                    mermaAcumulada: newMerma,
-                    pctMermaPromedio: avgPct,
-                    cantidadLotes: newCantidadLotes,
-                },
-            })
-        }
-    }
+    outliers.push({
+      idLote: lote.idLote,
+      numeroLote: lote.numeroLote,
+      producto: lote.producto,
+      categoria: lote.categoria,
+      unidad: lote.unidad,
+      merma_total: Number(total.toFixed(2)),
+      pct_merma_lote: Number(pct.toFixed(2)),
+      promedio_categoria_pct: Number(avgPct.toFixed(2)),
+      porcentaje_sobre_promedio: Number(pctOver.toFixed(1)),
+      nivel,
+    });
+  }
 
-    // 3. OUTLIERS
-    for (const lote of data.lotes) {
-        const total = lotMermaTotals[lote.idLote]
-        const pct = lotMermaPcts[lote.idLote]
-        const avgPct = categoryAvgPct[lote.categoria]
-
-        if (!avgPct || avgPct === 0) continue
-
-        const pctOver = ((pct - avgPct) / avgPct) * 100
-        if (pctOver <= 0) continue
-
-        let nivel: "bajo" | "medio" | "alto" = "bajo"
-
-        if (pctOver <= THRESHOLDS.bajo) nivel = "bajo"
-        else if (pctOver <= THRESHOLDS.medio) nivel = "medio"
-        else nivel = "alto"
-
-        outliers.push({
-            idLote: lote.idLote,
-            numeroLote: lote.numeroLote,
-            producto: lote.producto,
-            categoria: lote.categoria,
-            merma_total: Number(total.toFixed(2)),
-            pct_merma_lote: Number(pct.toFixed(2)),
-            promedio_categoria_pct: Number(avgPct.toFixed(2)),
-            porcentaje_sobre_promedio: Number(pctOver.toFixed(1)),
-            nivel,
-        })
-    }
-
-    return outliers
+  return outliers;
 }
 
 // -------------------------------------------------
-// SINGLE LOTE
+// SINGLE LOTE (<15)
 // -------------------------------------------------
 export async function evaluateSingleLote(
-    data: InputData,
-    db: PrismaClient
-) {
-    const lote = data.lotes[0]
+  data: TamboAnalysisInput
+): Promise<OutlierLote[]> {
+  const lote = data.lotes[0];
 
-    const mermaTotal = lote.mermas.reduce(
-        (sum, m) => sum + Number(m.cantidad),
-        0
-    )
+  const mermaTotal = lote.mermas.reduce((sum, m) => sum + m.cantidad, 0);
 
-    const pct =
-        lote.cantidad > 0
-            ? (mermaTotal / Number(lote.cantidad)) * 100
-            : 0
+  const pct = lote.cantidad > 0 ? (mermaTotal / lote.cantidad) * 100 : 0;
 
-    const record = await db.promedioCategoria.findUnique({
-        where: {
-            idEstablecimiento_categoria: {
-                idEstablecimiento: data.idEstablecimiento,
-                categoria: lote.categoria,
-            },
-        },
-    })
+  const record = await tamboRepository.getPromedio(
+    data.idEstablecimiento,
+    lote.categoria
+  );
 
-    let outliers: any[] = []
+  // Inicialización
+  if (!record) {
+    await tamboRepository.createPromedio({
+      idEstablecimiento: data.idEstablecimiento,
+      categoria: lote.categoria,
+      produccionAcumulada: lote.cantidad,
+      mermaAcumulada: mermaTotal,
+      pctMermaPromedio: pct,
+      cantidadLotes: 1,
+    });
 
-    // Inicialización
-    if (!record) {
-        await db.promedioCategoria.create({
-            data: {
-                idEstablecimiento: data.idEstablecimiento,
-                categoria: lote.categoria,
-                produccionAcumulada: Number(lote.cantidad),
-                mermaAcumulada: mermaTotal,
-                pctMermaPromedio: pct,
-                cantidadLotes: 1,
-            },
-        })
+    return [];
+  }
 
-        return []
+  const avgPct = record.pctMermaPromedio;
+  const outliers: OutlierLote[] = [];
+
+  // Evaluación
+  if (avgPct > 0) {
+    const pctOver = ((pct - avgPct) / avgPct) * 100;
+
+    if (pctOver > 0) {
+      let nivel: NivelAlerta;
+      if (pctOver <= THRESHOLDS.bajo) nivel = "bajo";
+      else if (pctOver <= THRESHOLDS.medio) nivel = "medio";
+      else nivel = "alto";
+
+      outliers.push({
+        idLote: lote.idLote,
+        numeroLote: lote.numeroLote,
+        producto: lote.producto,
+        categoria: lote.categoria,
+        unidad: lote.unidad,
+        merma_total: Number(mermaTotal.toFixed(2)),
+        pct_merma_lote: Number(pct.toFixed(2)),
+        promedio_categoria_pct: Number(avgPct.toFixed(2)),
+        porcentaje_sobre_promedio: Number(pctOver.toFixed(1)),
+        nivel,
+      });
     }
+  }
 
-    const avgPct = record.pctMermaPromedio
+  // Update acumulado (igual Python)
+  const newMerma = record.mermaAcumulada + mermaTotal;
+  const newProduccion = record.produccionAcumulada + lote.cantidad;
 
-    // Evaluación
-    if (avgPct > 0) {
-        const pctOver = ((pct - avgPct) / avgPct) * 100
+  const newPct =
+    newProduccion > 0 ? (newMerma / newProduccion) * 100 : 0;
 
-        if (pctOver > 0) {
-            let nivel: "bajo" | "medio" | "alto" = "bajo"
-
-            if (pctOver <= THRESHOLDS.bajo) nivel = "bajo"
-            else if (pctOver <= THRESHOLDS.medio) nivel = "medio"
-            else nivel = "alto"
-
-            outliers.push({
-                idLote: lote.idLote,
-                numeroLote: lote.numeroLote,
-                producto: lote.producto,
-                categoria: lote.categoria,
-                unidad: lote.unidad,
-                merma_total: mermaTotal,
-                pct_merma_lote: pct,
-                promedio_categoria_pct: avgPct,
-                porcentaje_sobre_promedio: pctOver,
-                nivel,
-            })
-        }
+  await tamboRepository.updatePromedio(
+    data.idEstablecimiento,
+    lote.categoria,
+    {
+      mermaAcumulada: newMerma,
+      produccionAcumulada: newProduccion,
+      cantidadLotes: record.cantidadLotes + 1,
+      pctMermaPromedio: newPct,
     }
+  );
 
-    // Update acumulado
-    const newMerma = Number(record.mermaAcumulada) + mermaTotal
-    const newProduccion =
-        Number(record.produccionAcumulada) + Number(lote.cantidad)
-
-    const newPct =
-        newProduccion > 0
-            ? (newMerma / newProduccion) * 100
-            : 0
-
-    await db.promedioCategoria.update({
-        where: {
-            idEstablecimiento_categoria: {
-                idEstablecimiento: data.idEstablecimiento,
-                categoria: lote.categoria,
-            },
-        },
-        data: {
-            mermaAcumulada: newMerma,
-            produccionAcumulada: newProduccion,
-            cantidadLotes: record.cantidadLotes + 1,
-            pctMermaPromedio: newPct,
-        },
-    })
-
-    return outliers
+  return outliers;
 }
