@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Definición de enums -------------------------------------------------------------------------------------------------------------
+
 enum Unidad {
   kg
   litros
@@ -42,33 +44,101 @@ enum ConceptoCosto {
   refrigeracion
 }
 
-enum NivelAlerta {
-  bajo
-  medio
-  alto
+enum RolOrganizacion {
+  cooperativa
+  duenio
+  administrador
+  empleado
 }
 
+enum RolEstablecimiento {
+  duenio
+  administrador
+  empleado
+}
+
+enum EstadoInvitacion {
+  pendiente
+  aceptada
+  rechazada
+}
+
+// Definición de modelos -------------------------------------------------------------------------------------------------------------
+
 model Usuario {
-  idUsuario        String            @id @default(uuid())
-  correo           String            @unique
-  contrasena       String
-  nombre           String            @db.VarChar(50)
-  verificado       Boolean           @default(false)
-  fechaCreacion    DateTime          @default(now())
+  idUsuario      String                @id @default(uuid())
+  correo         String                @unique
+  contrasena     String
+  nombre         String                @db.VarChar(50)
+  verificado     Boolean               @default(false)
+  fechaCreacion  DateTime              @default(now())
+  activo         Boolean               @default(true)
+  tokens         VerificarToken[]
+  organizaciones OrganizacionUsuario[]
+  invitacions    Invitacion[]
+}
+
+model Organizacion {
+  idOrganizacion   String                @id @default(uuid())
+  nombre           String
+  fechaCreacion    DateTime              @default(now())
+  usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
-  tokens           VerificarToken[]
+  invitacions      Invitacion[]
+}
+
+model OrganizacionUsuario {
+  idOrganizacionUsuario              String                               @id @default(uuid())
+  idOrganizacion                     String
+  organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  idUsuario                          String
+  usuario                            Usuario                              @relation(fields: [idUsuario], references: [idUsuario])
+  rol                                RolOrganizacion
+  estado                             Boolean                              @default(true)
+  fechaCreacion                      DateTime                             @default(now())
+  establecimientoOrganiacionUsuarios Establecimiento_OrganiacionUsuario[]
 }
 
 model Establecimiento {
-  idEstablecimiento String           @id @default(uuid())
-  nombre            String
-  localidad         String
-  provincia         String
-  fechaCreacion     DateTime         @default(now())
-  idUsuario         String
-  usuario           Usuario          @relation(fields: [idUsuario], references: [idUsuario])
-  loteProducciones  LoteProduccion[]
+  idEstablecimiento                  String                               @id @default(uuid())
+  nombre                             String
+  localidad                          String
+  provincia                          String
+  fechaCreacion                      DateTime                             @default(now())
+  idOrganizacion                     String
+  organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  loteProducciones                   LoteProduccion[]
+  establecimientoOrganiacionUsuarios Establecimiento_OrganiacionUsuario[]
 }
+
+model Establecimiento_OrganiacionUsuario {
+  idEstablecimientoOrganizacionUsuario String              @id @default(uuid())
+  idEstablecimiento                    String
+  establecimiento                      Establecimiento     @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  idOrganizacionUsuario                String
+  organizacionUsuario                  OrganizacionUsuario @relation(fields: [idOrganizacionUsuario], references: [idOrganizacionUsuario])
+  rol                                  RolEstablecimiento
+  estado                               Boolean             @default(true)
+  fechaCreacion                        DateTime            @default(now())
+}
+
+model Invitacion {
+  idInvitacion      String          @id @default(uuid())
+  idOrganizacion    String
+  idInvitador       String
+  idEstablecimiento String?
+  correo            String
+  codigo            String
+  estado            EstadoInvitacion @default(pendiente)
+  expiraEn          DateTime
+  rol               RolOrganizacion
+  organizacion      Organizacion    @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  usuario           Usuario         @relation(fields: [idInvitador], references: [idUsuario])
+  creadoEn          DateTime        @default(now())
+}
+
+
+
 
 model Producto {
   idProducto       String           @id @default(uuid())
@@ -125,7 +195,13 @@ model VerificarToken {
   @@index([idUsuario, tipo])
 }
 
-//Modelos del back de IA
+//Modelos del back de IA -------------------------------------------------------------------------------------------------------------------------
+
+enum NivelAlerta {
+  bajo
+  medio
+  alto
+}
 
 model Alerta {
   id                String      @id @default(uuid())
