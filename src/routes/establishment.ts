@@ -1,11 +1,17 @@
 import express from "express";
-import { registrarEstablecimiento, listarEstablecimientos, editarNombreEstablecimiento } from "../controllers/establishmentController";
+import { registrarEstablecimiento, listarEstablecimientos, editarNombreEstablecimiento, getEstablishmentById } from "../controllers/establishmentController";
 import { authenticate } from "../middleware/authMiddleware";
+import { orgContext, requireOrgAccess } from "../middleware/orgMiddleware";
 
 const router = express.Router();
 
-router.post('/registrar', authenticate, registrarEstablecimiento);
-router.get('/listar', authenticate, listarEstablecimientos);
-router.patch('/editar-nombre', authenticate, editarNombreEstablecimiento);
+router.use(authenticate);
+router.use(orgContext)
+router.use(requireOrgAccess);
+
+router.post('/registrar', registrarEstablecimiento);
+router.get("/establecimiento/:idEst",  getEstablishmentById);
+router.get('/listar', listarEstablecimientos);
+router.patch('/editar-nombre', editarNombreEstablecimiento);
 
 export default router;

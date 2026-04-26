@@ -14,25 +14,29 @@ class UserService {
 
 
   async findByEmail(email: Usuario["correo"]) {
-    return prisma.usuario.findUnique({ where: { correo: email }, include: { establecimientos: true } });
+    return prisma.usuario.findUnique({ where: { correo: email }, include: { organizaciones: true } });
   }
 
   async getAllUsers() {
-    return prisma.usuario.findMany({ include: { establecimientos: true } });
+    return prisma.usuario.findMany({ include: { organizaciones: true } });
   }
 
   async findById(id: Usuario["idUsuario"]) {
     console.log("Buscando usuario por ID:", id);
-    return prisma.usuario.findUnique({ 
-      where: { idUsuario: id }, 
+    return prisma.usuario.findUnique({
+      where: { idUsuario: id },
       select: {
         idUsuario: true,
         nombre: true,
         correo: true,
         verificado: true,
-        establecimientos: true
+        organizaciones: {
+          include: {
+            establecimientoOrganiacionUsuarios: true
+          }
+        }
       }
-    
+
     });
   }
 
@@ -87,55 +91,59 @@ class UserService {
   }
 
   async verifyEmail(token: string) {
-  const hashedToken = hashToken(token);
+    const hashedToken = hashToken(token);
 
-  const response = await prisma.$transaction(async (tx) => {
-    const tokenRecord = await tx.verificarToken.findFirst({
-      where: {
-        tokenHash: hashedToken,
-        tipo: TipoToken.verificacion
-      },
-      include: {
-        usuario: {
-          include: {
-            establecimientos: true
+    const response = await prisma.$transaction(async (tx) => {
+      const tokenRecord = await tx.verificarToken.findFirst({
+        where: {
+          tokenHash: hashedToken,
+          tipo: TipoToken.verificacion
+        },
+        include: {
+          usuario: {
+            include: {
+              organizaciones: {
+                include: {
+                  establecimientoOrganiacionUsuarios: true
+                }
+              }
+            }
           }
         }
+      });
+
+      if (!tokenRecord) {
+        throw new Error("Token de verificación inválido");
       }
-    });
 
-    if (!tokenRecord) {
-      throw new Error("Token de verificación inválido");
-    }
+      // Si ya fue usado, no rompemos (idempotencia)
+      if (tokenRecord.usadoEn) {
+        return tokenRecord.usuario;
+      }
 
-    // Si ya fue usado, no rompemos (idempotencia)
-    if (tokenRecord.usadoEn) {
+      if (tokenRecord.expiraEn < new Date()) {
+        throw new Error("Token de verificación expirado");
+      }
+
+      //  Actualizamos usuario
+      await tx.usuario.update({
+        where: { idUsuario: tokenRecord.idUsuario },
+        data: { verificado: true }
+      });
+
+      //  Marcamos token como usado (NO lo borramos)
+      await tx.verificarToken.update({
+        where: { tokenid: tokenRecord.tokenid },
+        data: { usadoEn: new Date() }
+      });
+
+
+
       return tokenRecord.usuario;
-    }
-
-    if (tokenRecord.expiraEn < new Date()) {
-      throw new Error("Token de verificación expirado");
-    }
-
-    //  Actualizamos usuario
-    await tx.usuario.update({
-      where: { idUsuario: tokenRecord.idUsuario },
-      data: { verificado: true }
     });
 
-    //  Marcamos token como usado (NO lo borramos)
-    await tx.verificarToken.update({
-      where: { tokenid: tokenRecord.tokenid },
-      data: { usadoEn: new Date() }
-    });
-
-
-
-    return tokenRecord.usuario;
-  });
-
-  return response
-}
+    return response
+  }
 
   async resendVerificationEmail(email: string) {
     const user = await this.findByEmail(email);

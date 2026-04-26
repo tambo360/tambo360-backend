@@ -5,7 +5,12 @@ import e from "express";
 declare module 'express' {
   interface Request {
     user?: { id: string };
-
+    orgId?: string;
+    orgAccess?: {
+      idUsuario: string;
+      idOrganizacion: string;
+      rol: string;
+    };
   }
 }
 

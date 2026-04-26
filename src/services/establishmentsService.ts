@@ -70,6 +70,23 @@ class EstablishmentsService {
 
         return actualizado;
     }
+
+    async getEstablishmentById(id: string, idOrg: string, userId: string) {
+        const establishment = await prisma.establecimiento_OrganiacionUsuario.findFirst({
+            where: {
+                idEstablecimiento: id,
+                organizacionUsuario: {
+                    idUsuario: userId,
+                    idOrganizacion: idOrg
+                }
+            },
+            include: {
+                establecimiento: true,
+            }
+        });
+
+        return establishment;
+    }
 }
 
 export default new EstablishmentsService();

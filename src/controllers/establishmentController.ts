@@ -56,6 +56,33 @@ export const listarEstablecimientos = async (req: Request, res: Response, next: 
     }
 };
 
+
+export const getEstablishmentById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { idEst } = req.params;
+        const idOrg = req.orgId;
+        const userId = req.user?.id;
+
+        if (!userId) {
+            throw new AppError("Usuario no autenticado", 401);
+        }
+
+        if (!idOrg) {
+            throw new AppError("Falta organización", 400);
+        }
+
+        const establishment = await establishmentsService.getEstablishmentById(idEst, idOrg, userId);
+
+        if (!establishment) {
+            throw new AppError("Establecimiento no encontrado", 404);
+        }
+        return res.status(200).json(ApiResponse.success(establishment, "Establecimiento obtenido correctamente"));
+
+    } catch (error) {
+        next(error);
+    }
+}
+
 export const editarNombreEstablecimiento = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
 
