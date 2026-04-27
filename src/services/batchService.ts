@@ -4,7 +4,7 @@ import { CrearLoteDTO } from "../schemas/batchSchema";
 import { Prisma } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
-
+/*
 export class LoteService {
 
     static async crearLote(idUsuario: string, data: CrearLoteDTO) {
@@ -311,3 +311,5 @@ export class LoteService {
         return loteActualizado;
     }
 }
+
+*/

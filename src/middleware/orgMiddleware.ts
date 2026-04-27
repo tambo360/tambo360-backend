@@ -25,6 +25,7 @@ export async function requireOrgAccess(req: Request, res: Response, next: NextFu
       idOrganizacion: req.orgId
     },
     select: {
+      idOrganizacionUsuario: true,
       idUsuario: true,
       idOrganizacion: true,
       rol: true,
@@ -39,8 +40,31 @@ export async function requireOrgAccess(req: Request, res: Response, next: NextFu
   }
 
   req.orgAccess = {
+    idOrganizacionUsuario: access.idOrganizacionUsuario,
     idUsuario: access.idUsuario,
     idOrganizacion: access.idOrganizacion,
+    rol: access.rol
+  };
+
+  next();
+}
+
+
+export async function establecimientoRequireOrgAccess(req: Request, res: Response, next: NextFunction) {
+  const access = await prisma.establecimiento_OrganiacionUsuario.findFirst({
+    where: {
+      idOrganizacionUsuario: req.orgAccess?.idOrganizacionUsuario,
+    }
+  });
+
+
+
+  if (!access || !access.estado) {
+    return res.sendStatus(403);
+  }
+
+  req.estAccess = {
+    idEstablecimientoOrganizacionUsuario: access.idEstablecimientoOrganizacionUsuario,
     rol: access.rol
   };
 

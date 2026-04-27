@@ -1,16 +1,20 @@
 import { Categoria, ConceptoCosto, Merma, TipoMerma, Unidad } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import e from "express";
 
 declare module 'express' {
   interface Request {
     user?: { id: string };
     orgId?: string;
     orgAccess?: {
+      idOrganizacionUsuario: string;
       idUsuario: string;
       idOrganizacion: string;
       rol: string;
     };
+    estAccess?: {
+      idEstablecimientoOrganizacionUsuario: string;
+      rol: string;
+    }
   }
 }
 

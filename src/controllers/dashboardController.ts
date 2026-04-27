@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+/*import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { isValidEnum } from "../utils/enumValidation";
@@ -46,3 +46,4 @@ export const loteGrafico = async (req: Request, res: Response, next: NextFunctio
         next(error)
     }
 }
+    */

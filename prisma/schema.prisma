@@ -63,6 +63,22 @@ enum EstadoInvitacion {
   rechazada
 }
 
+enum TipoOrdenie {
+  balde
+  linea
+  espina_de_pescado
+  rotativo
+  manual
+  otro
+}
+
+enum VentaLeche {
+  usina
+  fabrica_propia
+  cooperativa
+  varios
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -102,13 +118,15 @@ model OrganizacionUsuario {
 model Establecimiento {
   idEstablecimiento                  String                               @id @default(uuid())
   nombre                             String
-  localidad                          String
-  provincia                          String
+  localidad                          String?
+  provincia                          String?
   fechaCreacion                      DateTime                             @default(now())
   idOrganizacion                     String
   organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
   loteProducciones                   LoteProduccion[]
   establecimientoOrganiacionUsuarios Establecimiento_OrganiacionUsuario[]
+  configuracions                     configuracion[]
+  establecimientoRazas               EstablecimientoRaza[]
 }
 
 model Establecimiento_OrganiacionUsuario {
@@ -122,8 +140,21 @@ model Establecimiento_OrganiacionUsuario {
   fechaCreacion                        DateTime            @default(now())
 }
 
+model configuracion {
+  idConfiguracion   String          @id @default(uuid())
+  idEstablecimiento String
+  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  cantVacas         Int
+  cantOrdenies      Int
+  promLitros        Float
+  tipoOrdenie       TipoOrdenie
+  ventaLeche        VentaLeche
+  empleados         Boolean
+  cantEmpleados     Int?
+}
+
 model Invitacion {
-  idInvitacion      String          @id @default(uuid())
+  idInvitacion      String           @id @default(uuid())
   idOrganizacion    String
   idInvitador       String
   idEstablecimiento String?
@@ -132,19 +163,30 @@ model Invitacion {
   estado            EstadoInvitacion @default(pendiente)
   expiraEn          DateTime
   rol               RolOrganizacion
-  organizacion      Organizacion    @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  usuario           Usuario         @relation(fields: [idInvitador], references: [idUsuario])
-  creadoEn          DateTime        @default(now())
+  organizacion      Organizacion     @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  usuario           Usuario          @relation(fields: [idInvitador], references: [idUsuario])
+  creadoEn          DateTime         @default(now())
 }
-
-
-
 
 model Producto {
   idProducto       String           @id @default(uuid())
   nombre           String
   categoria        Categoria
   loteProducciones LoteProduccion[]
+}
+
+model Raza {
+  idRaza               String                @id @default(uuid())
+  nombre               String
+  establecimientoRazas EstablecimientoRaza[]
+}
+
+model EstablecimientoRaza {
+  idEstablecimientoRaza String          @id @default(uuid())
+  idEstablecimiento     String
+  establecimiento       Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  idRaza                String
+  raza                  Raza            @relation(fields: [idRaza], references: [idRaza])
 }
 
 model LoteProduccion {

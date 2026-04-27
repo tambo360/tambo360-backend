@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma";
 import { CrearCostoDTO, ActualizarCostoDTO } from "../schemas/costShema";
 import { AppError } from "../utils/AppError";
 
-
+/*
 class ServicioCostos {
 
     async crear(idUsuario: string, data: CrearCostoDTO) {
@@ -141,3 +141,4 @@ class ServicioCostos {
 }
 
 export default new ServicioCostos();
+*/

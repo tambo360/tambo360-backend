@@ -1,11 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import establishmentsService from "../services/establishmentsService";
-import { createEstablishmentSchema, updateEstablishmentNameSchema } from "../schemas/establishmentSchema";
+import { createEstablishmentSchema, questionnaireSchema, updateEstablishmentNameSchema } from "../schemas/establishmentSchema";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppError } from "../utils/AppError";
+import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
 
 export const registrarEstablecimiento = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+        const orgAccess = req.orgAccess;
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (orgAccess.rol !== RolOrganizacion.duenio && orgAccess.rol !== RolOrganizacion.cooperativa) {
+            throw new AppError("Permisos insuficientes para crear un establecimiento", 403);
+        }
 
         const parsed = createEstablishmentSchema.safeParse(req.body);
 
@@ -13,13 +23,7 @@ export const registrarEstablecimiento = async (req: Request, res: Response, next
             throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
         }
 
-        const user = (req as any).user;
-
-        if (!user) {
-            throw new AppError("Usuario no autenticado", 401);
-        }
-
-        const nuevoEstablecimiento = await establishmentsService.crear({ ...parsed.data, userId: user.id, });
+        const nuevoEstablecimiento = await establishmentsService.create({ ...parsed.data, userId: orgAccess.idUsuario, idOrg: orgAccess.idOrganizacion, idOrganizacionUsuario: orgAccess.idOrganizacionUsuario });
 
         const response = ApiResponse.success(
             nuevoEstablecimiento,
@@ -36,13 +40,14 @@ export const registrarEstablecimiento = async (req: Request, res: Response, next
 
 export const listarEstablecimientos = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const user = (req as any).user;
+        const orgAccess = req.orgAccess;
 
-        if (!user) {
-            throw new AppError("Usuario no autenticado", 401);
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
         }
 
-        const establecimientos = await establishmentsService.listarPorUsuario(user.id);
+
+        const establecimientos = await establishmentsService.listarPorUsuario(orgAccess.idOrganizacionUsuario);
 
         const response = ApiResponse.success(
             establecimientos,
@@ -60,18 +65,13 @@ export const listarEstablecimientos = async (req: Request, res: Response, next: 
 export const getEstablishmentById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { idEst } = req.params;
-        const idOrg = req.orgId;
-        const userId = req.user?.id;
+        const orgAccess = req.orgAccess;
 
-        if (!userId) {
-            throw new AppError("Usuario no autenticado", 401);
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
         }
 
-        if (!idOrg) {
-            throw new AppError("Falta organización", 400);
-        }
-
-        const establishment = await establishmentsService.getEstablishmentById(idEst, idOrg, userId);
+        const establishment = await establishmentsService.getEstablishmentById(idEst, orgAccess.idOrganizacionUsuario);
 
         if (!establishment) {
             throw new AppError("Establecimiento no encontrado", 404);
@@ -83,6 +83,45 @@ export const getEstablishmentById = async (req: Request, res: Response, next: Ne
     }
 }
 
+export const registrarCuestionario = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const orgAccess = req.orgAccess;
+        const estAcess = req.estAccess;
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (!estAcess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        if(estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
+            throw new AppError("Permisos insuficientes para registrar el cuestionario", 403);
+        }
+
+        const parsed = questionnaireSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
+        }
+
+        const cuestionario = await establishmentsService.guardarCuestionario(parsed.data);
+
+        const response = ApiResponse.success(
+            cuestionario,
+            "Cuestionario registrado correctamente",
+            201
+        );
+
+        res.status(response.statusCode).json(response);
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+/*
 export const editarNombreEstablecimiento = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
 
@@ -115,4 +154,4 @@ export const editarNombreEstablecimiento = async (req: Request, res: Response, n
     } catch (error) {
         next(error);
     }
-};
+};*/

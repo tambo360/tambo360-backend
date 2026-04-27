@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma";
 import { Categoria, CostosDirecto, Merma } from "@prisma/client";
 import { InfoMes, Metrica, SummaryResult } from "../types";
 import { meses } from "../utils/data";
-
+/*
 export class DashboardService {
     static async listarPorMes(userId: string) {
         // Fechas del mes actual
@@ -168,6 +168,8 @@ export class DashboardService {
 
     }
 }
+
+*/
 
 
 
