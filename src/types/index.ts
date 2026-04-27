@@ -14,6 +14,7 @@ declare module 'express' {
     estAccess?: {
       idEstablecimientoOrganizacionUsuario: string;
       rol: string;
+      idEstablecimiento: string;
     }
   }
 }

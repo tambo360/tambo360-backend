@@ -73,23 +73,23 @@ class EstablishmentsService {
         return establecimientos;
     }
 
-   /* async actualizarNombre(idUsuario: string, nombre: string) {
-
-        const establecimiento = await prisma.establecimiento.findFirst({
-            where: { idUsuario }
-        });
-
-        if (!establecimiento) {
-            throw new AppError("Establecimiento no encontrado", 404);
-        }
-
-        const actualizado = await prisma.establecimiento.update({
-            where: { idEstablecimiento: establecimiento.idEstablecimiento },
-            data: { nombre }
-        });
-
-        return actualizado;
-    }*/
+    /* async actualizarNombre(idUsuario: string, nombre: string) {
+ 
+         const establecimiento = await prisma.establecimiento.findFirst({
+             where: { idUsuario }
+         });
+ 
+         if (!establecimiento) {
+             throw new AppError("Establecimiento no encontrado", 404);
+         }
+ 
+         const actualizado = await prisma.establecimiento.update({
+             where: { idEstablecimiento: establecimiento.idEstablecimiento },
+             data: { nombre }
+         });
+ 
+         return actualizado;
+     }*/
 
     async getEstablishmentById(id: string, idOrganizacionUsuario: string) {
         const establishment = await prisma.establecimiento_OrganiacionUsuario.findFirst({
@@ -170,6 +170,35 @@ class EstablishmentsService {
 
 
         return result;
+    }
+
+    async getCuestionario(idEstablecimiento: string) {
+        const [cuestionario, razas, establecimiento] = await Promise.all([
+            prisma.configuracion.findFirst({
+                where: {
+                    idEstablecimiento,
+                }
+            }),
+            prisma.establecimientoRaza.findMany({
+                where: {
+                    idEstablecimiento,
+                },
+                include: {
+                    raza: true,
+                }
+            }),
+            prisma.establecimiento.findFirst({
+                where: {
+                    idEstablecimiento,
+                },
+                select: {
+                    localidad: true,
+                    provincia: true,
+                }
+            })
+        ])
+
+        return { cuestionario, razas, establecimiento };
     }
 }
 

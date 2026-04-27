@@ -65,6 +65,7 @@ export async function establecimientoRequireOrgAccess(req: Request, res: Respons
 
   req.estAccess = {
     idEstablecimientoOrganizacionUsuario: access.idEstablecimientoOrganizacionUsuario,
+    idEstablecimiento: access.idEstablecimiento,
     rol: access.rol
   };
 

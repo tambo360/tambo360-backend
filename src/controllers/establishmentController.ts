@@ -96,7 +96,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
             throw new AppError("Acceso a establecimiento no válido", 400);
         }
 
-        if(estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
+        if (estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
             throw new AppError("Permisos insuficientes para registrar el cuestionario", 403);
         }
 
@@ -111,6 +111,57 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
         const response = ApiResponse.success(
             cuestionario,
             "Cuestionario registrado correctamente",
+            201
+        );
+
+        res.status(response.statusCode).json(response);
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getCuestionario = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const orgAccess = req.orgAccess;
+        const estAcess = req.estAccess;
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (!estAcess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        if (estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
+            throw new AppError("Permisos insuficientes para obtener el cuestionario", 403);
+        }
+
+        const { cuestionario, razas, establecimiento } = await establishmentsService.getCuestionario(estAcess.idEstablecimiento);
+
+        if(!cuestionario){
+            throw new AppError("Cuestionario no encontrado para este establecimiento", 404);
+        }
+
+        const data = {
+            idEstablecimiento: cuestionario.idEstablecimiento,
+            cantidad_vacas: cuestionario.cantVacas,
+            razas: razas.map(er => er.raza.nombre),
+            ordeñe_por_dia: cuestionario.cantOrdenies,
+            tipo_ordeñe: cuestionario.tipoOrdenie,
+            litros_por_dia: cuestionario.promLitros,
+            venta_leche: cuestionario.ventaLeche,
+            empleados: cuestionario.empleados,
+            cantidad_empleados: cuestionario.cantEmpleados,
+            modificado_en: cuestionario.modificadoEn,
+            localidad: establecimiento?.localidad,
+            provincia: establecimiento?.provincia,
+        }
+
+        const response = ApiResponse.success(
+            data,
+            "Cuestionario obtenido correctamente",
             201
         );
 
