@@ -45,6 +45,12 @@ class EstablishmentsService {
                 }
             })
 
+            await prisma.configuracion.create({
+                data: {
+                    idEstablecimiento: establecimiento.idEstablecimiento
+                }
+            })
+
             return establecimiento;
         })
 
@@ -140,6 +146,7 @@ class EstablishmentsService {
                     ventaLeche: data.ventaLeche,
                     empleados: data.empleados,
                     cantEmpleados: data.cantEmpleados,
+                    modificadoEn: new Date(),
                 }
             })
 

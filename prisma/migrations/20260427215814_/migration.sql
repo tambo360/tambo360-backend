@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "configuracion" ADD COLUMN     "modificadoEn" TIMESTAMP(3),
+ALTER COLUMN "cantVacas" DROP NOT NULL,
+ALTER COLUMN "cantOrdenies" DROP NOT NULL,
+ALTER COLUMN "promLitros" DROP NOT NULL,
+ALTER COLUMN "tipoOrdenie" DROP NOT NULL,
+ALTER COLUMN "ventaLeche" DROP NOT NULL,
+ALTER COLUMN "empleados" DROP NOT NULL;

@@ -144,13 +144,14 @@ model configuracion {
   idConfiguracion   String          @id @default(uuid())
   idEstablecimiento String
   establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  cantVacas         Int
-  cantOrdenies      Int
-  promLitros        Float
-  tipoOrdenie       TipoOrdenie
-  ventaLeche        VentaLeche
-  empleados         Boolean
+  cantVacas         Int?
+  cantOrdenies      Int?
+  promLitros        Float?
+  tipoOrdenie       TipoOrdenie?
+  ventaLeche        VentaLeche?
+  empleados         Boolean?
   cantEmpleados     Int?
+  modificadoEn      DateTime?
 }
 
 model Invitacion {
