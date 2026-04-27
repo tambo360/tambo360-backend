@@ -18,6 +18,17 @@ export function orgContext(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+export function estContext(req: Request, res: Response, next: NextFunction) {
+  const estId = req.headers["x-establecimiento-id"];
+
+  if (!estId || Array.isArray(estId)) {
+    return res.status(400).json({ error: "Falta establecimiento" });
+  }
+
+  req.estId = estId;
+  next();
+}
+
 export async function requireOrgAccess(req: Request, res: Response, next: NextFunction) {
   const access = await prisma.organizacionUsuario.findFirst({
     where: {
@@ -54,6 +65,7 @@ export async function establecimientoRequireOrgAccess(req: Request, res: Respons
   const access = await prisma.establecimiento_OrganiacionUsuario.findFirst({
     where: {
       idOrganizacionUsuario: req.orgAccess?.idOrganizacionUsuario,
+      idEstablecimiento: req.estId
     }
   });
 

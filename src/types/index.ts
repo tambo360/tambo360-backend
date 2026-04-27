@@ -5,6 +5,7 @@ declare module 'express' {
   interface Request {
     user?: { id: string };
     orgId?: string;
+    estId?: string;
     orgAccess?: {
       idOrganizacionUsuario: string;
       idUsuario: string;
