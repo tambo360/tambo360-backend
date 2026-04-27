@@ -102,7 +102,7 @@ class EstablishmentsService {
     async guardarCuestionario(data: QuestionnaireData) {
         const existente = await prisma.establecimiento.findFirst({
             where: {
-                idOrganizacion: data.idEstablecimiento,
+                idEstablecimiento: data.idEstablecimiento,
             },
         });
 
