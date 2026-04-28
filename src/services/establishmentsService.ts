@@ -2,6 +2,9 @@ import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
 import { RolEstablecimiento } from "@prisma/client";
+import { getRoleLabel } from "../utils/enumValidation";
+import { sendInvitationEmail } from "./mailService";
+import { generateToken, hashToken } from "../utils/token";
 
 type CreateEstablishmentServiceData = CreateEstablishmentData & {
     userId: string;
@@ -199,6 +202,46 @@ class EstablishmentsService {
         ])
 
         return { cuestionario, razas, establecimiento };
+    }
+
+    async sendInvitation(orgId: string, estId: string, userId: string, correo: string, rol: RolEstablecimiento) {
+        const rawToken = generateToken()
+        const hashedToken = hashToken(rawToken)
+
+        const invitation = await prisma.invitacionEstablecimiento.create({
+            data: {
+                idEstablecimiento: estId,
+                idInvitador: userId,
+                correo: correo,
+                codigo: hashedToken,
+                expiraEn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expira en 7 días,
+                rol: rol
+            },
+            select: {
+                invitador: {
+                    select: {
+                        nombre: true
+                    }
+                },
+                establecimiento: {
+                    select: {
+                        nombre: true
+                    }
+                },
+                rol: true,
+                expiraEn: true
+            }
+        })
+
+        if (!invitation) {
+            throw new Error('Error al crear la invitación');
+        }
+
+        const link = `${process.env.FRONTEND_URL}/invitaciones`;
+
+        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.establecimiento.nombre, "el establecimiento", getRoleLabel(invitation.rol, "establecimiento"), link, invitation.expiraEn.toISOString());
+
+        return invitation;
     }
 }
 

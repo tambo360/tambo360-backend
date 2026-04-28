@@ -32,7 +32,7 @@ class UserService {
         verificado: true,
         organizaciones: {
           include: {
-            establecimientoOrganiacionUsuarios: true
+            establecimientoOrganizacionUsuarios: true
           }
         }
       }
@@ -104,7 +104,7 @@ class UserService {
             include: {
               organizaciones: {
                 include: {
-                  establecimientoOrganiacionUsuarios: true
+                  establecimientoOrganizacionUsuarios: true
                 }
               }
             }

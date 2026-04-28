@@ -1,5 +1,5 @@
 import express from "express";
-import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario } from "../controllers/establishmentController";
+import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation } from "../controllers/establishmentController";
 import { authenticate } from "../middleware/authMiddleware";
 import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext } from "../middleware/orgMiddleware";
 
@@ -15,5 +15,6 @@ router.get('/', listarEstablecimientos);
 router.post('/cuestionario', estContext, establecimientoRequireOrgAccess, registrarCuestionario);
 router.get('/cuestionario/info', estContext, establecimientoRequireOrgAccess, getCuestionario);
 router.patch('/editar-nombre', /* editarNombreEstablecimiento */);
+router.post('/invitacion', estContext, establecimientoRequireOrgAccess, sendInvitation);
 
 export default router;

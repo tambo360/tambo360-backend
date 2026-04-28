@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import establishmentsService from "../services/establishmentsService";
-import { createEstablishmentSchema, questionnaireSchema, updateEstablishmentNameSchema } from "../schemas/establishmentSchema";
+import { createEstablishmentSchema, questionnaireSchema, sendInvitationSchema } from "../schemas/establishmentSchema";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppError } from "../utils/AppError";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
@@ -140,7 +140,7 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
 
         const { cuestionario, razas, establecimiento } = await establishmentsService.getCuestionario(estAcess.idEstablecimiento);
 
-        if(!cuestionario){
+        if (!cuestionario) {
             throw new AppError("Cuestionario no encontrado para este establecimiento", 404);
         }
 
@@ -166,6 +166,42 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
         );
 
         res.status(response.statusCode).json(response);
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const sendInvitation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { correo, rol } = req.body
+        const orgAccess = req.orgAccess;
+        const estAcess = req.estAccess;
+
+        const result = sendInvitationSchema.safeParse({ correo, rol });
+
+        if (!result.success) {
+            throw new AppError("Datos inválidos", 400);
+        }
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (!estAcess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        if (estAcess.rol !== RolEstablecimiento.OWNER) {
+            throw new AppError("Permisos insuficientes para enviar invitación", 403);
+        }
+
+
+        const invitation = await establishmentsService.sendInvitation(orgAccess.idOrganizacion, estAcess.idEstablecimiento, orgAccess.idUsuario, result.data.correo, result.data.rol);
+
+
+        return res.status(200).json(ApiResponse.success(invitation, "Invitación enviada correctamente"));
+
 
     } catch (error) {
         next(error);

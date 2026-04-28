@@ -1,5 +1,9 @@
+import { RolOrganizacion} from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { CreateOrganizationInput } from "../schemas/organizationSchema";
+import { generateToken, hashToken } from "../utils/token";
+import { sendInvitationEmail } from "./mailService";
+import { getRoleLabel } from "../utils/enumValidation";
 
 class OrganizationService {
     async createOrganization(data: CreateOrganizationInput) {
@@ -58,6 +62,46 @@ class OrganizationService {
         });
         return organization;
 
+    }
+
+    async sendInvitation(orgId: string, userId: string, correo: string) {
+        const rawToken = generateToken()
+        const hashedToken = hashToken(rawToken)
+
+        const invitation = await prisma.invitacionOrganizacion.create({
+            data: {
+                idOrganizacion: orgId,
+                idInvitador: userId,
+                correo: correo,
+                codigo: hashedToken,
+                expiraEn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expira en 7 días
+                rol: RolOrganizacion.ORG_ADMIN
+            },
+            select: {
+                invitador: {
+                    select: {
+                        nombre: true
+                    }
+                },
+                organizacion: {
+                    select: {
+                        nombre: true
+                    }
+                },
+                rol: true,
+                expiraEn: true
+            }
+        })
+
+        if (!invitation) {
+            throw new Error('Error al crear la invitación');
+        }
+
+        const link = `${process.env.FRONTEND_URL}/invitaciones`;
+
+        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.organizacion.nombre, "la organización", getRoleLabel(invitation.rol, "organizacion"), link, invitation.expiraEn.toISOString());
+
+        return invitation;
     }
 }
 

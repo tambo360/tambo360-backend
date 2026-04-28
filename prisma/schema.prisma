@@ -90,42 +90,44 @@ model Usuario {
   activo         Boolean               @default(true)
   tokens         VerificarToken[]
   organizaciones OrganizacionUsuario[]
-  invitacions    Invitacion[]
+  invitacionesOrganizacion InvitacionOrganizacion[]
+  invitacionesEstablecimiento InvitacionEstablecimiento[]
 }
 
 model Organizacion {
-  idOrganizacion   String                @id @default(uuid())
+  idOrganizacion   String                   @id @default(uuid())
   nombre           String
-  fechaCreacion    DateTime              @default(now())
+  fechaCreacion    DateTime                 @default(now())
   usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
-  invitacions      Invitacion[]
+  invitaciones     InvitacionOrganizacion[]
 }
 
 model OrganizacionUsuario {
-  idOrganizacionUsuario              String                               @id @default(uuid())
-  idOrganizacion                     String
-  organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  idUsuario                          String
-  usuario                            Usuario                              @relation(fields: [idUsuario], references: [idUsuario])
-  rol                                RolOrganizacion
-  estado                             Boolean                              @default(true)
-  fechaCreacion                      DateTime                             @default(now())
+  idOrganizacionUsuario               String                                @id @default(uuid())
+  idOrganizacion                      String
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  idUsuario                           String
+  usuario                             Usuario                               @relation(fields: [idUsuario], references: [idUsuario])
+  rol                                 RolOrganizacion
+  estado                              Boolean                               @default(true)
+  fechaCreacion                       DateTime                              @default(now())
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
 }
 
 model Establecimiento {
-  idEstablecimiento                  String                               @id @default(uuid())
-  nombre                             String
-  localidad                          String?
-  provincia                          String?
-  fechaCreacion                      DateTime                             @default(now())
-  idOrganizacion                     String
-  organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  loteProducciones                   LoteProduccion[]
+  idEstablecimiento                   String                                @id @default(uuid())
+  nombre                              String
+  localidad                           String?
+  provincia                           String?
+  fechaCreacion                       DateTime                              @default(now())
+  idOrganizacion                      String
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  loteProducciones                    LoteProduccion[]
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
-  configuracions                     configuracion[]
-  establecimientoRazas               EstablecimientoRaza[]
+  configuracions                      configuracion[]
+  establecimientoRazas                EstablecimientoRaza[]
+  invitaciones                        InvitacionEstablecimiento[]
 }
 
 model Establecimiento_OrganizacionUsuario {
@@ -153,19 +155,36 @@ model configuracion {
   modificadoEn      DateTime?
 }
 
-model Invitacion {
-  idInvitacion      String           @id @default(uuid())
-  idOrganizacion    String
+model InvitacionOrganizacion {
+  idInvitacion   String           @id @default(uuid())
+  idOrganizacion String
+  idInvitador    String
+  correo         String
+  codigo         String
+  estado         EstadoInvitacion @default(pendiente)
+  expiraEn       DateTime
+  rol            RolOrganizacion
+
+  organizacion Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  invitador    Usuario      @relation(fields: [idInvitador], references: [idUsuario])
+
+  creadoEn DateTime @default(now())
+}
+
+model InvitacionEstablecimiento {
+  idInvitacion      String             @id @default(uuid())
+  idEstablecimiento String
   idInvitador       String
-  idEstablecimiento String?
   correo            String
   codigo            String
-  estado            EstadoInvitacion @default(pendiente)
+  estado            EstadoInvitacion   @default(pendiente)
   expiraEn          DateTime
-  rol               RolOrganizacion
-  organizacion      Organizacion     @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  usuario           Usuario          @relation(fields: [idInvitador], references: [idUsuario])
-  creadoEn          DateTime         @default(now())
+  rol               RolEstablecimiento
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  invitador       Usuario         @relation(fields: [idInvitador], references: [idUsuario])
+
+  creadoEn DateTime @default(now())
 }
 
 model Producto {

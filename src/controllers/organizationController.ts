@@ -57,4 +57,33 @@ export class OrganizationController {
         }
     }
 
+
+    static async sendInvitation(req: Request, res: Response, next: NextFunction) {
+        try {
+
+            const { correo, } = req.body
+
+            const orgAccess = req.orgAccess;
+
+            if(!correo){
+                throw new AppError("Correo electrónico es requerido", 400);
+            }
+
+            if (!orgAccess) {
+                throw new AppError("Acceso a organización no válido", 400);
+            }
+
+            if (orgAccess.rol !== RolOrganizacion.ORG_OWNER) {
+                throw new AppError("Permisos insufficientes para enviar invitación", 403);
+            }
+
+            const invitation = await OrganizationService.sendInvitation(orgAccess.idOrganizacion, orgAccess.idUsuario, correo);
+
+
+            return res.status(200).json(ApiResponse.success(invitation, "Invitación enviada correctamente"));
+        } catch (error) {
+            next(error);
+        }
+    }
+
 }

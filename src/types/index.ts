@@ -1,4 +1,4 @@
-import { Categoria, ConceptoCosto, Merma, TipoMerma, Unidad } from "@prisma/client";
+import { Categoria, ConceptoCosto, Merma, RolEstablecimiento, RolOrganizacion, TipoMerma, Unidad } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 declare module 'express' {
@@ -78,4 +78,26 @@ export const MetricaObj = {
   costos: "costos"
 } as const;
 
+
+
 export type Metrica = typeof MetricaObj[keyof typeof MetricaObj];
+
+export const ORgRolObj = {
+  ORG_OWNER: "ORG_OWNER",
+  ORG_ADMIN: "ORG_ADMIN",
+  ORG_MEMBER: "ORG_MEMBER"
+} as const;
+
+
+
+export const rolOrganizacionLabel: Record<RolOrganizacion, string> = {
+  ORG_OWNER: "Propietario de la organización",
+  ORG_ADMIN: "Administrador de la organización",
+  MEMBER: "Miembro"
+};
+
+export const rolEstablecimientoLabel: Record<RolEstablecimiento, string> = {
+  OWNER: "Propietario del establecimiento",
+  ADMIN: "Administrador del establecimiento",
+  EMPLOYEE: "Empleado"
+};

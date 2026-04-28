@@ -272,3 +272,96 @@ ${safeMessage}
     html
   );
 }
+
+
+export async function sendInvitationEmail(
+  to: string,
+  inviterName: string,
+  entityName: string,
+  entityType: "la organización" | "el establecimiento",
+  role: string,
+  link: string,
+  expiresAt: string
+) {
+  const subject = `Invitación a ${entityName} en Tambo360`;
+
+  const text = `
+Hola,
+
+${inviterName} te invitó a unirte a ${entityType} "${entityName}" en Tambo360.
+
+Rol asignado: ${role}
+
+Para aceptar la invitación, ingresá al siguiente enlace:
+${link}
+
+La invitación vence el ${expiresAt}.
+
+Si no esperabas esta invitación, podés ignorar este mensaje.
+
+Equipo Tambo360
+`;
+
+  const html = `
+<div style="background-color:#f4f6f8; padding:40px 0; font-family: Arial, sans-serif;">
+  <div style="
+      max-width:600px;
+      margin:0 auto;
+      background-color:#ffffff;
+      padding:40px;
+      border-radius:10px;
+      border:1px solid #e5e7eb;
+      box-shadow:0 4px 12px rgba(0,0,0,0.05);
+  ">
+    <h2 style="text-align:center; color:#1f2937; margin-top:0;">
+      Invitación a Tambo360
+    </h2>
+
+    <p>Hola,</p>
+
+    <p>
+      <strong>${inviterName}</strong> te invitó a unirte a 
+      ${entityType} <strong>"${entityName}"</strong>.
+    </p>
+
+    <p>
+      <strong>Rol asignado:</strong> ${role}
+    </p>
+
+    <div style="text-align:center; margin:35px 0;">
+      <a href="${link}" style="
+          background-color:#16a34a;
+          color:#ffffff;
+          padding:14px 24px;
+          text-decoration:none;
+          border-radius:6px;
+          font-weight:bold;
+          display:inline-block;
+      ">
+        Aceptar invitación
+      </a>
+    </div>
+
+    <p style="font-size:12px; word-break:break-all;">
+      ${link}
+    </p>
+
+    <p style="font-size:13px;">
+      Esta invitación vence el <strong>${expiresAt}</strong>.
+    </p>
+
+    <hr style="margin:30px 0;" />
+
+    <p style="font-size:12px; text-align:center;">
+      Si no esperabas esta invitación, podés ignorar este mensaje.
+    </p>
+
+    <p style="font-size:12px; text-align:center;">
+      Equipo Tambo360
+    </p>
+  </div>
+</div>
+`;
+
+  await sendMailViaVercel(to, subject, text, html);
+}

@@ -10,7 +10,7 @@ import RutasCostos from "./cost";
 import RutasProductos from "./product";
 import RutasDashboard from "./dashboard"
 import RutasLanding from "./landing";
-
+import RutasPerfil from "./profile";
 
 import RutasAlertas from "./alertRoutes";
 
@@ -18,6 +18,7 @@ const router = express.Router();
 
 // Rutas de la API
 router.use('/auth', RutasAutenticacion);
+router.use('/perfil', RutasPerfil);
 router.use('/health', HealthRoutes);
 router.use('/establecimiento', RutasEstablecimientos);
 router.use('/organizacion', RutasOrganizacion);

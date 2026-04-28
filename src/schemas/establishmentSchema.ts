@@ -1,4 +1,4 @@
-import { TipoOrdenie, VentaLeche } from "@prisma/client";
+import {TipoOrdenie, VentaLeche } from "@prisma/client";
 import { z } from "zod";
 
 const requiredString = (message: string) =>
@@ -35,6 +35,14 @@ export const questionnaireSchema = z.object({
         localidad: requiredString("La localidad es obligatoria"),
     }),
 })
+
+export const sendInvitationSchema = z.object({
+    correo: z.string().email("Correo electrónico no válido"),
+    rol: z.enum(["ADMIN", "EMPLOYEE"])
+});
+
+export type sendInvitationSchemaInput = z.infer<typeof sendInvitationSchema>;
+
 
 export type CreateEstablishmentData = z.infer<typeof createEstablishmentSchema>;
 export type UpdateEstablishmentNameData = z.infer<typeof updateEstablishmentNameSchema>;
