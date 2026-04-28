@@ -3,13 +3,14 @@ import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import OrganizationService from "../services/organizationService";
 import { createOrganizationSchema } from "../schemas/organizationSchema";
+import { RolOrganizacion } from "@prisma/client";
 
 export class OrganizationController {
     static async createOrganization(req: Request, res: Response, next: NextFunction) {
         try {
-            const { nombre, rol } = req.body;
+            const { nombre } = req.body;
             const userId = req.user?.id;
-            const result = createOrganizationSchema.safeParse({ nombre, rol, userId });
+            const result = createOrganizationSchema.safeParse({ nombre, rol: RolOrganizacion.ORG_OWNER, userId });
 
             if (!result.success) {
                 throw new AppError("Datos inválidos", 400);

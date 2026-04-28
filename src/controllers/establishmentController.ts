@@ -13,7 +13,7 @@ export const registrarEstablecimiento = async (req: Request, res: Response, next
             throw new AppError("Acceso a organización no válido", 400);
         }
 
-        if (orgAccess.rol !== RolOrganizacion.duenio && orgAccess.rol !== RolOrganizacion.cooperativa) {
+        if (orgAccess.rol !== RolOrganizacion.ORG_OWNER && orgAccess.rol !== RolOrganizacion.ORG_ADMIN) {
             throw new AppError("Permisos insuficientes para crear un establecimiento", 403);
         }
 
@@ -96,7 +96,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
             throw new AppError("Acceso a establecimiento no válido", 400);
         }
 
-        if (estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
+        if (estAcess.rol !== RolEstablecimiento.OWNER && estAcess.rol !== RolEstablecimiento.ADMIN) {
             throw new AppError("Permisos insuficientes para registrar el cuestionario", 403);
         }
 
@@ -134,7 +134,7 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
             throw new AppError("Acceso a establecimiento no válido", 400);
         }
 
-        if (estAcess.rol !== RolEstablecimiento.duenio && estAcess.rol !== RolEstablecimiento.administrador) {
+        if (estAcess.rol !== RolEstablecimiento.OWNER && estAcess.rol !== RolEstablecimiento.ADMIN) {
             throw new AppError("Permisos insuficientes para obtener el cuestionario", 403);
         }
 

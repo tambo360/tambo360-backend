@@ -45,16 +45,15 @@ enum ConceptoCosto {
 }
 
 enum RolOrganizacion {
-  cooperativa
-  duenio
-  administrador
-  empleado
+  ORG_OWNER
+  ORG_ADMIN
+  MEMBER
 }
 
 enum RolEstablecimiento {
-  duenio
-  administrador
-  empleado
+  OWNER
+  ADMIN
+  EMPLOYEE
 }
 
 enum EstadoInvitacion {
@@ -112,7 +111,7 @@ model OrganizacionUsuario {
   rol                                RolOrganizacion
   estado                             Boolean                              @default(true)
   fechaCreacion                      DateTime                             @default(now())
-  establecimientoOrganiacionUsuarios Establecimiento_OrganiacionUsuario[]
+  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
 }
 
 model Establecimiento {
@@ -124,12 +123,12 @@ model Establecimiento {
   idOrganizacion                     String
   organizacion                       Organizacion                         @relation(fields: [idOrganizacion], references: [idOrganizacion])
   loteProducciones                   LoteProduccion[]
-  establecimientoOrganiacionUsuarios Establecimiento_OrganiacionUsuario[]
+  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
   configuracions                     configuracion[]
   establecimientoRazas               EstablecimientoRaza[]
 }
 
-model Establecimiento_OrganiacionUsuario {
+model Establecimiento_OrganizacionUsuario {
   idEstablecimientoOrganizacionUsuario String              @id @default(uuid())
   idEstablecimiento                    String
   establecimiento                      Establecimiento     @relation(fields: [idEstablecimiento], references: [idEstablecimiento])

@@ -37,11 +37,11 @@ class EstablishmentsService {
                 },
             });
 
-            await prisma.establecimiento_OrganiacionUsuario.create({
+            await prisma.establecimiento_OrganizacionUsuario.create({
                 data: {
                     idEstablecimiento: establecimiento.idEstablecimiento,
                     idOrganizacionUsuario: data.idOrganizacionUsuario,
-                    rol: RolEstablecimiento.duenio,
+                    rol: RolEstablecimiento.OWNER,
                 }
             })
 
@@ -62,7 +62,7 @@ class EstablishmentsService {
         const establecimientos = await prisma.organizacionUsuario.findMany({
             where: { idOrganizacionUsuario },
             include: {
-                establecimientoOrganiacionUsuarios: {
+                establecimientoOrganizacionUsuarios: {
                     include: {
                         establecimiento: true,
                     }
@@ -92,7 +92,7 @@ class EstablishmentsService {
      }*/
 
     async getEstablishmentById(id: string, idOrganizacionUsuario: string) {
-        const establishment = await prisma.establecimiento_OrganiacionUsuario.findFirst({
+        const establishment = await prisma.establecimiento_OrganizacionUsuario.findFirst({
             where: {
                 idEstablecimiento: id,
                 idOrganizacionUsuario,
