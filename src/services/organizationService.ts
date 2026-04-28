@@ -35,7 +35,7 @@ class OrganizationService {
             },
             include: {
                 organizacion: true,
-                establecimientoOrganiacionUsuarios: {
+                establecimientoOrganizacionUsuarios: {
                     include: {
                         establecimiento: true
                     }
@@ -53,7 +53,7 @@ class OrganizationService {
             },
             include: {
                 organizacion: true,
-                establecimientoOrganiacionUsuarios: {
+                establecimientoOrganizacionUsuarios: {
                     include: {
                         establecimiento: true
                     }

@@ -60,9 +60,8 @@ export async function requireOrgAccess(req: Request, res: Response, next: NextFu
   next();
 }
 
-
 export async function establecimientoRequireOrgAccess(req: Request, res: Response, next: NextFunction) {
-  const access = await prisma.establecimiento_OrganiacionUsuario.findFirst({
+  const access = await prisma.establecimiento_OrganizacionUsuario.findFirst({
     where: {
       idOrganizacionUsuario: req.orgAccess?.idOrganizacionUsuario,
       idEstablecimiento: req.estId
