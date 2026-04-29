@@ -114,6 +114,7 @@ model OrganizacionUsuario {
   estado                              Boolean                               @default(true)
   fechaCreacion                       DateTime                              @default(now())
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
+  @@unique([idOrganizacion, idUsuario])
 }
 
 model Establecimiento {
@@ -140,6 +141,7 @@ model Establecimiento_OrganizacionUsuario {
   rol                                  RolEstablecimiento
   estado                               Boolean             @default(true)
   fechaCreacion                        DateTime            @default(now())
+  @@unique([idEstablecimiento, idOrganizacionUsuario])
 }
 
 model configuracion {
@@ -164,6 +166,7 @@ model InvitacionOrganizacion {
   codigo         String
   estado         EstadoInvitacion @default(pendiente)
   expiraEn       DateTime
+  respondidaEn   DateTime?
   rol            RolOrganizacion
 
   organizacion Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
@@ -180,6 +183,7 @@ model InvitacionEstablecimiento {
   codigo            String
   estado            EstadoInvitacion   @default(pendiente)
   expiraEn          DateTime
+  respondidaEn      DateTime?
   rol               RolEstablecimiento
 
   establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
