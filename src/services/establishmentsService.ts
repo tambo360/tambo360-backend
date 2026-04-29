@@ -5,6 +5,7 @@ import { RolEstablecimiento } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
+import { formatDate } from "../utils";
 
 type CreateEstablishmentServiceData = CreateEstablishmentData & {
     userId: string;
@@ -293,7 +294,7 @@ class EstablishmentsService {
 
         const link = `${process.env.FRONTEND_URL}/invitaciones`;
 
-        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.establecimiento.nombre, "el establecimiento", getRoleLabel(invitation.rol, "establecimiento"), link, invitation.expiraEn.toISOString());
+        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.establecimiento.nombre, "el establecimiento", getRoleLabel(invitation.rol, "establecimiento"), link, formatDate(invitation.expiraEn));
 
         return invitation;
     }

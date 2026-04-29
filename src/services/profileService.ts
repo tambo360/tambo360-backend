@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { formatDate } from "../utils";
 
 
 
@@ -79,7 +80,7 @@ class ProfileService {
                 correo: invitation.correo,
                 invitador: invitation.invitador.nombre,
                 estado: invitation.estado,
-                expiraEn: invitation.expiraEn,
+                expiraEn: formatDate(invitation.expiraEn),
                 organizacion: {
                     id: invitation.organizacion.idOrganizacion,
                     nombre: invitation.organizacion.nombre
@@ -90,7 +91,7 @@ class ProfileService {
                 correo: invitation.correo,
                 invitador: invitation.invitador.nombre,
                 estado: invitation.estado,
-                expiraEn: invitation.expiraEn,
+                expiraEn: formatDate(invitation.expiraEn),
                 establecimiento: {
                     id: invitation.establecimiento.idEstablecimiento,
                     nombre: invitation.establecimiento.nombre

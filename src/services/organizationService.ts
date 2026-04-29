@@ -1,9 +1,10 @@
-import { RolOrganizacion} from "@prisma/client";
+import { EstadoInvitacion, RolOrganizacion } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { CreateOrganizationInput } from "../schemas/organizationSchema";
 import { generateToken, hashToken } from "../utils/token";
 import { sendInvitationEmail } from "./mailService";
 import { getRoleLabel } from "../utils/enumValidation";
+import { formatDate } from "../utils";
 
 class OrganizationService {
     async createOrganization(data: CreateOrganizationInput) {
@@ -67,6 +68,19 @@ class OrganizationService {
     async sendInvitation(orgId: string, userId: string, correo: string) {
         const rawToken = generateToken()
         const hashedToken = hashToken(rawToken)
+        const existingInvitation = await prisma.invitacionOrganizacion.findFirst({
+            where: {
+                idOrganizacion: orgId,
+                correo: correo,
+                expiraEn: {
+                    gt: new Date()
+                },
+                estado: EstadoInvitacion.pendiente
+            }
+        })
+        if (existingInvitation) {
+            throw new Error('Ya existe una invitación activa para este correo');
+        }
 
         const invitation = await prisma.invitacionOrganizacion.create({
             data: {
@@ -99,7 +113,7 @@ class OrganizationService {
 
         const link = `${process.env.FRONTEND_URL}/invitaciones`;
 
-        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.organizacion.nombre, "la organización", getRoleLabel(invitation.rol, "organizacion"), link, invitation.expiraEn.toISOString());
+        await sendInvitationEmail(correo, invitation.invitador.nombre, invitation.organizacion.nombre, "la organización", getRoleLabel(invitation.rol, "organizacion"), link, formatDate(invitation.expiraEn));
 
         return invitation;
     }
