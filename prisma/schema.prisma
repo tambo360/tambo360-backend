@@ -81,16 +81,16 @@ enum VentaLeche {
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
-  idUsuario      String                @id @default(uuid())
-  correo         String                @unique
-  contrasena     String
-  nombre         String                @db.VarChar(50)
-  verificado     Boolean               @default(false)
-  fechaCreacion  DateTime              @default(now())
-  activo         Boolean               @default(true)
-  tokens         VerificarToken[]
-  organizaciones OrganizacionUsuario[]
-  invitacionesOrganizacion InvitacionOrganizacion[]
+  idUsuario                   String                      @id @default(uuid())
+  correo                      String                      @unique
+  contrasena                  String
+  nombre                      String                      @db.VarChar(50)
+  verificado                  Boolean                     @default(false)
+  fechaCreacion               DateTime                    @default(now())
+  activo                      Boolean                     @default(true)
+  tokens                      VerificarToken[]
+  organizaciones              OrganizacionUsuario[]
+  invitacionesOrganizacion    InvitacionOrganizacion[]
   invitacionesEstablecimiento InvitacionEstablecimiento[]
 }
 
@@ -101,6 +101,7 @@ model Organizacion {
   usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
   invitaciones     InvitacionOrganizacion[]
+  razas            Raza[]
 }
 
 model OrganizacionUsuario {
@@ -195,17 +196,29 @@ model Producto {
 }
 
 model Raza {
-  idRaza               String                @id @default(uuid())
-  nombre               String
-  establecimientoRazas EstablecimientoRaza[]
+  idRaza            String  @id @default(uuid())
+  nombre            String
+  nombreNormalizado String
+  esSistema         Boolean @default(false)
+
+  idOrganizacion String?
+  organizacion   Organizacion? @relation(fields: [idOrganizacion], references: [idOrganizacion])
+
+  establecimientos EstablecimientoRaza[]
+
+  @@unique([nombreNormalizado, idOrganizacion])
 }
 
 model EstablecimientoRaza {
-  idEstablecimientoRaza String          @id @default(uuid())
-  idEstablecimiento     String
-  establecimiento       Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  idRaza                String
-  raza                  Raza            @relation(fields: [idRaza], references: [idRaza])
+  id String @id @default(uuid())
+
+  idEstablecimiento String
+  idRaza            String
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  raza            Raza            @relation(fields: [idRaza], references: [idRaza])
+
+  @@unique([idEstablecimiento, idRaza])
 }
 
 model LoteProduccion {

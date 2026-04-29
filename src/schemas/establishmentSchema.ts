@@ -21,7 +21,7 @@ export const questionnaireSchema = z.object({
     idEstablecimiento: z.string().uuid("ID de establecimiento no válido"),
     cantidadVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
     Razas: z.array(z.object({
-        idRaza: z.string().uuid("ID de raza no válido"),
+        idRaza: z.string().uuid("ID de raza no válido").optional(),
         nombre: requiredString("El nombre de la raza es obligatorio"),
     })).min(1, "Debe haber al menos una raza"),
     cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),

@@ -6,6 +6,13 @@ Esta API permite gestionar organizaciones dentro del sistema. Requiere autentica
 ## Autenticación
 Todos los endpoints requieren un token de autenticación válido en el header `Authorization`.
 
+## Headers Requeridos
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización | (requerido para `/organizacion/invitacion`)
+
 ---
 
 ## Endpoints
@@ -21,18 +28,16 @@ Todos los endpoints requieren un token de autenticación válido en el header `A
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
 | `nombre` | string | Sí | Nombre de la organización |
-| `rol` | enum (RolOrganizacion) | Sí | Rol del usuario en la organización |
 
 #### Ejemplo de Request
 
 ```json
 {
-  "nombre": "Mi Cooperativa",
-  "rol": "duenio"
+  "nombre": "Mi Cooperativa"
 }
 ```
 
-#### Response (201 - Creado)
+#### Response (200 - OK)
 
 ```json
 {
@@ -41,7 +46,7 @@ Todos los endpoints requieren un token de autenticación válido en el header `A
   "data": {
     "id": "uuid",
     "nombre": "Mi Cooperativa",
-    "rol": "duenio",
+    "rol": "ORG_OWNER",
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
@@ -127,6 +132,65 @@ No requiere body. El `userId` se obtiene del token de autenticación.
 |--------|---------|
 | 401 | Usuario no autenticado |
 | 404 | Organización no encontrada |
+
+---
+
+### 4. Enviar Invitación a Organización
+
+**Método:** `POST`  
+**Ruta:** `/organizacion/invitacion`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`
+
+#### Headers
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización |
+
+#### Request Body
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `correo` | string | Sí | Email de la persona invitada |
+
+#### Ejemplo de Request
+
+```json
+{
+  "correo": "usuario@dominio.com"
+}
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Invitación enviada correctamente",
+  "data": {
+    "rol": "ORG_ADMIN",
+    "expiraEn": "2024-01-08T00:00:00.000Z",
+    "invitador": {
+      "nombre": "Nombre Invitador"
+    },
+    "organizacion": {
+      "nombre": "Mi Cooperativa"
+    }
+  }
+}
+```
+
+#### Permisos
+Solo usuarios con rol `ORG_OWNER` pueden enviar invitaciones.
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Correo electrónico es requerido |
+| 400 | Acceso a organización no válido |
+| 403 | Permisos insufficientes para enviar invitación |
 
 ---
 

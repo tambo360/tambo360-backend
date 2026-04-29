@@ -109,35 +109,35 @@ class EstablishmentsService {
     }
 
     async guardarCuestionario(data: QuestionnaireData) {
-        const existente = await prisma.establecimiento.findFirst({
-            where: {
-                idEstablecimiento: data.idEstablecimiento,
-            },
-        });
+        return await prisma.$transaction(async (tx) => {
 
-        if (!existente) {
-            throw new AppError("Establecimiento no encontrado", 404);
-        }
-
-        const result = await prisma.$transaction(async (prisma) => {
-            const establecimiento = await prisma.establecimiento.update({
-                where: {
-                    idEstablecimiento: data.idEstablecimiento,
-                },
-                data: {
-                    localidad: data.ubicacion.localidad,
-                    provincia: data.ubicacion.provincia,
-                },
+            // 1. Validar establecimiento
+            const establecimiento = await tx.establecimiento.findUnique({
+                where: { idEstablecimiento: data.idEstablecimiento },
                 select: {
+                    idOrganizacion: true,
                     configuracions: {
-                        select: {
-                            idConfiguracion: true,
-                        }
+                        select: { idConfiguracion: true }
                     }
                 }
             });
 
-            await prisma.configuracion.update({
+            if (!establecimiento) {
+                throw new AppError("Establecimiento no encontrado", 404);
+            }
+
+            const orgId = establecimiento.idOrganizacion;
+
+            // 2. Actualizar datos básicos
+            await tx.establecimiento.update({
+                where: { idEstablecimiento: data.idEstablecimiento },
+                data: {
+                    localidad: data.ubicacion.localidad,
+                    provincia: data.ubicacion.provincia,
+                }
+            });
+
+            await tx.configuracion.update({
                 where: {
                     idConfiguracion: establecimiento.configuracions[0].idConfiguracion,
                 },
@@ -151,30 +151,84 @@ class EstablishmentsService {
                     cantEmpleados: data.cantEmpleados,
                     modificadoEn: new Date(),
                 }
-            })
+            });
 
-            await prisma.establecimientoRaza.deleteMany({
+            // 3. Normalizar nombres
+            const razasInput = data.Razas.map(r => ({
+                idRaza: r.idRaza,
+                nombre: r.nombre,
+                nombreNormalizado: r.nombre.trim().toLowerCase()
+            }));
+
+            // 4. Separar
+            const conId = razasInput.filter(r => r.idRaza);
+            const sinId = razasInput.filter(r => !r.idRaza);
+
+            // 5. Buscar existentes (batch)
+            const nombresSinId = sinId.map(r => r.nombreNormalizado);
+
+            const existentes = await tx.raza.findMany({
                 where: {
-                    idEstablecimiento: data.idEstablecimiento,
+                    nombreNormalizado: { in: nombresSinId },
+                    OR: [
+                        { idOrganizacion: null },
+                        { idOrganizacion: orgId }
+                    ]
                 }
             });
 
-            const razasData = data.Razas.map(raza => ({
-                idEstablecimiento: data.idEstablecimiento,
-                idRaza: raza.idRaza,
-            }));
+            // map rápido
+            const mapaExistentes = new Map(
+                existentes.map(r => [r.nombreNormalizado, r])
+            );
 
-            await prisma.establecimientoRaza.createMany({
-                data: razasData
+            // 6. Crear las que no existen
+            const nuevasCrear = sinId.filter(r => !mapaExistentes.has(r.nombreNormalizado));
+
+            let nuevasCreadas: { idRaza: string }[] = [];
+
+            if (nuevasCrear.length > 0) {
+                nuevasCreadas = await Promise.all(
+                    nuevasCrear.map(r =>
+                        tx.raza.create({
+                            data: {
+                                nombre: r.nombre,
+                                nombreNormalizado: r.nombreNormalizado,
+                                idOrganizacion: orgId,
+                                esSistema: false
+                            },
+                            select: { idRaza: true }
+                        })
+                    )
+                );
+            }
+
+            // 7. Armar lista final de IDs
+            const idsFinales = [
+                ...conId.map(r => r.idRaza!),
+                ...sinId.map(r => mapaExistentes.get(r.nombreNormalizado)?.idRaza).filter(Boolean) as string[],
+                ...nuevasCreadas.map(r => r.idRaza)
+            ];
+
+            // evitar duplicados
+            const idsUnicos = [...new Set(idsFinales)];
+
+            // 8. Reemplazar relaciones
+            await tx.establecimientoRaza.deleteMany({
+                where: { idEstablecimiento: data.idEstablecimiento }
+            });
+
+            await tx.establecimientoRaza.createMany({
+                data: idsUnicos.map(idRaza => ({
+                    idEstablecimiento: data.idEstablecimiento,
+                    idRaza
+                }))
             });
 
             return { status: "success" };
-        })
-
-
-        return result;
+        });
     }
-
+    
     async getCuestionario(idEstablecimiento: string) {
         const [cuestionario, razas, establecimiento] = await Promise.all([
             prisma.configuracion.findFirst({

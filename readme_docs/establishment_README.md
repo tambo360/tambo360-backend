@@ -14,7 +14,7 @@ Esta API permite gestionar establecimientos dentro de una organización. Requier
 |--------|------|-------------|----------------------|
 | `Authorization` | string | Token JWT de autenticación | Todos |
 | `x-organizacion-id` | string (UUID) | ID de la organización | Todos (vía `orgContext`) |
-| `x-establecimiento-id` | string (UUID) | ID del establecimiento | `/establecimiento/cuestionario/*` (vía `estContext`) |
+| `x-establecimiento-id` | string (UUID) | ID del establecimiento | `/establecimiento/cuestionario/*`, `/establecimiento/invitacion` (vía `estContext`) |
 
 ---
 
@@ -273,6 +273,69 @@ Solo usuarios con rol `duenio` o `administrador` del establecimiento pueden obte
 | 400 | Acceso a establecimiento no válido |
 | 403 | Permisos insuficientes para obtener el cuestionario |
 | 404 | Cuestionario no encontrado para este establecimiento |
+
+---
+
+### 6. Enviar Invitación a Establecimiento
+
+**Método:** `POST`  
+**Ruta:** `/establecimiento/invitacion`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Headers
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización |
+| `x-establecimiento-id` | string (UUID) | ID del establecimiento |
+
+#### Request Body
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `correo` | string | Sí | Email de la persona invitada |
+| `rol` | string | Sí | Rol en el establecimiento (`ADMIN` o `EMPLOYEE`) |
+
+#### Ejemplo de Request
+
+```json
+{
+  "correo": "usuario@dominio.com",
+  "rol": "ADMIN"
+}
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Invitación enviada correctamente",
+  "data": {
+    "rol": "ADMIN",
+    "expiraEn": "2024-01-08T00:00:00.000Z",
+    "invitador": {
+      "nombre": "Nombre Invitador"
+    },
+    "establecimiento": {
+      "nombre": "Establecimiento La Esperanza"
+    }
+  }
+}
+```
+
+#### Permisos
+Solo usuarios con rol `OWNER` del establecimiento pueden enviar invitaciones.
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Datos inválidos |
+| 400 | Acceso a organización no válido |
+| 400 | Acceso a establecimiento no válido |
+| 403 | Permisos insuficientes para enviar invitación |
 
 ---
 
