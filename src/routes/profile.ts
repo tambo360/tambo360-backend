@@ -11,6 +11,6 @@ router.use(authenticate);
 router.get('/invitaciones', ProfileController.getInvitations);
 router.post('/invitaciones/org', ProfileController.respondOrganizationInvitation);
 router.post('/invitaciones/est', ProfileController.respondEstablishmentInvitation);
-
+//eliminar usuarios de establecimientos (solo dueño)
 
 export default router;
