@@ -152,7 +152,6 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idEstablecimiento` | string (UUID) | Sí | ID del establecimiento |
 | `cantidadVacas` | number (int) | Sí | Cantidad de vacas (positivo) |
 | `Razas` | array | Sí | Array de razas (mínimo 1) |
 | `Razas[].idRaza` | string (UUID) | Sí | ID de la raza |
@@ -170,7 +169,6 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 ```json
 {
-  "idEstablecimiento": "uuid-del-establecimiento",
   "cantidadVacas": 150,
   "Razas": [
     {
