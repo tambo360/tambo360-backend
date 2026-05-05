@@ -37,7 +37,11 @@ No requiere body.
         "id": "uuid",
         "correo": "usuario@dominio.com",
         "invitador": "Nombre Invitador",
-        "estado": "PENDIENTE",
+        "estado": "pendiente",
+        "rol": {
+          "rol": "ORG_ADMIN",
+          "nombre": "Administrador de organización"
+        },
         "expiraEn": "2024-01-08T00:00:00.000Z",
         "organizacion": {
           "id": "uuid",
@@ -50,7 +54,11 @@ No requiere body.
         "id": "uuid",
         "correo": "usuario@dominio.com",
         "invitador": "Nombre Invitador",
-        "estado": "PENDIENTE",
+        "estado": "pendiente",
+        "rol": {
+          "rol": "ADMIN",
+          "nombre": "Administrador de establecimiento"
+        },
         "expiraEn": "2024-01-08T00:00:00.000Z",
         "establecimiento": {
           "id": "uuid",
@@ -174,5 +182,6 @@ No requiere body.
 ## Notas
 
 - El endpoint `/perfil/invitaciones` devuelve dos arrays: `invitaciones_organizacion` y `invitaciones_establecimiento`.
+- Cada invitación incluye un objeto `rol` con `rol` y `nombre`.
 - Las respuestas se validan con `profileSchema`.
 - Las respuestas siguen el formato estándar `ApiResponse`.

@@ -2,6 +2,7 @@ import { RolOrganizacion } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { RespondEstablishmentInvitationInput, RespondOrganizationInvitationInput } from "../schemas/profileSchema";
 import { formatDate } from "../utils";
+import { getRoleLabel } from "../utils/enumValidation";
 
 
 
@@ -224,6 +225,7 @@ class ProfileService {
                     select: {
                         idInvitacion: true,
                         correo: true,
+                        rol: true,
                         invitador: {
                             select: {
                                 nombre: true
@@ -248,6 +250,7 @@ class ProfileService {
                     select: {
                         idInvitacion: true,
                         correo: true,
+                        rol: true,
                         invitador: {
                             select: {
                                 nombre: true
@@ -285,6 +288,10 @@ class ProfileService {
                 correo: invitation.correo,
                 invitador: invitation.invitador.nombre,
                 estado: invitation.estado,
+                rol: {
+                    rol: invitation.rol,
+                    nombre: getRoleLabel(invitation.rol, "organizacion")
+                },
                 expiraEn: formatDate(invitation.expiraEn),
                 organizacion: {
                     id: invitation.organizacion.idOrganizacion,
@@ -296,6 +303,10 @@ class ProfileService {
                 correo: invitation.correo,
                 invitador: invitation.invitador.nombre,
                 estado: invitation.estado,
+                rol: {
+                    rol: invitation.rol,
+                    nombre: getRoleLabel(invitation.rol, "establecimiento")
+                },
                 expiraEn: formatDate(invitation.expiraEn),
                 establecimiento: {
                     id: invitation.establecimiento.idEstablecimiento,

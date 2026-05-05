@@ -67,7 +67,7 @@ class OrganizationService {
 
     async sendInvitation(orgId: string, userId: string, correo: string) {
         const rawToken = generateToken()
-        const hashedToken = hashToken(rawToken)
+        const hasedToken = hashToken(rawToken)
         const existingInvitation = await prisma.invitacionOrganizacion.findFirst({
             where: {
                 idOrganizacion: orgId,
@@ -87,7 +87,7 @@ class OrganizationService {
                 idOrganizacion: orgId,
                 idInvitador: userId,
                 correo: correo,
-                codigo: hashedToken,
+                codigo: hasedToken,
                 expiraEn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Expira en 7 días
                 rol: RolOrganizacion.ORG_ADMIN
             },
