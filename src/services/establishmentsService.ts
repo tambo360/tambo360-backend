@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
-import { RolEstablecimiento } from "@prisma/client";
+import { EstadoInvitacion, RolEstablecimiento } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
@@ -229,7 +229,7 @@ class EstablishmentsService {
             return { status: "success" };
         });
     }
-    
+
     async getCuestionario(idEstablecimiento: string) {
         const [cuestionario, razas, establecimiento] = await Promise.all([
             prisma.configuracion.findFirst({
@@ -262,6 +262,21 @@ class EstablishmentsService {
     async sendInvitation(orgId: string, estId: string, userId: string, correo: string, rol: RolEstablecimiento) {
         const rawToken = generateToken()
         const hashedToken = hashToken(rawToken)
+
+        const existingInvitation = await prisma.invitacionEstablecimiento.findFirst({
+            where: {
+                idEstablecimiento: estId,
+                correo: correo,
+                expiraEn: {
+                    gt: new Date()
+                },
+                estado: EstadoInvitacion.pendiente
+            }
+        })
+
+        if (existingInvitation) {
+            throw new Error('Ya existe una invitación activa para este correo');
+        }
 
         const invitation = await prisma.invitacionEstablecimiento.create({
             data: {
