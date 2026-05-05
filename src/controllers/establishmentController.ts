@@ -100,7 +100,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
             throw new AppError("Permisos insuficientes para registrar el cuestionario", 403);
         }
 
-        const parsed = questionnaireSchema.safeParse({...req.body, idEstablecimiento: estAcess.idEstablecimiento});
+        const parsed = questionnaireSchema.safeParse({ ...req.body, idEstablecimiento: estAcess.idEstablecimiento });
 
         if (!parsed.success) {
             throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
@@ -147,7 +147,10 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
         const data = {
             idEstablecimiento: cuestionario.idEstablecimiento,
             cantidad_vacas: cuestionario.cantVacas,
-            razas: razas.map(er => er.raza.nombre),
+            razas: razas.map(er => ({
+                nombre: er.raza.nombre,
+                id: er.raza.idRaza
+            })),
             ordeñe_por_dia: cuestionario.cantOrdenies,
             tipo_ordeñe: cuestionario.tipoOrdenie,
             litros_por_dia: cuestionario.promLitros,
