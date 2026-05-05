@@ -100,7 +100,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
             throw new AppError("Permisos insuficientes para registrar el cuestionario", 403);
         }
 
-        const parsed = questionnaireSchema.safeParse(req.body);
+        const parsed = questionnaireSchema.safeParse({...req.body, idEstablecimiento: estAcess.idEstablecimiento});
 
         if (!parsed.success) {
             throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
