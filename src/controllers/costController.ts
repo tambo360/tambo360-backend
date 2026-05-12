@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+/*import { Request, Response, NextFunction } from "express";
 import servicioCostos from "../services/costService";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppError } from "../utils/AppError";
@@ -120,3 +120,4 @@ export const eliminarCosto = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+*/

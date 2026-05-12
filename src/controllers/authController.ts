@@ -6,7 +6,7 @@ import { passwordValidationSchema, registerSchema } from "../schemas/authSchema"
 import jwt from "jsonwebtoken";
 
 
-// FUncion para registrar un nuevo usuario
+// FUncion para registrar un nuevo usuario 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { nombre, correo, contraseña } = req.body;
@@ -36,6 +36,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     next(error);
   }
 };
+
 // Funcion para iniciar sesión
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -54,7 +55,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         idUsuario: user.idUsuario,
         verificado: user.verificado,
         fechaCreacion: user.fechaCreacion,
-        establecimientos: user.establecimientos
+        organizaciones: user.organizaciones
       }
     }
     const token = jwt.sign(userData, process.env.JWT_SECRET!, { expiresIn: "1d" }); //
@@ -100,7 +101,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
         idUsuario: result.idUsuario,
         verificado: result.verificado,
         fechaCreacion: result.fechaCreacion,
-        establecimientos: result.establecimientos
+        organizaciones: result.organizaciones
       }
     }
 

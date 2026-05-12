@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+/*import { Request, Response, NextFunction } from "express";
 import { LoteService } from "../services/batchService";
 import { crearLoteSchema, editarLoteSchema, idLoteParamSchema, listarLotesSchema } from "../schemas/batchSchema";
 import { AppError } from "../utils/AppError";
@@ -139,3 +139,4 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+*/
