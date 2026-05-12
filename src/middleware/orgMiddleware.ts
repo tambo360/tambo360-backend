@@ -1,11 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
+import { RequireRolesConfig } from "../types";
 
-interface JwtPayload {
-  orgId: {
-    idUsuario: string;
-  };
-}
+
 
 export function orgContext(req: Request, res: Response, next: NextFunction) {
   const orgId = req.headers["x-organizacion-id"];
@@ -81,4 +78,31 @@ export async function establecimientoRequireOrgAccess(req: Request, res: Respons
   };
 
   next();
+}
+
+
+
+export function requireRoles(config: RequireRolesConfig) {
+  return (req: Request, res: Response, next: NextFunction) => {
+
+    // Roles organización
+    if (config.org) {
+      const orgRole = req.orgAccess?.rol;
+
+      if (!orgRole || !config.org.includes(orgRole)) {
+        return res.sendStatus(403);
+      }
+    }
+
+    // Roles establecimiento
+    if (config.est) {
+      const estRole = req.estAccess?.rol;
+
+      if (!estRole || !config.est.includes(estRole)) {
+        return res.sendStatus(403);
+      }
+    }
+
+    next();
+  };
 }

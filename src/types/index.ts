@@ -10,14 +10,20 @@ declare module 'express' {
       idOrganizacionUsuario: string;
       idUsuario: string;
       idOrganizacion: string;
-      rol: string;
+      rol: RolOrganizacion;
     };
     estAccess?: {
       idEstablecimientoOrganizacionUsuario: string;
-      rol: string;
+      rol: RolEstablecimiento;
       idEstablecimiento: string;
     }
   }
+}
+
+
+export interface RequireRolesConfig {
+  org?: RolOrganizacion[];
+  est?: RolEstablecimiento[];
 }
 
 interface RegistrationData {
@@ -77,7 +83,6 @@ export const MetricaObj = {
   mermas: "mermas",
   costos: "costos"
 } as const;
-
 
 
 export type Metrica = typeof MetricaObj[keyof typeof MetricaObj];
