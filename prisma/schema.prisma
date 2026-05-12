@@ -149,8 +149,9 @@ model Establecimiento_OrganizacionUsuario {
 
 model configuracion {
   idConfiguracion   String          @id @default(uuid())
-  idEstablecimiento String
+  idEstablecimiento String          @unique
   establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  ultimoNumeroLote  Int             @default(0)
   cantVacas         Int?
   cantOrdenies      Int?
   promLitros        Float?
