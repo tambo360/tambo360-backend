@@ -154,8 +154,11 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 |-------|------|-------------|-------------|
 | `cantidadVacas` | number (int) | Sí | Cantidad de vacas (positivo) |
 | `Razas` | array | Sí | Array de razas (mínimo 1) |
-| `Razas[].idRaza` | string (UUID) | Sí | ID de la raza |
+| `Razas[].idRaza` | string (UUID) | No | ID de la raza (opcional cuando se crea una nueva raza) |
 | `Razas[].nombre` | string | Sí | Nombre de la raza |
+| `Productos` | array | No | Array opcional de productos |
+| `Productos[].idProducto` | string (UUID) | No | ID del producto (opcional cuando se crea un nuevo producto) |
+| `Productos[].nombre` | string | Sí | Nombre del producto |
 | `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes (positivo) |
 | `tipoOrdenie` | enum | Sí | Tipo de ordeñe |
 | `promLitros` | number | Sí | Promedio de litros (positivo) |
@@ -174,6 +177,12 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
     {
       "idRaza": "uuid-raza",
       "nombre": "Holando"
+    }
+  ],
+  "Productos": [
+    {
+      "idProducto": "uuid-producto",
+      "nombre": "Leche Fresca"
     }
   ],
   "cantOrdenie": 2,

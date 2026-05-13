@@ -229,77 +229,78 @@ class EstablishmentsService {
             // =========================================================
             // PRODUCTOS
             // =========================================================
+            if (data.Productos) {
+                const productosInput = data.Productos.map(p => ({
+                    idProducto: p.idProducto,
+                    nombre: p.nombre,
+                    nombreNormalizado: p.nombre.trim().toLowerCase()
+                }));
 
-            const productosInput = data.Productos.map(p => ({
-                idProducto: p.idProducto,
-                nombre: p.nombre,
-                nombreNormalizado: p.nombre.trim().toLowerCase()
-            }));
+                const productosConId = productosInput.filter(p => p.idProducto);
+                const productosSinId = productosInput.filter(p => !p.idProducto);
 
-            const productosConId = productosInput.filter(p => p.idProducto);
-            const productosSinId = productosInput.filter(p => !p.idProducto);
-
-            const nombresProductosSinId = productosSinId.map(
-                p => p.nombreNormalizado
-            );
-
-            const productosExistentes = await tx.producto.findMany({
-                where: {
-                    nombreNormalizado: { in: nombresProductosSinId },
-                    OR: [
-                        { idOrganizacion: null },
-                        { idOrganizacion: orgId }
-                    ]
-                }
-            });
-
-            const mapaProductosExistentes = new Map(
-                productosExistentes.map(p => [p.nombreNormalizado, p])
-            );
-
-            const nuevosProductosCrear = productosSinId.filter(
-                p => !mapaProductosExistentes.has(p.nombreNormalizado)
-            );
-
-            let nuevosProductosCreados: { idProducto: string }[] = [];
-
-            if (nuevosProductosCrear.length > 0) {
-                nuevosProductosCreados = await Promise.all(
-                    nuevosProductosCrear.map(p =>
-                        tx.producto.create({
-                            data: {
-                                nombre: p.nombre,
-                                nombreNormalizado: p.nombreNormalizado,
-                                idOrganizacion: orgId,
-                                esSistema: false,
-                                categoria: Categoria.otros
-                            },
-                            select: { idProducto: true }
-                        })
-                    )
+                const nombresProductosSinId = productosSinId.map(
+                    p => p.nombreNormalizado
                 );
+
+                const productosExistentes = await tx.producto.findMany({
+                    where: {
+                        nombreNormalizado: { in: nombresProductosSinId },
+                        OR: [
+                            { idOrganizacion: null },
+                            { idOrganizacion: orgId }
+                        ]
+                    }
+                });
+
+                const mapaProductosExistentes = new Map(
+                    productosExistentes.map(p => [p.nombreNormalizado, p])
+                );
+
+                const nuevosProductosCrear = productosSinId.filter(
+                    p => !mapaProductosExistentes.has(p.nombreNormalizado)
+                );
+
+                let nuevosProductosCreados: { idProducto: string }[] = [];
+
+                if (nuevosProductosCrear.length > 0) {
+                    nuevosProductosCreados = await Promise.all(
+                        nuevosProductosCrear.map(p =>
+                            tx.producto.create({
+                                data: {
+                                    nombre: p.nombre,
+                                    nombreNormalizado: p.nombreNormalizado,
+                                    idOrganizacion: orgId,
+                                    esSistema: false,
+                                    categoria: Categoria.otros
+                                },
+                                select: { idProducto: true }
+                            })
+                        )
+                    );
+                }
+
+                const idsProductosFinales = [
+                    ...productosConId.map(p => p.idProducto!),
+                    ...productosSinId
+                        .map(p => mapaProductosExistentes.get(p.nombreNormalizado)?.idProducto)
+                        .filter(Boolean) as string[],
+                    ...nuevosProductosCreados.map(p => p.idProducto)
+                ];
+
+                const idsProductosUnicos = [...new Set(idsProductosFinales)];
+
+                await tx.establecimientoProducto.deleteMany({
+                    where: { idEstablecimiento: data.idEstablecimiento }
+                });
+
+                await tx.establecimientoProducto.createMany({
+                    data: idsProductosUnicos.map(idProducto => ({
+                        idEstablecimiento: data.idEstablecimiento,
+                        idProducto
+                    }))
+                });
             }
-
-            const idsProductosFinales = [
-                ...productosConId.map(p => p.idProducto!),
-                ...productosSinId
-                    .map(p => mapaProductosExistentes.get(p.nombreNormalizado)?.idProducto)
-                    .filter(Boolean) as string[],
-                ...nuevosProductosCreados.map(p => p.idProducto)
-            ];
-
-            const idsProductosUnicos = [...new Set(idsProductosFinales)];
-
-            await tx.establecimientoProducto.deleteMany({
-                where: { idEstablecimiento: data.idEstablecimiento }
-            });
-
-            await tx.establecimientoProducto.createMany({
-                data: idsProductosUnicos.map(idProducto => ({
-                    idEstablecimiento: data.idEstablecimiento,
-                    idProducto
-                }))
-            });
 
             return { status: "success" };
         });
