@@ -35,6 +35,7 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 | `idLote` | string (UUID) | Sí | ID único del lote |
 | `idProducto` | string (UUID) | Sí | ID del producto a producir |
 | `cantidad` | number | Sí | Cantidad a producir (mayor a 0) |
+| `unidad` | string | Sí | Unidad de medida (kg, litros) |
 | `fechaProduccion` | string | Sí | Fecha en formato dd/mm/aaaa (entre hoy y 7 días anteriores) |
 | `estado` | boolean | No | Estado del lote (opcional) |
 | `idRaza` | string (UUID) | Sí | ID de la raza utilizada |
@@ -47,6 +48,7 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
   "idLote": "550e8400-e29b-41d4-a716-446655440000",
   "idProducto": "550e8400-e29b-41d4-a716-446655440001",
   "cantidad": 100,
+  "unidad": "kg",
   "fechaProduccion": "15/05/2026",
   "estado": true,
   "idRaza": "550e8400-e29b-41d4-a716-446655440002",
@@ -64,6 +66,7 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
     "idLote": "550e8400-e29b-41d4-a716-446655440000",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
     "cantidad": 100,
+    "unidad": "kg",
     "fechaProduccion": "2026-05-15T12:00:00.000Z",
     "estado": true,
     "idRaza": "550e8400-e29b-41d4-a716-446655440002",
@@ -79,6 +82,7 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 |--------|---------|
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
+| 400 | Unidad de medida inválida |
 | 400 | Datos inválidos (detalles específicos de validación) |
 | 401 | Usuario no autenticado |
 
@@ -88,4 +92,5 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 
 - La fecha de producción debe estar en formato `dd/mm/aaaa`
 - La fecha debe estar entre la fecha actual y 7 días anteriores
+- Las unidades válidas son: `kg`, `litros`
 - Las respuestas siguen el formato estándar `ApiResponse`
