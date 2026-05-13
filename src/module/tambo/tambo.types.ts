@@ -1,7 +1,7 @@
 // src/modules/tambo/tambo.types.ts
 
 // 🔹 Categorías
-export type Categoria = "quesos" | "leches";
+export type Categoria = "quesos" | "leches" | "personalizado";
 
 // 🔹 Nivel de alerta
 export type NivelAlerta = "bajo" | "medio" | "alto";
