@@ -3,12 +3,12 @@ import { Categoria } from "@prisma/client";
 
 async function main() {
     const productos = [
-        { nombre: "Queso Crema", categoria: Categoria.quesos },
-        { nombre: "Queso Gouda", categoria: Categoria.quesos },
-        { nombre: "Queso Brie", categoria: Categoria.quesos },
-        { nombre: "Leche Entera", categoria: Categoria.leches },
-        { nombre: "Leche Descremada", categoria: Categoria.leches },
-        { nombre: "Leche Semidescremada", categoria: Categoria.leches },
+        { nombre: "Queso Crema", categoria: Categoria.quesos, nombreNormalizado:  "queso crema" },
+        { nombre: "Queso Gouda", categoria: Categoria.quesos, nombreNormalizado: "queso gouda" },
+        { nombre: "Queso Brie", categoria: Categoria.quesos, nombreNormalizado: "queso brie" },
+        { nombre: "Leche Entera", categoria: Categoria.leches, nombreNormalizado: "leche entera" },
+        { nombre: "Leche Descremada", categoria: Categoria.leches, nombreNormalizado: "leche descremada" },
+        { nombre: "Leche Semidescremada", categoria: Categoria.leches, nombreNormalizado: "leche semidescremada" },
     ];
 
 
