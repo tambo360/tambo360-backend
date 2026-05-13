@@ -11,6 +11,7 @@ dayjs.extend(customParseFormat);
 const ZONA_ARG = "America/Argentina/Buenos_Aires";
 
 export const crearLoteSchema = z.object({
+    idLote: z.uuid("Id de lote inválido"),
     idProducto: z
         .string()
         .uuid("Debe seleccionar un producto válido"),
@@ -48,9 +49,9 @@ export const crearLoteSchema = z.object({
 
             return fechaFinal.toDate();
         }),
-
-
     estado: z.boolean().optional(),
+    idRaza: z.string().uuid("Debe seleccionar una raza válida"),
+    cantRaza: z.coerce.number().positive("La cantidad de raza debe ser mayor a 0")
 });
 
 

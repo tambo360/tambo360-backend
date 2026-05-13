@@ -102,6 +102,7 @@ model Organizacion {
   establecimientos Establecimiento[]
   invitaciones     InvitacionOrganizacion[]
   razas            Raza[]
+  productos        Producto[]
 }
 
 model OrganizacionUsuario {
@@ -199,8 +200,14 @@ model InvitacionEstablecimiento {
 model Producto {
   idProducto               String                    @id @default(uuid())
   nombre                   String
+  nombreNormalizado        String                    
+  esSistema                Boolean                   @default(false)
+  idOrganizacion           String?
+  organizacion             Organizacion?             @relation(fields: [idOrganizacion], references: [idOrganizacion])
   categoria                Categoria
   establecimientoProductos EstablecimientoProducto[]
+
+  @@unique([nombreNormalizado, idOrganizacion])
 }
 
 model EstablecimientoProducto {
