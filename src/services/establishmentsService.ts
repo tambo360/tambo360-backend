@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
-import { EstadoInvitacion, RolEstablecimiento } from "@prisma/client";
+import { Categoria, EstadoInvitacion, RolEstablecimiento } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
@@ -154,23 +154,24 @@ class EstablishmentsService {
                 }
             });
 
-            // 3. Normalizar nombres
+            // =========================================================
+            // RAZAS
+            // =========================================================
+
             const razasInput = data.Razas.map(r => ({
                 idRaza: r.idRaza,
                 nombre: r.nombre,
                 nombreNormalizado: r.nombre.trim().toLowerCase()
             }));
 
-            // 4. Separar
-            const conId = razasInput.filter(r => r.idRaza);
-            const sinId = razasInput.filter(r => !r.idRaza);
+            const razasConId = razasInput.filter(r => r.idRaza);
+            const razasSinId = razasInput.filter(r => !r.idRaza);
 
-            // 5. Buscar existentes (batch)
-            const nombresSinId = sinId.map(r => r.nombreNormalizado);
+            const nombresRazasSinId = razasSinId.map(r => r.nombreNormalizado);
 
-            const existentes = await tx.raza.findMany({
+            const razasExistentes = await tx.raza.findMany({
                 where: {
-                    nombreNormalizado: { in: nombresSinId },
+                    nombreNormalizado: { in: nombresRazasSinId },
                     OR: [
                         { idOrganizacion: null },
                         { idOrganizacion: orgId }
@@ -178,19 +179,19 @@ class EstablishmentsService {
                 }
             });
 
-            // map rápido
-            const mapaExistentes = new Map(
-                existentes.map(r => [r.nombreNormalizado, r])
+            const mapaRazasExistentes = new Map(
+                razasExistentes.map(r => [r.nombreNormalizado, r])
             );
 
-            // 6. Crear las que no existen
-            const nuevasCrear = sinId.filter(r => !mapaExistentes.has(r.nombreNormalizado));
+            const nuevasRazasCrear = razasSinId.filter(
+                r => !mapaRazasExistentes.has(r.nombreNormalizado)
+            );
 
-            let nuevasCreadas: { idRaza: string }[] = [];
+            let nuevasRazasCreadas: { idRaza: string }[] = [];
 
-            if (nuevasCrear.length > 0) {
-                nuevasCreadas = await Promise.all(
-                    nuevasCrear.map(r =>
+            if (nuevasRazasCrear.length > 0) {
+                nuevasRazasCreadas = await Promise.all(
+                    nuevasRazasCrear.map(r =>
                         tx.raza.create({
                             data: {
                                 nombre: r.nombre,
@@ -204,25 +205,99 @@ class EstablishmentsService {
                 );
             }
 
-            // 7. Armar lista final de IDs
-            const idsFinales = [
-                ...conId.map(r => r.idRaza!),
-                ...sinId.map(r => mapaExistentes.get(r.nombreNormalizado)?.idRaza).filter(Boolean) as string[],
-                ...nuevasCreadas.map(r => r.idRaza)
+            const idsRazasFinales = [
+                ...razasConId.map(r => r.idRaza!),
+                ...razasSinId
+                    .map(r => mapaRazasExistentes.get(r.nombreNormalizado)?.idRaza)
+                    .filter(Boolean) as string[],
+                ...nuevasRazasCreadas.map(r => r.idRaza)
             ];
 
-            // evitar duplicados
-            const idsUnicos = [...new Set(idsFinales)];
+            const idsRazasUnicos = [...new Set(idsRazasFinales)];
 
-            // 8. Reemplazar relaciones
             await tx.establecimientoRaza.deleteMany({
                 where: { idEstablecimiento: data.idEstablecimiento }
             });
 
             await tx.establecimientoRaza.createMany({
-                data: idsUnicos.map(idRaza => ({
+                data: idsRazasUnicos.map(idRaza => ({
                     idEstablecimiento: data.idEstablecimiento,
                     idRaza
+                }))
+            });
+
+            // =========================================================
+            // PRODUCTOS
+            // =========================================================
+
+            const productosInput = data.Productos.map(p => ({
+                idProducto: p.idProducto,
+                nombre: p.nombre,
+                nombreNormalizado: p.nombre.trim().toLowerCase()
+            }));
+
+            const productosConId = productosInput.filter(p => p.idProducto);
+            const productosSinId = productosInput.filter(p => !p.idProducto);
+
+            const nombresProductosSinId = productosSinId.map(
+                p => p.nombreNormalizado
+            );
+
+            const productosExistentes = await tx.producto.findMany({
+                where: {
+                    nombreNormalizado: { in: nombresProductosSinId },
+                    OR: [
+                        { idOrganizacion: null },
+                        { idOrganizacion: orgId }
+                    ]
+                }
+            });
+
+            const mapaProductosExistentes = new Map(
+                productosExistentes.map(p => [p.nombreNormalizado, p])
+            );
+
+            const nuevosProductosCrear = productosSinId.filter(
+                p => !mapaProductosExistentes.has(p.nombreNormalizado)
+            );
+
+            let nuevosProductosCreados: { idProducto: string }[] = [];
+
+            if (nuevosProductosCrear.length > 0) {
+                nuevosProductosCreados = await Promise.all(
+                    nuevosProductosCrear.map(p =>
+                        tx.producto.create({
+                            data: {
+                                nombre: p.nombre,
+                                nombreNormalizado: p.nombreNormalizado,
+                                idOrganizacion: orgId,
+                                esSistema: false,
+                                categoria: Categoria.personalizado
+                            },
+                            select: { idProducto: true }
+                        })
+                    )
+                );
+            }
+
+            const idsProductosFinales = [
+                ...productosConId.map(p => p.idProducto!),
+                ...productosSinId
+                    .map(p => mapaProductosExistentes.get(p.nombreNormalizado)?.idProducto)
+                    .filter(Boolean) as string[],
+                ...nuevosProductosCreados.map(p => p.idProducto)
+            ];
+
+            const idsProductosUnicos = [...new Set(idsProductosFinales)];
+
+            await tx.establecimientoProducto.deleteMany({
+                where: { idEstablecimiento: data.idEstablecimiento }
+            });
+
+            await tx.establecimientoProducto.createMany({
+                data: idsProductosUnicos.map(idProducto => ({
+                    idEstablecimiento: data.idEstablecimiento,
+                    idProducto
                 }))
             });
 
