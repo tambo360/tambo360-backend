@@ -23,7 +23,8 @@ enum Moneda {
 enum Categoria {
   quesos
   leches
-  personalizado
+  yogures
+  otros
 }
 
 enum TipoToken {

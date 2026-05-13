@@ -272,7 +272,7 @@ class EstablishmentsService {
                                 nombreNormalizado: p.nombreNormalizado,
                                 idOrganizacion: orgId,
                                 esSistema: false,
-                                categoria: Categoria.personalizado
+                                categoria: Categoria.otros
                             },
                             select: { idProducto: true }
                         })
@@ -306,7 +306,7 @@ class EstablishmentsService {
     }
 
     async getCuestionario(idEstablecimiento: string) {
-        const [cuestionario, razas, establecimiento] = await Promise.all([
+        const [cuestionario, razas, establecimiento, productos] = await Promise.all([
             prisma.configuracion.findFirst({
                 where: {
                     idEstablecimiento,
@@ -328,10 +328,18 @@ class EstablishmentsService {
                     localidad: true,
                     provincia: true,
                 }
+            }),
+            prisma.establecimientoProducto.findMany({
+                where: {
+                    idEstablecimiento,
+                },
+                include: {
+                    producto: true,
+                }
             })
         ])
 
-        return { cuestionario, razas, establecimiento };
+        return { cuestionario, razas, establecimiento, productos };
     }
 
     async sendInvitation(orgId: string, estId: string, userId: string, correo: string, rol: RolEstablecimiento) {

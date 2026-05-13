@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CrearLoteDTO } from "../schemas/batchSchema";
-import { Prisma, Unidad } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
 
@@ -35,7 +35,6 @@ export class LoteService {
             throw new AppError("La raza seleccionada no existe", 400);
         }
 
-        const unidad: Unidad = producto.categoria === "quesos" ? "kg" : "litros";
 
         const result = await prisma.$transaction(async (tx) => {
             const numeroLote = await LoteService.generateBatchNumber(tx, idEstablecimiento)
@@ -46,7 +45,7 @@ export class LoteService {
                     idProducto: producto.idProducto,
                     idEstablecimiento: idEstablecimiento,
                     cantidad: data.cantidad,
-                    unidad,
+                    unidad: data.unidad,
                     fechaProduccion: data.fechaProduccion ?? undefined,
                     ...(data.estado ? { estado: data.estado } : {}),
                     numeroLote: numeroLote,
