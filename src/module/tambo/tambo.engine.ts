@@ -25,6 +25,7 @@ export async function seedCategoryAverages(
   > = {
     quesos: { merma: 0, produccion: 0, cantidad_lotes: 0 },
     leches: { merma: 0, produccion: 0, cantidad_lotes: 0 },
+    personalizado: { merma: 0, produccion: 0, cantidad_lotes: 0 },
   };
 
   const lotMermaTotals: Record<string, number> = {};
@@ -47,6 +48,7 @@ export async function seedCategoryAverages(
   const categoryAvgPct: Record<Categoria, number> = {
     quesos: 0,
     leches: 0,
+    personalizado: 0,
   };
 
   // 2. Guardar en DB (OVERWRITE como Python)
