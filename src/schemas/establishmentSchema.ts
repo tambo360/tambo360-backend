@@ -24,11 +24,10 @@ export const questionnaireSchema = z.object({
         idRaza: z.string().uuid("ID de raza no válido").optional(),
         nombre: requiredString("El nombre de la raza es obligatorio"),
     })).min(1, "Debe haber al menos una raza"),
-    /*
     Productos: z.array(z.object({
         idProducto: z.string().uuid("ID de producto no válido").optional(),
         nombre: requiredString("El nombre del producto es obligatorio"),
-    })),*/
+    })),
     cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
     promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),

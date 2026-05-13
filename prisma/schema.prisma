@@ -23,6 +23,7 @@ enum Moneda {
 enum Categoria {
   quesos
   leches
+  personalizado
 }
 
 enum TipoToken {
