@@ -14,26 +14,17 @@ export class LoteService {
         }
 
         const [producto, raza] = await Promise.all([
-            prisma.establecimientoProducto.findUnique({
+            prisma.producto.findUnique({
                 where: {
-                    idEstablecimiento_idProducto: {
-                        idEstablecimiento,
-                        idProducto: data.idProducto
-                    }
-                },
-                include: {
-                    producto: true
+                    idProducto: data.idProducto
                 }
-
             }),
-            prisma.establecimientoRaza.findUnique({
+            prisma.raza.findUnique({
                 where: {
-                    idEstablecimiento_idRaza: {
-                        idEstablecimiento,
-                        idRaza: data.idRaza
-                    }
+                    idRaza: data.idRaza
                 }
-            })
+            }
+            )
         ])
 
         if (!producto) {
@@ -44,7 +35,7 @@ export class LoteService {
             throw new AppError("La raza seleccionada no existe", 400);
         }
 
-        const unidad: Unidad = producto.producto.categoria === "quesos" ? "kg" : "litros";
+        const unidad: Unidad = producto.categoria === "quesos" ? "kg" : "litros";
 
         const result = await prisma.$transaction(async (tx) => {
             const numeroLote = await LoteService.generateBatchNumber(tx, idEstablecimiento)
@@ -52,7 +43,7 @@ export class LoteService {
             const lote = await prisma.loteProduccion.create({
                 data: {
                     idLote: data.idLote,
-                    idProducto: producto.id,
+                    idProducto: producto.idProducto,
                     idEstablecimiento: idEstablecimiento,
                     cantidad: data.cantidad,
                     unidad,
@@ -60,17 +51,14 @@ export class LoteService {
                     ...(data.estado ? { estado: data.estado } : {}),
                     numeroLote: numeroLote,
                     cantRazas: data.cantRaza,
-                    idRaza: raza.id
+                    idRaza: data.idRaza
                 },
                 include: {
                     producto: {
                         select: {
-                            producto: {
-                                select: {
-                                    nombre: true,
-                                    categoria: true
-                                }
-                            }
+                            idProducto: true,
+                            nombre: true,
+                            categoria: true
                         }
                     }
                 }
