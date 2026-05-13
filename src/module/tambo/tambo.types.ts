@@ -1,7 +1,9 @@
 // src/modules/tambo/tambo.types.ts
 
+import { Categoria } from "@prisma/client";
+
 // 🔹 Categorías
-export type Categoria = "quesos" | "leches" | "personalizado";
+
 
 // 🔹 Nivel de alerta
 export type NivelAlerta = "bajo" | "medio" | "alto";
