@@ -60,6 +60,53 @@ export const eliminarLote = async (req: Request, res: Response, next: NextFuncti
     }
 };
 
+//nuevo listarLotes
+export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+        // Validación de query params utilizando Zod
+        const parsed = listarLotesSchema.safeParse(req.query);
+
+        if (!parsed.success) {
+            const errores = parsed.error.issues.map((e) => e.message);
+
+            throw new AppError(errores.join(", "), 400);
+        }
+
+        // El middleware establecimientoRequireOrgAccess
+        // ya validó que el usuario tenga acceso al establecimiento.
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError(
+                "No se pudo determinar el establecimiento",
+                400
+            );
+        }
+
+        // Filtros validados y transformados por Zod
+        const filtros = parsed.data;
+
+        // Consulta paginada de lotes
+        const lotes = await LoteService.listarLotes(
+            idEstablecimiento,
+            filtros
+        );
+
+        return res.status(200).json(
+            ApiResponse.success(
+                lotes,
+                "Lotes listados correctamente"
+            )
+        );
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+//antes de aplicar la issue #29 estaba este listarLotes
+/*
 export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = (req as any).user;
@@ -81,7 +128,7 @@ export const listarLotes = async (req: Request, res: Response, next: NextFunctio
         next(error);
     }
 };
-
+*/
 export const obtenerLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = (req as any).user;

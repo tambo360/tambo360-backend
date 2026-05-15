@@ -5,7 +5,11 @@ import e from "express";
 declare module 'express' {
   interface Request {
     user?: { id: string };
-
+       // Información del establecimiento validada
+     // por middleware de acceso multi-tenant. se agrega estAccess para nuevo listarLote
+    estAccess?: {
+      idEstablecimiento: string;
+    };
   }
 }
 
