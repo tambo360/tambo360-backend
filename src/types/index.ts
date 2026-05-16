@@ -4,6 +4,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 declare module 'express' {
   interface Request {
     user?: { id: string };
+    
     orgId?: string;
     estId?: string;
     orgAccess?: {

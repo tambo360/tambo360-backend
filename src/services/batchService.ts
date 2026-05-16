@@ -75,169 +75,208 @@ export class LoteService {
         return result;
     }
 
-    /*
+// ====================================================================================
+// LISTAR LOTES
+// Endpoint GET /lotes
+// Issue #29
+//
+// Permite listar lotes de forma paginada utilizando:
+//
+// - filtros
+// - ordenamiento
+// - contexto multi-tenant
+//
+// Incluye:
+// - cálculo de merma_porcentaje
+// - paginación
+// - filtros dinámicos
+// ====================================================================================
 
-static async editarLote(idLote: string, data: Partial<CrearLoteDTO>, idUsuario: string) {
-    const lote = await prisma.loteProduccion.findUnique({
-        where: { idLote },
-        include: { establecimiento: true, mermas: true, costosDirectos: true }
-    });
- 
-    if (!lote) throw new AppError("El lote no existe", 404);
- 
-    if (lote.establecimiento.idUsuario !== idUsuario) {
-        throw new AppError("No tiene permisos para modificar este lote", 403);
+static async listarLotes(
+    idEstablecimiento: string,
+    filtros?: {
+        estado?: boolean;
+        nombre?: string;
+        producto?: string;
+        numeroLote?: number;
+        fecha_desde?: Date;
+        fecha_hasta?: Date;
+        orden?: "asc" | "desc";
+        page?: number;
+        limit?: number;
     }
- 
-    if (lote.mermas.length > 0 || lote.costosDirectos.length > 0) {
-        throw new AppError(
-            "El lote tiene mermas o costos directos asociados y no puede editarse",
-            400
-        );
-    }
- 
-    let idProducto = lote.idProducto;
-    let unidad = lote.unidad;
- 
-    if (data.idProducto && data.idProducto !== lote.idProducto) {
-        const producto = await prisma.producto.findUnique({
-            where: { idProducto: data.idProducto }
-        });
- 
-        if (!producto) {
-            throw new AppError("El producto seleccionado no existe", 400);
-        }
- 
-        idProducto = data.idProducto;
-        unidad = producto.categoria === "quesos" ? "kg" : "litros";
-    }
- 
-    return prisma.loteProduccion.update({
-        where: { idLote },
-        data: {
-            idProducto,
-            unidad,
-            cantidad: data.cantidad ?? lote.cantidad,
-            fechaProduccion: data.fechaProduccion
-                ? new Date(data.fechaProduccion)
-                : lote.fechaProduccion,
-        },
-        include: {
-            producto: true,
-            mermas: true,
-            costosDirectos: true
-        }
-    });
-}
- 
-static async eliminarLote(idLote: string, idUsuario: string) {
-    const lote = await prisma.loteProduccion.findUnique({
-        where: { idLote },
-        include: { establecimiento: true, mermas: true, costosDirectos: true },
-    });
- 
-    if (!lote) {
-        throw new AppError("El lote no existe", 404);
-    }
- 
-    if (lote.establecimiento.idUsuario !== idUsuario) {
-        throw new AppError("No tiene permisos para eliminar este lote", 403);
-    }
- 
-    if ((lote.mermas.length > 0) || (lote.costosDirectos.length > 0)) {
-        throw new AppError("No se puede eliminar el lote, tiene información asociada", 400);
-    }
- 
-    return prisma.loteProduccion.delete({ where: { idLote } });
-}
- 
-static async listarLotes(idUsuario: string, filtros?: {
-    nombre?: string; fecha?: { inicio: Date; fin: Date }; numeroLote?: number;
-    orden?: "asc" | "desc"; pagina?: number;
-}
 ) {
- 
-    const establecimiento = await prisma.establecimiento.findFirst({
-        where: { idUsuario },
-    });
- 
-    if (!establecimiento) {
-        throw new AppError("El usuario no tiene un establecimiento registrado", 400);
-    }
- 
+
+    // =========================================================
+    // Filtro base multi-tenant
+    // =========================================================
     const where: Prisma.LoteProduccionWhereInput = {
-        idEstablecimiento: establecimiento.idEstablecimiento,
+        idEstablecimiento,
     };
- 
-    if (filtros?.nombre) {
-        const valor = filtros.nombre;
-        const esNumero = !Number.isNaN(Number(valor));
- 
-        if (esNumero) {
-            // Buscar lotes cuyo numeroLote empiece con el número
-            const lotesNumero = await prisma.$queryRaw<{ idLote: string }[]>`
-            SELECT "idLote"
-            FROM "LoteProduccion"
-            WHERE CAST("numeroLote" AS TEXT) LIKE ${valor + "%"}
-            AND "idEstablecimiento" = ${establecimiento.idEstablecimiento}
-        `;
-            const ids = lotesNumero.map((l) => l.idLote);
- 
-            if (ids.length > 0) {
-                where.idLote = { in: ids };
-            } else {
- 
-                where.idLote = { equals: "0" };
-            }
-        } else {
- 
-            where.producto = {
-                nombre: {
-                    contains: valor,
-                    mode: "insensitive",
-                },
-            };
-        }
-    } else if (filtros?.numeroLote !== undefined && !Number.isNaN(filtros.numeroLote)) {
- 
+
+    // =========================================================
+    // Filtro por estado
+    // true  = lote completo/cerrado
+    // false = lote incompleto/modificable
+    // =========================================================
+    if (filtros?.estado !== undefined) {
+        where.estado = filtros.estado;
+    }
+
+    // =========================================================
+    // Filtro por número exacto de lote
+    // =========================================================
+    if (
+        filtros?.numeroLote !== undefined &&
+        !Number.isNaN(filtros.numeroLote)
+    ) {
         where.numeroLote = filtros.numeroLote;
     }
- 
-    const pagina = filtros?.pagina && filtros.pagina > 0 ? filtros.pagina : 1;
-    const cantidadPorPagina = 20;
- 
-    const totalLotes = await prisma.loteProduccion.count({ where });
-    const totalPaginas = Math.ceil(totalLotes / cantidadPorPagina);
- 
-    if (pagina > totalPaginas && totalPaginas > 0) {
-        throw new AppError("La página solicitada no existe", 404);
+
+    // =========================================================
+    // Filtro por rango de fechas
+    // =========================================================
+    if (filtros?.fecha_desde || filtros?.fecha_hasta) {
+
+        where.fechaProduccion = {};
+
+        if (filtros.fecha_desde) {
+            where.fechaProduccion.gte = filtros.fecha_desde;
+        }
+
+        if (filtros.fecha_hasta) {
+            where.fechaProduccion.lte = filtros.fecha_hasta;
+        }
     }
- 
+
+    // =========================================================
+    // Filtro textual por nombre de producto
+    // =========================================================
+    if (filtros?.producto || filtros?.nombre) {
+
+        const valorBusqueda =
+            filtros.producto || filtros.nombre;
+
+        where.producto = {
+            is: {
+                nombre: {
+                    contains: valorBusqueda,
+                    mode: "insensitive",
+                },
+            },
+        };
+    }
+
+    // =========================================================
+    // Configuración de paginación
+    // =========================================================
+    const page =
+        filtros?.page && filtros.page > 0
+            ? filtros.page
+            : 1;
+
+    const limit =
+        filtros?.limit && filtros.limit > 0
+            ? filtros.limit
+            : 10;
+
+    // =========================================================
+    // Total de registros
+    // =========================================================
+    const totalLotes = await prisma.loteProduccion.count({
+        where,
+    });
+
+    const totalPaginas = Math.ceil(totalLotes / limit);
+
+    // =========================================================
+    // Validación de página inexistente
+    // =========================================================
+    if (page > totalPaginas && totalPaginas > 0) {
+        throw new AppError(
+            "La página solicitada no existe",
+            404
+        );
+    }
+
+    // =========================================================
+    // Consulta principal
+    // =========================================================
     const lotes = await prisma.loteProduccion.findMany({
         where,
+
         include: {
+
+            // Información del producto asociado
             producto: true,
+
+            // Información de raza asociada
+            raza: true,
+
+            // Necesario para calcular merma_porcentaje
             mermas: true,
-            costosDirectos: true,
         },
-        orderBy: [
-            { numeroLote: filtros?.orden ?? "asc" },
-            { fechaProduccion: filtros?.orden ?? "desc" },
-        ],
-        skip: (pagina - 1) * cantidadPorPagina,
-        take: cantidadPorPagina,
+
+        // =====================================================
+        // Ordenamiento configurable
+        // asc  -> más antiguos primero
+        // desc -> más recientes primero
+        // =====================================================
+        orderBy: {
+            numeroLote: filtros?.orden ?? "desc",
+        },
+
+        skip: (page - 1) * limit,
+
+        take: limit,
     });
- 
- 
+
+    // =========================================================
+    // Cálculo de merma_porcentaje
+    // Fórmula:
+    // (total_mermas / cantidad_produccion) * 100
+    // =========================================================
+    const lotesTransformados = lotes.map((lote: any) => {
+
+        const cantidadProduccion =
+            Number(lote.cantidad);
+
+        const totalMermas = lote.mermas.reduce(
+            (acc: number, merma: any) =>
+                acc + Number(merma.cantidad),
+            0
+        );
+
+        // =====================================================
+        // Evita división por cero
+        // =====================================================
+        const merma_porcentaje =
+            cantidadProduccion > 0
+                ? Number(
+                    (
+                        (totalMermas / cantidadProduccion) * 100
+                    ).toFixed(2)
+                )
+                : 0;
+
+        return {
+            ...lote,
+            merma_porcentaje,
+        };
+    });
+
+    // =========================================================
+    // Response final paginado
+    // =========================================================
     return {
-        pagina,
-        totalPaginas,
+        page,
+        limit,
         totalLotes,
-        lotes,
+        totalPaginas,
+        lotes: lotesTransformados,
     };
- 
 }
- 
+
 static async obtenerLote(idLote: string, idUsuario: string) {
     const lote = await prisma.loteProduccion.findUnique({
         where: { idLote },
@@ -326,7 +365,7 @@ static async completarLote(idLote: string, idUsuario: string) {
  
     return loteActualizado;
 }
-    */
+    
 
     static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
         const config = await tx.configuracion.update({
