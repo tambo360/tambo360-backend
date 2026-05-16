@@ -88,6 +88,94 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 
 ---
 
+### 2. Listar Lotes
+
+**Método:** `GET`  
+**Ruta:** `/lote/listar`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Query Parameters
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|-----------|------|-------------|-------------|
+| `pagina` | number | No | Página de resultados |
+| `orden` | string | No | Orden de los resultados (`asc`, `desc`) |
+
+#### Ejemplo de Request
+
+```bash
+GET /lote/listar?pagina=1&orden=asc
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Lotes listados correctamente",
+  "data": [
+    {
+      "idLote": "550e8400-e29b-41d4-a716-446655440000",
+      "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+      "cantidad": 100,
+      "unidad": "kg",
+      "fechaProduccion": "2026-05-15T12:00:00.000Z",
+      "estado": true,
+      "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+      "cantRaza": 50,
+      "idEstablecimiento": "uuid-establecimiento"
+    }
+  ]
+}
+```
+
+---
+
+### 3. Eliminar Lote
+
+**Método:** `DELETE`  
+**Ruta:** `/lote/:idLote`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `requireRoles({est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER]})`
+
+#### Parámetros de Ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|-----------|------|-------------|-------------|
+| `idLote` | string (UUID) | Sí | ID del lote a eliminar |
+
+#### Ejemplo de Request
+
+```bash
+DELETE /lote/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Lote eliminado correctamente",
+  "data": null
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 400 | Id de lote inválido |
+| 401 | Usuario no autenticado |
+| 403 | Permisos insuficientes |
+
+---
+
 ## Notas
 
 - La fecha de producción debe estar en formato `dd/mm/aaaa`

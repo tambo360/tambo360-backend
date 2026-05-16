@@ -79,6 +79,28 @@ export const listarLotes = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
+export const eliminarLote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const params = idLoteParamSchema.parse(req.params);
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+        
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
+
+        const user = (req as any).user;
+        if (!user) throw new AppError("Usuario no autenticado", 401);
+
+        await LoteService.eliminarLote(params.idLote, idEstablecimiento);
+
+        return res.status(200).json(
+            ApiResponse.success(null, "Lote eliminado correctamente")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 /*
 
@@ -100,22 +122,6 @@ export const editarLote = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const eliminarLote = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const params = idLoteParamSchema.parse(req.params);
-
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
-
-        await LoteService.eliminarLote(params.idLote, user.id);
-
-        return res.status(200).json(
-            ApiResponse.success(null, "Lote eliminado correctamente")
-        );
-    } catch (error) {
-        next(error);
-    }
-};
 
 
 //antes de aplicar la issue #29 estaba este listarLotes
@@ -141,7 +147,7 @@ export const listarLotes = async (req: Request, res: Response, next: NextFunctio
         next(error);
     }
 };
-*/
+
 export const obtenerLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = (req as any).user;
@@ -199,3 +205,4 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+*/
