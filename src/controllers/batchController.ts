@@ -4,20 +4,29 @@ import { crearLoteSchema, editarLoteSchema, idLoteParamSchema, listarLotesSchema
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 
-
 export const crearLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = crearLoteSchema.safeParse(req.body);
 
         if (!parsed.success) {
-            const errores = parsed.error.issues.map(e => e.message);
-            throw new AppError(errores.join(", "), 400);
+            const errores: Record<string, string> = {};
+            parsed.error.issues.forEach(e => {
+                const campo = e.path.join(".");
+                errores[campo] = e.message;
+            });
+
+            return res.status(400).json({
+                statusCode: 400,
+                errors: errores,
+                success: false,
+                data: null,
+            });
         }
 
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const lote = await LoteService.crearLote(user.id, parsed.data);
+        const lote = await LoteService.crearLote(parsed.data, req.estAccess?.idEstablecimiento);
 
         return res.status(201).json(ApiResponse.success(lote, "Lote creado correctamente", 201));
     } catch (error) {
@@ -25,42 +34,7 @@ export const crearLote = async (req: Request, res: Response, next: NextFunction)
     }
 };
 
-export const editarLote = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const params = idLoteParamSchema.parse(req.params);
-        const body = editarLoteSchema.parse(req.body);
-
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
-
-        const lote = await LoteService.editarLote(params.idLote, body, user.id);
-
-        return res.status(200).json(
-            ApiResponse.success(lote, "Lote actualizado correctamente")
-        );
-    } catch (error) {
-        next(error);
-    }
-};
-
-export const eliminarLote = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const params = idLoteParamSchema.parse(req.params);
-
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
-
-        await LoteService.eliminarLote(params.idLote, user.id);
-
-        return res.status(200).json(
-            ApiResponse.success(null, "Lote eliminado correctamente")
-        );
-    } catch (error) {
-        next(error);
-    }
-};
-
-//nuevo listarLotes
+//nuevo listarLotes issue #29
 export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
@@ -104,6 +78,45 @@ export const listarLotes = async (req: Request, res: Response, next: NextFunctio
         next(error);
     }
 };
+
+
+/*
+
+export const editarLote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const params = idLoteParamSchema.parse(req.params);
+        const body = editarLoteSchema.parse(req.body);
+
+        const user = (req as any).user;
+        if (!user) throw new AppError("Usuario no autenticado", 401);
+
+        const lote = await LoteService.editarLote(params.idLote, body, user.id);
+
+        return res.status(200).json(
+            ApiResponse.success(lote, "Lote actualizado correctamente")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const eliminarLote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const params = idLoteParamSchema.parse(req.params);
+
+        const user = (req as any).user;
+        if (!user) throw new AppError("Usuario no autenticado", 401);
+
+        await LoteService.eliminarLote(params.idLote, user.id);
+
+        return res.status(200).json(
+            ApiResponse.success(null, "Lote eliminado correctamente")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 //antes de aplicar la issue #29 estaba este listarLotes
 /*

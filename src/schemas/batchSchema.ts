@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
+import { Unidad } from "@prisma/client";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -11,6 +12,7 @@ dayjs.extend(customParseFormat);
 const ZONA_ARG = "America/Argentina/Buenos_Aires";
 
 export const crearLoteSchema = z.object({
+    idLote: z.uuid("Id de lote inválido"),
     idProducto: z
         .string()
         .uuid("Debe seleccionar un producto válido"),
@@ -48,9 +50,10 @@ export const crearLoteSchema = z.object({
 
             return fechaFinal.toDate();
         }),
-
-
     estado: z.boolean().optional(),
+    idRaza: z.string().uuid("Debe seleccionar una raza válida"),
+    cantRaza: z.coerce.number().positive("La cantidad de raza debe ser mayor a 0"),
+    unidad: z.enum(Unidad, "Unidad de medida inválida"),
 });
 
 

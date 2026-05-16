@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Definición de enums -------------------------------------------------------------------------------------------------------------
+
 enum Unidad {
   kg
   litros
@@ -21,6 +23,8 @@ enum Moneda {
 enum Categoria {
   quesos
   leches
+  yogures
+  otros
 }
 
 enum TipoToken {
@@ -42,54 +46,230 @@ enum ConceptoCosto {
   refrigeracion
 }
 
-enum NivelAlerta {
-  bajo
-  medio
-  alto
+enum RolOrganizacion {
+  ORG_OWNER
+  ORG_ADMIN
+  MEMBER
 }
 
+enum RolEstablecimiento {
+  OWNER
+  ADMIN
+  EMPLOYEE
+}
+
+enum EstadoInvitacion {
+  pendiente
+  aceptada
+  rechazada
+}
+
+enum TipoOrdenie {
+  balde
+  linea
+  espina_de_pescado
+  rotativo
+  manual
+  otro
+}
+
+enum VentaLeche {
+  usina
+  fabrica_propia
+  cooperativa
+  varios
+}
+
+// Definición de modelos -------------------------------------------------------------------------------------------------------------
+
 model Usuario {
-  idUsuario        String            @id @default(uuid())
-  correo           String            @unique
-  contrasena       String
-  nombre           String            @db.VarChar(50)
-  verificado       Boolean           @default(false)
-  fechaCreacion    DateTime          @default(now())
+  idUsuario                   String                      @id @default(uuid())
+  correo                      String                      @unique
+  contrasena                  String
+  nombre                      String                      @db.VarChar(50)
+  verificado                  Boolean                     @default(false)
+  fechaCreacion               DateTime                    @default(now())
+  activo                      Boolean                     @default(true)
+  tokens                      VerificarToken[]
+  organizaciones              OrganizacionUsuario[]
+  invitacionesOrganizacion    InvitacionOrganizacion[]
+  invitacionesEstablecimiento InvitacionEstablecimiento[]
+}
+
+model Organizacion {
+  idOrganizacion   String                   @id @default(uuid())
+  nombre           String
+  fechaCreacion    DateTime                 @default(now())
+  usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
-  tokens           VerificarToken[]
+  invitaciones     InvitacionOrganizacion[]
+  razas            Raza[]
+  productos        Producto[]
+}
+
+model OrganizacionUsuario {
+  idOrganizacionUsuario               String                                @id @default(uuid())
+  idOrganizacion                      String
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  idUsuario                           String
+  usuario                             Usuario                               @relation(fields: [idUsuario], references: [idUsuario])
+  rol                                 RolOrganizacion
+  estado                              Boolean                               @default(true)
+  fechaCreacion                       DateTime                              @default(now())
+  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
+
+  @@unique([idOrganizacion, idUsuario])
 }
 
 model Establecimiento {
-  idEstablecimiento String           @id @default(uuid())
-  nombre            String
-  localidad         String
-  provincia         String
-  fechaCreacion     DateTime         @default(now())
-  idUsuario         String
-  usuario           Usuario          @relation(fields: [idUsuario], references: [idUsuario])
-  loteProducciones  LoteProduccion[]
+  idEstablecimiento                   String                                @id @default(uuid())
+  nombre                              String
+  localidad                           String?
+  provincia                           String?
+  fechaCreacion                       DateTime                              @default(now())
+  idOrganizacion                      String
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  loteProducciones                    LoteProduccion[]
+  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
+  configuracions                      configuracion[]
+  establecimientoRazas                EstablecimientoRaza[]
+  invitaciones                        InvitacionEstablecimiento[]
+  establecimientoProductos            EstablecimientoProducto[]
+}
+
+model Establecimiento_OrganizacionUsuario {
+  idEstablecimientoOrganizacionUsuario String              @id @default(uuid())
+  idEstablecimiento                    String
+  establecimiento                      Establecimiento     @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  idOrganizacionUsuario                String
+  organizacionUsuario                  OrganizacionUsuario @relation(fields: [idOrganizacionUsuario], references: [idOrganizacionUsuario])
+  rol                                  RolEstablecimiento
+  estado                               Boolean             @default(true)
+  fechaCreacion                        DateTime            @default(now())
+
+  @@unique([idEstablecimiento, idOrganizacionUsuario])
+}
+
+model configuracion {
+  idConfiguracion   String          @id @default(uuid())
+  idEstablecimiento String          @unique
+  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  ultimoNumeroLote  Int             @default(0)
+  cantVacas         Int?
+  cantOrdenies      Int?
+  promLitros        Float?
+  tipoOrdenie       TipoOrdenie?
+  ventaLeche        VentaLeche?
+  empleados         Boolean?
+  cantEmpleados     Int?
+  modificadoEn      DateTime?
+}
+
+model InvitacionOrganizacion {
+  idInvitacion   String           @id @default(uuid())
+  idOrganizacion String
+  idInvitador    String
+  correo         String
+  codigo         String
+  estado         EstadoInvitacion @default(pendiente)
+  expiraEn       DateTime
+  respondidaEn   DateTime?
+  rol            RolOrganizacion
+
+  organizacion Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  invitador    Usuario      @relation(fields: [idInvitador], references: [idUsuario])
+
+  creadoEn DateTime @default(now())
+}
+
+model InvitacionEstablecimiento {
+  idInvitacion      String             @id @default(uuid())
+  idEstablecimiento String
+  idInvitador       String
+  correo            String
+  codigo            String
+  estado            EstadoInvitacion   @default(pendiente)
+  expiraEn          DateTime
+  respondidaEn      DateTime?
+  rol               RolEstablecimiento
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  invitador       Usuario         @relation(fields: [idInvitador], references: [idUsuario])
+
+  creadoEn DateTime @default(now())
 }
 
 model Producto {
-  idProducto       String           @id @default(uuid())
-  nombre           String
-  categoria        Categoria
-  loteProducciones LoteProduccion[]
+  idProducto               String                    @id @default(uuid())
+  nombre                   String
+  nombreNormalizado        String
+  esSistema                Boolean                   @default(false)
+  idOrganizacion           String?
+  organizacion             Organizacion?             @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  categoria                Categoria
+  establecimientoProductos EstablecimientoProducto[]
+  loteProduccions          LoteProduccion[]
+
+  @@unique([nombreNormalizado, idOrganizacion])
+}
+
+model EstablecimientoProducto {
+  id String @id @default(uuid())
+
+  idEstablecimiento String
+  idProducto        String
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  producto        Producto        @relation(fields: [idProducto], references: [idProducto])
+
+  @@unique([idEstablecimiento, idProducto])
+}
+
+model Raza {
+  idRaza            String  @id @default(uuid())
+  nombre            String
+  nombreNormalizado String
+  esSistema         Boolean @default(false)
+
+  idOrganizacion String?
+  organizacion   Organizacion? @relation(fields: [idOrganizacion], references: [idOrganizacion])
+
+  establecimientos EstablecimientoRaza[]
+  loteProduccions  LoteProduccion[]
+
+  @@unique([nombreNormalizado, idOrganizacion])
+}
+
+model EstablecimientoRaza {
+  id String @id @default(uuid())
+
+  idEstablecimiento String
+  idRaza            String
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  raza            Raza            @relation(fields: [idRaza], references: [idRaza])
+
+  @@unique([idEstablecimiento, idRaza])
 }
 
 model LoteProduccion {
-  idLote            String          @id @default(uuid())
-  numeroLote        Int             @default(autoincrement())
+  idLote            String          @id
+  numeroLote        Int
   fechaProduccion   DateTime        @default(now())
-  idProducto        String
-  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
   cantidad          Decimal
   unidad            Unidad
-  idEstablecimiento String
   estado            Boolean         @default(false)
+  cantRazas         Int
+  idRaza            String
+  raza              Raza            @relation(fields: [idRaza], references: [idRaza])
+  idProducto        String
+  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
+  idEstablecimiento String
   establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   mermas            Merma[]
   costosDirectos    CostosDirecto[]
+
+  @@unique([idEstablecimiento, numeroLote])
 }
 
 model Merma {
@@ -125,7 +305,13 @@ model VerificarToken {
   @@index([idUsuario, tipo])
 }
 
-//Modelos del back de IA
+//Modelos del back de IA -------------------------------------------------------------------------------------------------------------------------
+
+enum NivelAlerta {
+  bajo
+  medio
+  alto
+}
 
 model Alerta {
   id                String      @id @default(uuid())

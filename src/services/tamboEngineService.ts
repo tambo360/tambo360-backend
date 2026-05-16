@@ -55,7 +55,12 @@ export class TamboEngineService {
                     estado: true,
                 },
                 include: {
-                    producto: true,
+                    producto: {
+                        select: {
+                            nombre: true,
+                            categoria: true
+                        }
+                    },
                     mermas: true,
                     costosDirectos: true,
                     establecimiento: true,

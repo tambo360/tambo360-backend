@@ -1,16 +1,30 @@
-import { Categoria, ConceptoCosto, Merma, TipoMerma, Unidad } from "@prisma/client";
+import { Categoria, ConceptoCosto, Merma, RolEstablecimiento, RolOrganizacion, TipoMerma, Unidad } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
-import e from "express";
 
 declare module 'express' {
   interface Request {
     user?: { id: string };
-       // Información del establecimiento validada
-     // por middleware de acceso multi-tenant. se agrega estAccess para nuevo listarLote
-    estAccess?: {
-      idEstablecimiento: string;
+    
+    orgId?: string;
+    estId?: string;
+    orgAccess?: {
+      idOrganizacionUsuario: string;
+      idUsuario: string;
+      idOrganizacion: string;
+      rol: RolOrganizacion;
     };
+    estAccess?: {
+      idEstablecimientoOrganizacionUsuario: string;
+      rol: RolEstablecimiento;
+      idEstablecimiento: string;
+    }
   }
+}
+
+
+export interface RequireRolesConfig {
+  org?: RolOrganizacion[];
+  est?: RolEstablecimiento[];
 }
 
 interface RegistrationData {
@@ -71,4 +85,25 @@ export const MetricaObj = {
   costos: "costos"
 } as const;
 
+
 export type Metrica = typeof MetricaObj[keyof typeof MetricaObj];
+
+export const ORgRolObj = {
+  ORG_OWNER: "ORG_OWNER",
+  ORG_ADMIN: "ORG_ADMIN",
+  ORG_MEMBER: "ORG_MEMBER"
+} as const;
+
+
+
+export const rolOrganizacionLabel: Record<RolOrganizacion, string> = {
+  ORG_OWNER: "Propietario de la organización",
+  ORG_ADMIN: "Administrador de la organización",
+  MEMBER: "Miembro"
+};
+
+export const rolEstablecimientoLabel: Record<RolEstablecimiento, string> = {
+  OWNER: "Propietario del establecimiento",
+  ADMIN: "Administrador del establecimiento",
+  EMPLOYEE: "Empleado"
+};

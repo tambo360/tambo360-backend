@@ -1,7 +1,8 @@
 // src/modules/tambo/tambo.repository.ts
 
+import { Categoria } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { Categoria, NivelAlerta } from "./tambo.types";
+import {NivelAlerta } from "./tambo.types";
 
 export const tamboRepository = {
   // -----------------------------
