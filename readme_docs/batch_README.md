@@ -176,6 +176,104 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 ---
 
+### 4. Obtener Lote por ID
+
+**Método:** `GET`  
+**Ruta:** `/lote/buscar/:idLote`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Parámetros de Ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|-----------|------|-------------|-------------|
+| `idLote` | string (UUID) | Sí | ID del lote a obtener |
+
+#### Ejemplo de Request
+
+```bash
+GET /lote/buscar/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Lote obtenido correctamente",
+  "data": {
+    "idLote": "550e8400-e29b-41d4-a716-446655440000",
+    "numeroLote": 123,
+    "fechaProduccion": "2026-05-15T12:00:00.000Z",
+    "cantidad": 100,
+    "unidad": "kg",
+    "estado": true,
+    "cantRazas": 50,
+    "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+    "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+    "idEstablecimiento": "uuid-establecimiento",
+    "producto": {
+      "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+      "nombre": "Leche Fresca",
+      "categoria": "leches"
+    },
+    "raza": {
+      "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+      "nombre": "Holando"
+    },
+    "establecimiento": {
+      "idEstablecimiento": "uuid-establecimiento",
+      "nombre": "Establecimiento La Esperanza",
+      "provincia": "Córdoba",
+      "localidad": "Villa María"
+    },
+    "mermas": [
+      {
+        "idMerma": "uuid-merma",
+        "tipo": "Natural",
+        "cantidad": 5.5,
+        "fechaCreacion": "2026-05-15T13:00:00.000Z"
+      }
+    ],
+    "costosDirectos": [
+      {
+        "idCostoDirecto": "uuid-costo",
+        "concepto": "insumos_basicos",
+        "monto": 150.50,
+        "observaciones": "Costo de insumos",
+        "fechaCreacion": "2026-05-15T13:00:00.000Z"
+      }
+    ],
+    "alertas": [
+      {
+        "id": "uuid-alerta",
+        "idEstablecimiento": "uuid-establecimiento",
+        "idLote": "550e8400-e29b-41d4-a716-446655440000",
+        "producto": "Leche Fresca",
+        "categoria": "leches",
+        "nivel": "alto",
+        "descripcion": "Temperatura del lote supera el límite",
+        "creadoEn": "2026-05-15T14:00:00.000Z",
+        "visto": false
+      }
+    ],
+    "alertasError": null
+  }
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 400 | Parámetros inválidos |
+| 401 | Usuario no autenticado |
+
+---
+
 ## Notas
 
 - La fecha de producción debe estar en formato `dd/mm/aaaa`

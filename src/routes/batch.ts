@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { crearLote, listarLotes, eliminarLote/* editarLote,  obtenerLote, , produccionDelDia, completarLote */} from "../controllers/batchController";
+import { crearLote, listarLotes, eliminarLote, obtenerLote/* editarLote,  , , produccionDelDia, completarLote */} from "../controllers/batchController";
 import { aiLimiter } from "../middleware/RateLimit";
 //import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess} from "../middleware/orgMiddleware";
 import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
@@ -18,14 +18,14 @@ router.post('/', crearLote);
 
 // Listar lotes paginados con filtros
 router.get("/listar", listarLotes);
+
 router.delete("/:idLote", requireRoles({est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER]}), eliminarLote);
+router.get("/buscar/:idLote", obtenerLote);
 
 /*
 router.put('/actualizar/:idLote', authenticate, editarLote);
 
-//router.get("/listar", authenticate, listarLotes);
-router.get("/listar", authenticate, orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, listarLotes);
-router.get("/buscar-lote/:idLote", authenticate, obtenerLote);
+
 router.get("/produccion-hoy", authenticate, produccionDelDia);
 
 router.post("/completar/:idLote", authenticate, aiLimiter, completarLote);
