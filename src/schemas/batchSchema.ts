@@ -67,7 +67,7 @@ export const editarLoteSchema = z.object({
         .number()
         .positive("La cantidad debe ser mayor a 0")
         .optional(),
-
+    unidad: z.enum(Unidad, "Unidad de medida inválida").optional(),
     fechaProduccion: z
         .string()
         .regex(/^\d{2}\/\d{2}\/\d{4}$/, "Formato inválido, usar dd/mm/aaaa")
@@ -78,6 +78,8 @@ export const editarLoteSchema = z.object({
             const [dd, mm, yyyy] = val.split("/").map(Number);
             return new Date(yyyy, mm - 1, dd);
         }),
+    idRaza: z.string().uuid("Debe seleccionar una raza válida").optional(),
+    cantRazas: z.coerce.number().positive("La cantidad de raza debe ser mayor a 0").optional(),
 });
 
 //Para utlizar en GETLOTES

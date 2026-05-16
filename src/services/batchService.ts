@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO } from "../schemas/batchSchema";
+import { CrearLoteDTO, EditarLoteDTO } from "../schemas/batchSchema";
 import { Prisma } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
@@ -135,6 +135,50 @@ export class LoteService {
             alertas,
             alertasError
         };
+    }
+
+    static async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
+        const lote = await prisma.loteProduccion.findUnique({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+        })
+
+        if (!lote) {
+            throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
+        }
+
+        if (lote.estado) {
+            throw new AppError("No se pueden editar lotes que ya están completados", 409);
+        }
+
+        if (data.idProducto) {
+            const producto = await prisma.producto.findUnique({
+                where: {
+                    idProducto: data.idProducto
+                }
+            })
+            if (!producto) {
+                throw new AppError("El producto seleccionado no existe", 404);
+            }
+        }
+
+        if (data.idRaza) {
+            const raza = await prisma.raza.findUnique({
+                where: {
+                    idRaza: data.idRaza
+                }
+            })
+            if (!raza) {
+                throw new AppError("La raza seleccionada no existe", 404);
+            }
+        }
+        
+
+        const loteActualizado = await prisma.loteProduccion.update({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            data
+        });
+
+        return loteActualizado;
     }
 
     // ====================================================================================

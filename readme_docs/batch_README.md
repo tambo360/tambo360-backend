@@ -176,7 +176,76 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 ---
 
-### 4. Obtener Lote por ID
+### 4. Actualizar Lote
+
+**Método:** `PATCH`  
+**Ruta:** `/lote/:idLote`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Parámetros de Ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|-----------|------|-------------|-------------|
+| `idLote` | string (UUID) | Sí | ID del lote a actualizar |
+
+#### Request Body
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `idProducto` | string (UUID) | No | Nuevo producto para el lote |
+| `cantidad` | number | No | Nueva cantidad de producción |
+| `unidad` | string | No | Unidad de medida (`kg`, `litros`) |
+| `fechaProduccion` | string | No | Fecha en formato `dd/mm/aaaa` |
+| `idRaza` | string (UUID) | No | Nueva raza asociada |
+| `cantRazas` | number | No | Nueva cantidad de raza |
+
+> Nota: el body puede incluir solo los campos que se desean actualizar.
+
+#### Ejemplo de Request
+
+```json
+{
+  "cantidad": 120,
+  "unidad": "litros",
+  "fechaProduccion": "16/05/2026"
+}
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Lote actualizado correctamente",
+  "data": {
+    "idLote": "550e8400-e29b-41d4-a716-446655440000",
+    "numeroLote": 123,
+    "fechaProduccion": "2026-05-16T00:00:00.000Z",
+    "cantidad": 120,
+    "unidad": "litros",
+    "estado": true,
+    "cantRazas": 50,
+    "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+    "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+    "idEstablecimiento": "uuid-establecimiento"
+  }
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 400 | Parámetros inválidos |
+| 400 | Datos del cuerpo inválidos |
+| 401 | Usuario no autenticado |
+| 404 | El lote no existe o no pertenece al establecimiento |
+| 409 | No se pueden editar lotes que ya están completados |
+
+---
+
+### 5. Obtener Lote por ID
 
 **Método:** `GET`  
 **Ruta:** `/lote/buscar/:idLote`  

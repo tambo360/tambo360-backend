@@ -91,7 +91,7 @@ export const eliminarLote = async (req: Request, res: Response, next: NextFuncti
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        if(!params.success) {
+        if (!params.success) {
             throw new AppError("Parámetros inválidos", 400);
         }
 
@@ -115,7 +115,7 @@ export const obtenerLote = async (req: Request, res: Response, next: NextFunctio
 
         const parsedParams = idLoteParamSchema.safeParse(req.params);
 
-        if(!parsedParams.success) {
+        if (!parsedParams.success) {
             throw new AppError("Parámetros inválidos", 400);
         }
 
@@ -131,16 +131,25 @@ export const obtenerLote = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-/*
 export const editarLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const params = idLoteParamSchema.parse(req.params);
-        const body = editarLoteSchema.parse(req.body);
+        const params = idLoteParamSchema.safeParse(req.params);
+        const body = editarLoteSchema.safeParse(req.body);
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
 
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
 
-        const lote = await LoteService.editarLote(params.idLote, body, user.id);
+        if (!params.success) {
+            throw new AppError("Parámetros inválidos", 400);
+        }
+
+        if (!body.success) {
+            throw new AppError("Datos del cuerpo inválidos", 400);
+        }
+
+        const lote = await LoteService.editarLote(params.data.idLote, body.data, idEstablecimiento);
 
         return res.status(200).json(
             ApiResponse.success(lote, "Lote actualizado correctamente")
@@ -149,6 +158,9 @@ export const editarLote = async (req: Request, res: Response, next: NextFunction
         next(error);
     }
 };
+
+/*
+
 
 
 
