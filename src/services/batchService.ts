@@ -84,15 +84,15 @@ export class LoteService {
             throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
         }
 
-        if(lote.estado) {
+        if (lote.estado) {
             throw new AppError("No se pueden eliminar lotes que ya están completados", 409);
         }
 
         const alertas = await prisma.alerta.findMany({
-            where: {idLote, idEstablecimiento: idEstablecimiento}
+            where: { idLote, idEstablecimiento: idEstablecimiento }
         })
 
-        if(alertas && alertas.length > 0) {
+        if (alertas && alertas.length > 0) {
             throw new AppError("No se pueden eliminar lotes que tienen alertas asociadas. Elimine primero las alertas.", 409);
         }
 
@@ -102,6 +102,39 @@ export class LoteService {
 
         return;
 
+    }
+
+    static async obtenerLote(idLote: string, idEstablecimiento: string) {
+        const lote = await prisma.loteProduccion.findUnique({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
+        });
+
+
+        if (!lote) {
+            throw new AppError("El lote no existe", 404);
+        }
+
+
+        let alertas = null;
+        let alertasError = null;
+
+        try {
+            alertas = await TamboEngineService.getAlertasPorLote(
+                lote.establecimiento.idEstablecimiento,
+                idLote
+            );
+        } catch (error) {
+            console.error("Error obteniendo alertas:", error);
+            alertasError = "No se pudieron obtener las alertas";
+        }
+
+
+        return {
+            ...lote,
+            alertas,
+            alertasError
+        };
     }
 
     // ====================================================================================
@@ -307,42 +340,7 @@ export class LoteService {
     }
 
     /*
-    static async obtenerLote(idLote: string, idUsuario: string) {
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
-        });
 
-
-        if (!lote) {
-            throw new AppError("El lote no existe", 404);
-        }
-
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para ver este lote", 403);
-        }
-
-
-        let alertas = null;
-        let alertasError = null;
-
-        try {
-            alertas = await TamboEngineService.getAlertasPorLote(
-                lote.establecimiento.idEstablecimiento,
-                idLote
-            );
-        } catch (error) {
-            console.error("Error obteniendo alertas:", error);
-            alertasError = "No se pudieron obtener las alertas";
-        }
-
-
-        return {
-            ...lote,
-            alertas,
-            alertasError
-        };
-    }
 
     static async listarProduccionDelDia(idUsuario: string) {
         const establecimiento = await prisma.establecimiento.findFirst({ where: { idUsuario } });
