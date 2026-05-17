@@ -121,7 +121,6 @@ export const obtenerLote = async (req: Request, res: Response, next: NextFunctio
             throw new AppError("Parámetros inválidos", 400);
         }
 
-
         const lote = await LoteService.obtenerLote(parsedParams.data.idLote, idEstablecimiento);
 
         return res.status(200).json(
