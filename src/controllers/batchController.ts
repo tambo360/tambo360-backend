@@ -34,21 +34,46 @@ export const crearLote = async (req: Request, res: Response, next: NextFunction)
     }
 };
 
-/*
-
-export const editarLote = async (req: Request, res: Response, next: NextFunction) => {
+//nuevo listarLotes issue #29
+export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const params = idLoteParamSchema.parse(req.params);
-        const body = editarLoteSchema.parse(req.body);
 
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
+        // Validación de query params utilizando Zod
+        const parsed = listarLotesSchema.safeParse(req.query);
 
-        const lote = await LoteService.editarLote(params.idLote, body, user.id);
+        if (!parsed.success) {
+            const errores = parsed.error.issues.map((e) => e.message);
+
+            throw new AppError(errores.join(", "), 400);
+        }
+
+        // El middleware establecimientoRequireOrgAccess
+        // ya validó que el usuario tenga acceso al establecimiento.
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError(
+                "No se pudo determinar el establecimiento",
+                400
+            );
+        }
+
+        // Filtros validados y transformados por Zod
+        const filtros = parsed.data;
+
+        // Consulta paginada de lotes
+        const lotes = await LoteService.listarLotes(
+            idEstablecimiento,
+            filtros
+        );
 
         return res.status(200).json(
-            ApiResponse.success(lote, "Lote actualizado correctamente")
+            ApiResponse.success(
+                lotes,
+                "Lotes listados correctamente"
+            )
         );
+
     } catch (error) {
         next(error);
     }
@@ -56,12 +81,21 @@ export const editarLote = async (req: Request, res: Response, next: NextFunction
 
 export const eliminarLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const params = idLoteParamSchema.parse(req.params);
+        const params = idLoteParamSchema.safeParse(req.params);
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
 
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        await LoteService.eliminarLote(params.idLote, user.id);
+        if (!params.success) {
+            throw new AppError("Parámetros inválidos", 400);
+        }
+
+        await LoteService.eliminarLote(params.data.idLote, idEstablecimiento);
 
         return res.status(200).json(
             ApiResponse.success(null, "Lote eliminado correctamente")
@@ -71,6 +105,66 @@ export const eliminarLote = async (req: Request, res: Response, next: NextFuncti
     }
 };
 
+export const obtenerLote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
+
+        const parsedParams = idLoteParamSchema.safeParse(req.params);
+
+        if (!parsedParams.success) {
+            throw new AppError("Parámetros inválidos", 400);
+        }
+
+
+        const lote = await LoteService.obtenerLote(parsedParams.data.idLote, idEstablecimiento);
+
+        return res.status(200).json(
+            ApiResponse.success(lote, "Lote obtenido correctamente")
+        );
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const editarLote = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const params = idLoteParamSchema.safeParse(req.params);
+        const body = editarLoteSchema.safeParse(req.body);
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
+
+        if (!params.success) {
+            throw new AppError("Parámetros inválidos", 400);
+        }
+
+        if (!body.success) {
+            throw new AppError("Datos del cuerpo inválidos", 400);
+        }
+
+        const lote = await LoteService.editarLote(params.data.idLote, body.data, idEstablecimiento);
+
+        return res.status(200).json(
+            ApiResponse.success(lote, "Lote actualizado correctamente")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+/*
+
+
+
+
+//antes de aplicar la issue #29 estaba este listarLotes
 export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = (req as any).user;
@@ -93,30 +187,6 @@ export const listarLotes = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-export const obtenerLote = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
-
-        const parsedParams = idLoteParamSchema.safeParse(req.params);
-
-        if (!parsedParams.success) {
-            const errores = parsedParams.error.issues.map(e => e.message);
-            throw new AppError(errores.join(", "), 400);
-        }
-
-        const { idLote } = req.params;
-
-        const lote = await LoteService.obtenerLote(idLote, user.id);
-
-        return res.status(200).json(
-            ApiResponse.success(lote, "Lote obtenido correctamente")
-        );
-
-    } catch (error) {
-        next(error);
-    }
-};
 
 export const produccionDelDia = async (req: Request, res: Response, next: NextFunction) => {
     try {
