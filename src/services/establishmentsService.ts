@@ -157,95 +157,159 @@ class EstablishmentsService {
             // =========================================================
             // RAZAS
             // =========================================================
+            if (data.razas) {
 
-            const razasInput = data.Razas.map(r => ({
-                idRaza: r.idRaza,
-                nombre: r.nombre,
-                nombreNormalizado: r.nombre.trim().toLowerCase()
-            }));
+                const razasExistentesInput = data.razas
+                    .filter(r => r.tipo === "existente");
 
-            const razasConId = razasInput.filter(r => r.idRaza);
-            const razasSinId = razasInput.filter(r => !r.idRaza);
+                const razasNuevasInput = data.razas
+                    .filter(r => r.tipo === "nuevo")
+                    .map(r => ({
+                        nombre: r.nombre,
+                        nombreNormalizado: r.nombre.trim().toLowerCase()
+                    }));
 
-            const nombresRazasSinId = razasSinId.map(r => r.nombreNormalizado);
 
-            const razasExistentes = await tx.raza.findMany({
-                where: {
-                    nombreNormalizado: { in: nombresRazasSinId },
-                    OR: [
-                        { idOrganizacion: null },
-                        { idOrganizacion: orgId }
-                    ]
-                }
-            });
+                // =========================================
+                // BUSCAR RAZAS NUEVAS QUE YA EXISTAN
+                // =========================================
 
-            const mapaRazasExistentes = new Map(
-                razasExistentes.map(r => [r.nombreNormalizado, r])
-            );
-
-            const nuevasRazasCrear = razasSinId.filter(
-                r => !mapaRazasExistentes.has(r.nombreNormalizado)
-            );
-
-            let nuevasRazasCreadas: { idRaza: string }[] = [];
-
-            if (nuevasRazasCrear.length > 0) {
-                nuevasRazasCreadas = await Promise.all(
-                    nuevasRazasCrear.map(r =>
-                        tx.raza.create({
-                            data: {
-                                nombre: r.nombre,
-                                nombreNormalizado: r.nombreNormalizado,
-                                idOrganizacion: orgId,
-                                esSistema: false
-                            },
-                            select: { idRaza: true }
-                        })
-                    )
+                const nombresRazasNuevas = razasNuevasInput.map(
+                    r => r.nombreNormalizado
                 );
+
+                const razasExistentesDB = await tx.raza.findMany({
+                    where: {
+                        nombreNormalizado: {
+                            in: nombresRazasNuevas
+                        },
+                        OR: [
+                            { idOrganizacion: null },
+                            { idOrganizacion: orgId }
+                        ]
+                    }
+                });
+
+                const mapaRazasExistentes = new Map(
+                    razasExistentesDB.map(r => [
+                        r.nombreNormalizado,
+                        r
+                    ])
+                );
+
+
+                // =========================================
+                // FILTRAR LAS QUE REALMENTE HAY QUE CREAR
+                // =========================================
+
+                const nuevasRazasCrear = razasNuevasInput.filter(
+                    r => !mapaRazasExistentes.has(r.nombreNormalizado)
+                );
+
+
+                // =========================================
+                // CREAR NUEVAS
+                // =========================================
+
+                let nuevasRazasCreadas: { idRaza: string }[] = [];
+
+                if (nuevasRazasCrear.length > 0) {
+
+                    nuevasRazasCreadas = await Promise.all(
+                        nuevasRazasCrear.map(r =>
+                            tx.raza.create({
+                                data: {
+                                    nombre: r.nombre,
+                                    nombreNormalizado: r.nombreNormalizado,
+                                    idOrganizacion: orgId,
+                                    esSistema: false
+                                },
+                                select: {
+                                    idRaza: true
+                                }
+                            })
+                        )
+                    );
+                }
+
+
+                // =========================================
+                // ARMAR IDS FINALES
+                // =========================================
+
+                const idsRazasFinales = [
+
+                    // existentes enviadas por front
+                    ...razasExistentesInput.map(r => r.idRaza),
+
+                    // nuevas que ya existían
+                    ...razasNuevasInput
+                        .map(r =>
+                            mapaRazasExistentes.get(
+                                r.nombreNormalizado
+                            )?.idRaza
+                        )
+                        .filter(Boolean) as string[],
+
+                    // nuevas creadas
+                    ...nuevasRazasCreadas.map(
+                        r => r.idRaza
+                    )
+                ];
+
+
+                const idsRazasUnicos = [
+                    ...new Set(idsRazasFinales)
+                ];
+
+
+                // =========================================
+                // RELACIONES
+                // =========================================
+
+                await tx.establecimientoRaza.deleteMany({
+                    where: {
+                        idEstablecimiento: data.idEstablecimiento
+                    }
+                });
+
+                await tx.establecimientoRaza.createMany({
+                    data: idsRazasUnicos.map(idRaza => ({
+                        idEstablecimiento: data.idEstablecimiento,
+                        idRaza
+                    }))
+                });
             }
-
-            const idsRazasFinales = [
-                ...razasConId.map(r => r.idRaza!),
-                ...razasSinId
-                    .map(r => mapaRazasExistentes.get(r.nombreNormalizado)?.idRaza)
-                    .filter(Boolean) as string[],
-                ...nuevasRazasCreadas.map(r => r.idRaza)
-            ];
-
-            const idsRazasUnicos = [...new Set(idsRazasFinales)];
-
-            await tx.establecimientoRaza.deleteMany({
-                where: { idEstablecimiento: data.idEstablecimiento }
-            });
-
-            await tx.establecimientoRaza.createMany({
-                data: idsRazasUnicos.map(idRaza => ({
-                    idEstablecimiento: data.idEstablecimiento,
-                    idRaza
-                }))
-            });
-
             // =========================================================
             // PRODUCTOS
             // =========================================================
-            if (data.Productos) {
-                const productosInput = data.Productos.map(p => ({
-                    idProducto: p.idProducto,
-                    nombre: p.nombre,
-                    nombreNormalizado: p.nombre.trim().toLowerCase()
-                }));
+            if (data.productos) {
 
-                const productosConId = productosInput.filter(p => p.idProducto);
-                const productosSinId = productosInput.filter(p => !p.idProducto);
+                const productosExistentesInput = data.productos
+                    .filter(p => p.tipo === "existente");
 
-                const nombresProductosSinId = productosSinId.map(
+                const productosNuevosInput = data.productos
+                    .filter(p => p.tipo === "nuevo")
+                    .map(p => ({
+                        nombre: p.nombre,
+                        nombreNormalizado: p.nombre.trim().toLowerCase(),
+                        categoria: p.categoria
+                    }));
+
+
+                // =========================================
+                // BUSCAR NUEVOS QUE YA EXISTAN
+                // =========================================
+
+                const nombresProductosNuevos = productosNuevosInput.map(
                     p => p.nombreNormalizado
                 );
 
-                const productosExistentes = await tx.producto.findMany({
+                const productosExistentesDB = await tx.producto.findMany({
                     where: {
-                        nombreNormalizado: { in: nombresProductosSinId },
+                        nombreNormalizado: {
+                            in: nombresProductosNuevos
+                        },
                         OR: [
                             { idOrganizacion: null },
                             { idOrganizacion: orgId }
@@ -254,16 +318,30 @@ class EstablishmentsService {
                 });
 
                 const mapaProductosExistentes = new Map(
-                    productosExistentes.map(p => [p.nombreNormalizado, p])
+                    productosExistentesDB.map(p => [
+                        p.nombreNormalizado,
+                        p
+                    ])
                 );
 
-                const nuevosProductosCrear = productosSinId.filter(
+
+                // =========================================
+                // FILTRAR LOS QUE REALMENTE HAY QUE CREAR
+                // =========================================
+
+                const nuevosProductosCrear = productosNuevosInput.filter(
                     p => !mapaProductosExistentes.has(p.nombreNormalizado)
                 );
+
+
+                // =========================================
+                // CREAR NUEVOS
+                // =========================================
 
                 let nuevosProductosCreados: { idProducto: string }[] = [];
 
                 if (nuevosProductosCrear.length > 0) {
+
                     nuevosProductosCreados = await Promise.all(
                         nuevosProductosCrear.map(p =>
                             tx.producto.create({
@@ -272,26 +350,55 @@ class EstablishmentsService {
                                     nombreNormalizado: p.nombreNormalizado,
                                     idOrganizacion: orgId,
                                     esSistema: false,
-                                    categoria: Categoria.otros
+                                    categoria: p.categoria
                                 },
-                                select: { idProducto: true }
+                                select: {
+                                    idProducto: true
+                                }
                             })
                         )
                     );
                 }
 
+
+                // =========================================
+                // ARMAR IDS FINALES
+                // =========================================
+
                 const idsProductosFinales = [
-                    ...productosConId.map(p => p.idProducto!),
-                    ...productosSinId
-                        .map(p => mapaProductosExistentes.get(p.nombreNormalizado)?.idProducto)
+
+                    // existentes enviados por front
+                    ...productosExistentesInput.map(p => p.idProducto),
+
+                    // nuevos que ya existían en DB
+                    ...productosNuevosInput
+                        .map(p =>
+                            mapaProductosExistentes.get(
+                                p.nombreNormalizado
+                            )?.idProducto
+                        )
                         .filter(Boolean) as string[],
-                    ...nuevosProductosCreados.map(p => p.idProducto)
+
+                    // nuevos creados
+                    ...nuevosProductosCreados.map(
+                        p => p.idProducto
+                    )
                 ];
 
-                const idsProductosUnicos = [...new Set(idsProductosFinales)];
+
+                const idsProductosUnicos = [
+                    ...new Set(idsProductosFinales)
+                ];
+
+
+                // =========================================
+                // RELACIONES
+                // =========================================
 
                 await tx.establecimientoProducto.deleteMany({
-                    where: { idEstablecimiento: data.idEstablecimiento }
+                    where: {
+                        idEstablecimiento: data.idEstablecimiento
+                    }
                 });
 
                 await tx.establecimientoProducto.createMany({
