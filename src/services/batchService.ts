@@ -448,14 +448,14 @@ export class LoteService {
 
 
 
-    // static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
-    //     const config = await tx.configuracion.update({
-    //         where: { idEstablecimiento: idEstablecimiento },
-    //         data: { ultimoNumeroLote: { increment: 1 } },
-    //         select: { ultimoNumeroLote: true }
-    //     })
+    static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
+        const config = await tx.configuracion.update({
+            where: { idEstablecimiento: idEstablecimiento },
+            data: { ultimoNumeroLote: { increment: 1 } },
+            select: { ultimoNumeroLote: true }
+        })
 
-    //     return config.ultimoNumeroLote;
-    // }
+        return config.ultimoNumeroLote;
+    }
 }
 
