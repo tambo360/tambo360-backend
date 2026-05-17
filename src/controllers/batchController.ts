@@ -1,10 +1,10 @@
-/*import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { LoteService } from "../services/batchService";
 import { crearLoteSchema, editarLoteSchema, idLoteParamSchema, listarLotesSchema } from "../schemas/batchSchema";
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 
-
+/*
 export const crearLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = crearLoteSchema.safeParse(req.body);
@@ -117,6 +117,7 @@ export const produccionDelDia = async (req: Request, res: Response, next: NextFu
         return res.status(200).json(ApiResponse.success(lotes, "Producción del día"));
     } catch (error) { next(error); }
 };
+*/
 
 export const completarLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -130,7 +131,7 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote, user.id);
+        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote);
 
         return res.status(200).json(
             ApiResponse.success(loteActualizado, "Lote completado correctamente")
@@ -139,4 +140,3 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
-*/

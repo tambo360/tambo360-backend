@@ -280,46 +280,42 @@ export class LoteService {
             }
             return producciones;
         }
-    
-        static async completarLote(idLote: string, idUsuario: string) {
-    
-            const lote = await prisma.loteProduccion.findUnique({
-                where: { idLote },
-                include: { establecimiento: true }
-            });
-    
-            if (!lote) {
-                throw new AppError("El lote no existe", 404);
-            }
-    
-            if (lote.establecimiento.idUsuario !== idUsuario) {
-                throw new AppError("No tiene permisos para modificar este lote", 403);
-            }
-    
-            if (lote.estado) {
-                throw new AppError("El lote ya está completado", 400);
-            }
-    
-            const loteActualizado = await prisma.loteProduccion.update({
-                where: { idLote },
-                data: { estado: true },
-            });
-    
-            // Disparar en background el análisis de IA al completarse
-            TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
-    
-            return loteActualizado;
+    */
+
+    static async completarLote(idLote: string) {
+
+        const lote = await prisma.loteProduccion.findUnique({
+            where: { idLote },
+        });
+
+        if (!lote) {
+            throw new AppError("El lote no existe", 404);
         }
-            */
 
-    static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
-        const config = await tx.configuracion.update({
-            where: { idEstablecimiento: idEstablecimiento },
-            data: { ultimoNumeroLote: { increment: 1 } },
-            select: { ultimoNumeroLote: true }
-        })
+        if (lote.estado) {
+            throw new AppError("El lote ya está completado", 409);
+        }
 
-        return config.ultimoNumeroLote;
+        const loteActualizado = await prisma.loteProduccion.update({
+            where: { idLote },
+            data: { estado: true },
+        });
+
+        // Disparar en background el análisis de IA al completarse
+        TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
+
+        return loteActualizado;
     }
+
+
+    // static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
+    //     const config = await tx.configuracion.update({
+    //         where: { idEstablecimiento: idEstablecimiento },
+    //         data: { ultimoNumeroLote: { increment: 1 } },
+    //         select: { ultimoNumeroLote: true }
+    //     })
+
+    //     return config.ultimoNumeroLote;
+    // }
 }
 
