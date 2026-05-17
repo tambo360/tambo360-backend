@@ -159,16 +159,14 @@ class EstablishmentsService {
             // =========================================================
             if (data.razas) {
 
-                const razasExistentesInput = data.razas
-                    .filter(r => r.tipo === "existente");
+                const razasExistentesInput = data.razas.filter((r): r is Extract<typeof r, { tipo: "existente" }> => r.tipo === "existente");
 
                 const razasNuevasInput = data.razas
-                    .filter(r => r.tipo === "nuevo")
+                    .filter((r): r is Extract<typeof r, { tipo: "nuevo" }> => r.tipo === "nuevo")
                     .map(r => ({
                         nombre: r.nombre,
                         nombreNormalizado: r.nombre.trim().toLowerCase()
                     }));
-
 
                 // =========================================
                 // BUSCAR RAZAS NUEVAS QUE YA EXISTAN
@@ -285,11 +283,10 @@ class EstablishmentsService {
             // =========================================================
             if (data.productos) {
 
-                const productosExistentesInput = data.productos
-                    .filter(p => p.tipo === "existente");
+                const productosExistentesInput = data.productos.filter((p): p is Extract<typeof p, { tipo: "existente" }> => p.tipo === "existente");
 
                 const productosNuevosInput = data.productos
-                    .filter(p => p.tipo === "nuevo")
+                    .filter((p): p is Extract<typeof p, { tipo: "nuevo" }> => p.tipo === "nuevo")
                     .map(p => ({
                         nombre: p.nombre,
                         nombreNormalizado: p.nombre.trim().toLowerCase(),
