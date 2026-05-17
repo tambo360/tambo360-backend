@@ -407,18 +407,6 @@ export class LoteService {
         }
         return producciones;
     }
-
-    static async completarLote(idLote: string, idUsuario: string) {
-
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { establecimiento: true }
-        });
-
-        if (!lote) {
-            throw new AppError("El lote no existe", 404);
-        }
-<<<<<<< HEAD
     */
 
     static async completarLote(idLote: string) {
