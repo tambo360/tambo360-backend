@@ -138,7 +138,7 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
             throw new AppError("Permisos insuficientes para obtener el cuestionario", 403);
         }
 
-        const { cuestionario, razas, establecimiento } = await establishmentsService.getCuestionario(estAcess.idEstablecimiento);
+        const { cuestionario, razas, establecimiento, productos } = await establishmentsService.getCuestionario(estAcess.idEstablecimiento);
 
         if (!cuestionario) {
             throw new AppError("Cuestionario no encontrado para este establecimiento", 404);
@@ -150,6 +150,10 @@ export const getCuestionario = async (req: Request, res: Response, next: NextFun
             razas: razas.map(er => ({
                 nombre: er.raza.nombre,
                 id: er.raza.idRaza
+            })),
+            productos: productos.map(ep => ({
+                nombre: ep.producto.nombre,
+                id: ep.producto.idProducto
             })),
             ordeñe_por_dia: cuestionario.cantOrdenies,
             tipo_ordeñe: cuestionario.tipoOrdenie,

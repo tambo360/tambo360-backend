@@ -57,9 +57,8 @@ export class TamboEngineService {
                 include: {
                     producto: {
                         select: {
-                            producto: {
-                                select: {nombre: true, categoria: true}
-                            }
+                            nombre: true,
+                            categoria: true
                         }
                     },
                     mermas: true,
@@ -91,8 +90,8 @@ export class TamboEngineService {
                     idLote: l.idLote,
                     numeroLote: l.numeroLote,
                     fechaProduccion: l.fechaProduccion.toISOString().split("T")[0],
-                    producto: l.producto.producto.nombre,
-                    categoria: l.producto.producto.categoria,
+                    producto: l.producto.nombre,
+                    categoria: l.producto.categoria,
                     cantidad: Number(l.cantidad),
                     unidad: l.unidad,
                     mermas: l.mermas.map(m => ({

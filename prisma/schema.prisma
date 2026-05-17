@@ -23,6 +23,8 @@ enum Moneda {
 enum Categoria {
   quesos
   leches
+  yogures
+  otros
 }
 
 enum TipoToken {
@@ -102,6 +104,7 @@ model Organizacion {
   establecimientos Establecimiento[]
   invitaciones     InvitacionOrganizacion[]
   razas            Raza[]
+  productos        Producto[]
 }
 
 model OrganizacionUsuario {
@@ -199,8 +202,15 @@ model InvitacionEstablecimiento {
 model Producto {
   idProducto               String                    @id @default(uuid())
   nombre                   String
+  nombreNormalizado        String
+  esSistema                Boolean                   @default(false)
+  idOrganizacion           String?
+  organizacion             Organizacion?             @relation(fields: [idOrganizacion], references: [idOrganizacion])
   categoria                Categoria
   establecimientoProductos EstablecimientoProducto[]
+  loteProduccions          LoteProduccion[]
+
+  @@unique([nombreNormalizado, idOrganizacion])
 }
 
 model EstablecimientoProducto {
@@ -209,9 +219,8 @@ model EstablecimientoProducto {
   idEstablecimiento String
   idProducto        String
 
-  establecimiento Establecimiento  @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  producto        Producto         @relation(fields: [idProducto], references: [idProducto])
-  loteProduccions LoteProduccion[]
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  producto        Producto        @relation(fields: [idProducto], references: [idProducto])
 
   @@unique([idEstablecimiento, idProducto])
 }
@@ -226,6 +235,7 @@ model Raza {
   organizacion   Organizacion? @relation(fields: [idOrganizacion], references: [idOrganizacion])
 
   establecimientos EstablecimientoRaza[]
+  loteProduccions  LoteProduccion[]
 
   @@unique([nombreNormalizado, idOrganizacion])
 }
@@ -236,27 +246,26 @@ model EstablecimientoRaza {
   idEstablecimiento String
   idRaza            String
 
-  establecimiento Establecimiento  @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  raza            Raza             @relation(fields: [idRaza], references: [idRaza])
-  loteProduccions LoteProduccion[]
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  raza            Raza            @relation(fields: [idRaza], references: [idRaza])
 
   @@unique([idEstablecimiento, idRaza])
 }
 
 model LoteProduccion {
-  idLote            String                  @id
+  idLote            String          @id
   numeroLote        Int
-  fechaProduccion   DateTime                @default(now())
+  fechaProduccion   DateTime        @default(now())
   cantidad          Decimal
   unidad            Unidad
-  estado            Boolean                 @default(false)
+  estado            Boolean         @default(false)
   cantRazas         Int
   idRaza            String
-  raza              EstablecimientoRaza     @relation(fields: [idRaza], references: [id])
+  raza              Raza            @relation(fields: [idRaza], references: [idRaza])
   idProducto        String
-  producto          EstablecimientoProducto @relation(fields: [idProducto], references: [id])
+  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
   idEstablecimiento String
-  establecimiento   Establecimiento         @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   mermas            Merma[]
   costosDirectos    CostosDirecto[]
 

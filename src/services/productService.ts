@@ -2,10 +2,10 @@ import { prisma } from "../lib/prisma";
 
 
 
-class BreedsService {
+class ProductService {
 
-    async getAllBreeds(org_id: string) {
-        const data = await prisma.raza.findMany({
+    async getAllProducts(org_id: string) {
+        const data = await prisma.producto.findMany({
             where: {
                 OR: [
                     { idOrganizacion: org_id },
@@ -18,6 +18,6 @@ class BreedsService {
     }
 
 }
-export default new BreedsService();
+export default new ProductService();
 
 

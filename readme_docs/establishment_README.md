@@ -153,27 +153,52 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
 | `cantidadVacas` | number (int) | Sí | Cantidad de vacas (positivo) |
-| `Razas` | array | Sí | Array de razas (mínimo 1) |
-| `Razas[].idRaza` | string (UUID) | Sí | ID de la raza |
-| `Razas[].nombre` | string | Sí | Nombre de la raza |
+| `razas` | array | No | Array opcional de razas |
+| `razas[].tipo` | string | Sí | `existente` o `nuevo` |
+| `razas[].idRaza` | string (UUID) | No | ID de la raza cuando `tipo` es `existente` |
+| `razas[].nombre` | string | Sí | Nombre de la raza |
+| `productos` | array | No | Array opcional de productos |
+| `productos[].tipo` | string | Sí | `existente` o `nuevo` |
+| `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
+| `productos[].nombre` | string | Sí | Nombre del producto |
+| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
 | `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes (positivo) |
-| `tipoOrdenie` | enum | Sí | Tipo de ordeñe |
+| `tipoOrdenie` | enum | Sí | Tipo de ordeñe válido |
 | `promLitros` | number | Sí | Promedio de litros (positivo) |
-| `ventaLeche` | enum | Sí | Tipo de venta de leche |
+| `ventaLeche` | enum | Sí | Tipo de venta de leche válido |
 | `empleados` | boolean | Sí | Indica si tiene empleados |
 | `cantEmpleados` | number (int) | No | Cantidad de empleados |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
+
+> Nota: el field `idEstablecimiento` se inyecta automáticamente desde el contexto del establecimiento, no debe enviarse en el body.
 
 #### Ejemplo de Request
 
 ```json
 {
   "cantidadVacas": 150,
-  "Razas": [
+  "razas": [
     {
+      "tipo": "existente",
       "idRaza": "uuid-raza",
       "nombre": "Holando"
+    },
+    {
+      "tipo": "nuevo",
+      "nombre": "Jersey"
+    }
+  ],
+  "productos": [
+    {
+      "tipo": "existente",
+      "idProducto": "uuid-producto",
+      "nombre": "Leche Fresca"
+    },
+    {
+      "tipo": "nuevo",
+      "nombre": "Yogur Natural",
+      "categoria": "yogures"
     }
   ],
   "cantOrdenie": 2,
@@ -219,6 +244,7 @@ Solo usuarios con rol `duenio` o `administrador` del establecimiento pueden regi
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
 | 400 | Todos los campos son obligatorios y deben ser válidos |
+| 400 | Formato de `razas` o `productos` inválido |
 | 403 | Permisos insuficientes para registrar el cuestionario |
 
 ---
