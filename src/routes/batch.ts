@@ -1,10 +1,10 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote/*,  , , produccionDelDia, completarLote */} from "../controllers/batchController";
+import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote, completarLote/*,  , , produccionDelDia */ } from "../controllers/batchController";
 import { aiLimiter } from "../middleware/RateLimit";
-//import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess} from "../middleware/orgMiddleware";
 import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento } from "@prisma/client";
+
 
 const router = express.Router();
 
@@ -19,17 +19,10 @@ router.post('/', crearLote);
 // Listar lotes paginados con filtros
 router.get("/listar", listarLotes);
 
-router.delete("/:idLote", requireRoles({est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER]}), eliminarLote);
+router.delete("/:idLote", requireRoles({ est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER] }), eliminarLote);
 router.get("/buscar/:idLote", obtenerLote);
 router.patch('/:idLote', editarLote);
 
-/*
-
-
-
-router.get("/produccion-hoy", authenticate, produccionDelDia);
-
-router.post("/completar/:idLote", authenticate, aiLimiter, completarLote);
-*/
+router.post("/completar/:idLote", authenticate, orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, aiLimiter, completarLote);
 
 export default router;

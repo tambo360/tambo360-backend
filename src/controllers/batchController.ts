@@ -4,6 +4,8 @@ import { crearLoteSchema, editarLoteSchema, idLoteParamSchema, listarLotesSchema
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 
+
+
 export const crearLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsed = crearLoteSchema.safeParse(req.body);
@@ -159,45 +161,41 @@ export const editarLote = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-/*
-
-
-
-
 //antes de aplicar la issue #29 estaba este listarLotes
-export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
+// export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const user = (req as any).user;
+//         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const parsed = listarLotesSchema.safeParse(req.query);
-        if (!parsed.success) {
-            const errores = parsed.error.issues.map((e) => e.message);
-            throw new AppError(errores.join(", "), 400);
-        }
+//         const parsed = listarLotesSchema.safeParse(req.query);
+//         if (!parsed.success) {
+//             const errores = parsed.error.issues.map((e) => e.message);
+//             throw new AppError(errores.join(", "), 400);
+//         }
 
-        const filtros = parsed.data;
+//         const filtros = parsed.data;
 
-        const lotes = await LoteService.listarLotes(user.id, filtros);
+//         const lotes = await LoteService.listarLotes(user.id, filtros);
 
-        return res.status(200).json(ApiResponse.success(lotes, "Lotes listados correctamente"));
+//         return res.status(200).json(ApiResponse.success(lotes, "Lotes listados correctamente"));
 
-    } catch (error) {
-        next(error);
-    }
-};
+//     } catch (error) {
+//         next(error);
+//     }
+// };
 
 
-export const produccionDelDia = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const user = (req as any).user;
-        if (!user) throw new AppError("Usuario no autenticado", 401);
+// export const produccionDelDia = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//         const user = (req as any).user;
+//         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const lotes = await LoteService.listarProduccionDelDia(user.id);
+//         const lotes = await LoteService.listarProduccionDelDia(user.id);
 
-        return res.status(200).json(ApiResponse.success(lotes, "Producción del día"));
-    } catch (error) { next(error); }
-};
+//         return res.status(200).json(ApiResponse.success(lotes, "Producción del día"));
+//     } catch (error) { next(error); }
+// };
+
 
 export const completarLote = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -211,7 +209,7 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote, user.id);
+        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote);
 
         return res.status(200).json(
             ApiResponse.success(loteActualizado, "Lote completado correctamente")
@@ -220,4 +218,5 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
-*/
+
+

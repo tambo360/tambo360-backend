@@ -171,7 +171,7 @@ export class LoteService {
                 throw new AppError("La raza seleccionada no existe", 404);
             }
         }
-        
+
 
         const loteActualizado = await prisma.loteProduccion.update({
             where: { idLote, idEstablecimiento: idEstablecimiento },
@@ -418,9 +418,17 @@ export class LoteService {
         if (!lote) {
             throw new AppError("El lote no existe", 404);
         }
+<<<<<<< HEAD
+    */
 
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para modificar este lote", 403);
+    static async completarLote(idLote: string) {
+
+        const lote = await prisma.loteProduccion.findUnique({
+            where: { idLote },
+        });
+
+        if (!lote) {
+            throw new AppError("El lote no existe", 404);
         }
 
         if (lote.estado) {
@@ -437,17 +445,17 @@ export class LoteService {
 
         return loteActualizado;
     }
-    */
 
 
-    static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
-        const config = await tx.configuracion.update({
-            where: { idEstablecimiento: idEstablecimiento },
-            data: { ultimoNumeroLote: { increment: 1 } },
-            select: { ultimoNumeroLote: true }
-        })
 
-        return config.ultimoNumeroLote;
-    }
+    // static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
+    //     const config = await tx.configuracion.update({
+    //         where: { idEstablecimiento: idEstablecimiento },
+    //         data: { ultimoNumeroLote: { increment: 1 } },
+    //         select: { ultimoNumeroLote: true }
+    //     })
+
+    //     return config.ultimoNumeroLote;
+    // }
 }
 
