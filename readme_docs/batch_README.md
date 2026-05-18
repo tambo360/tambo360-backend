@@ -64,14 +64,20 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
   "message": "Lote creado correctamente",
   "data": {
     "idLote": "550e8400-e29b-41d4-a716-446655440000",
-    "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+    "numeroLote": 1,
+    "fechaProduccion": "2026-05-15T12:00:00.000Z",
     "cantidad": 100,
     "unidad": "kg",
-    "fechaProduccion": "2026-05-15T12:00:00.000Z",
     "estado": true,
+    "cantRazas": 50,
     "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-    "cantRaza": 50,
-    "idEstablecimiento": "uuid-establecimiento"
+    "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+    "idEstablecimiento": "uuid-establecimiento",
+    "producto": {
+      "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+      "nombre": "Leche Fresca",
+      "categoria": "leches"
+    }
   }
 }
 ```
@@ -100,14 +106,20 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 |-----------|------|-------------|-------------|
 | `pagina` | number | No | Página de resultados |
 | `orden` | string | No | Orden de los resultados (`asc`, `desc`) |
+| `estado` | boolean | No | Filtrar por estado del lote (`true` o `false`) |
+| `nombre` | string | No | Buscar por texto en el nombre o producto |
+| `producto` | string | No | Buscar por texto en el nombre del producto |
+| `numeroLote` | number | No | Buscar por número de lote exacto |
+| `fecha_desde` | string | No | Fecha inicial en formato `dd/mm/aaaa` |
+| `fecha_hasta` | string | No | Fecha final en formato `dd/mm/aaaa` |
 
 #### Ejemplo de Request
 
 ```bash
-GET /lote/listar?pagina=1&orden=asc
+GET /lote/listar?pagina=1&orden=asc&estado=false&fecha_desde=01/05/2026&fecha_hasta=15/05/2026
 Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
 ```
 
 #### Response (200 - OK)
@@ -116,19 +128,36 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 {
   "success": true,
   "message": "Lotes listados correctamente",
-  "data": [
-    {
-      "idLote": "550e8400-e29b-41d4-a716-446655440000",
-      "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-      "cantidad": 100,
-      "unidad": "kg",
-      "fechaProduccion": "2026-05-15T12:00:00.000Z",
-      "estado": true,
-      "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-      "cantRaza": 50,
-      "idEstablecimiento": "uuid-establecimiento"
-    }
-  ]
+  "data": {
+    "page": 1,
+    "limit": 10,
+    "totalLotes": 1,
+    "totalPaginas": 1,
+    "lotes": [
+      {
+        "idLote": "550e8400-e29b-41d4-a716-446655440000",
+        "numeroLote": 123,
+        "fechaProduccion": "2026-05-15T12:00:00.000Z",
+        "cantidad": 100,
+        "unidad": "kg",
+        "estado": true,
+        "cantRazas": 50,
+        "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+        "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+        "idEstablecimiento": "uuid-establecimiento",
+        "producto": {
+          "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+          "nombre": "Leche Fresca",
+          "categoria": "leches"
+        },
+        "raza": {
+          "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+          "nombre": "Holando"
+        },
+        "mermas": []
+      }
+    ]
+  }
 }
 ```
 
