@@ -429,12 +429,36 @@ export class LoteService {
         });
 
         // Disparar en background el análisis de IA al completarse
-        TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
+        await TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
 
         return loteActualizado;
     }
 
+    static async cerrarLotesVencidos() {
 
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - 15);
+
+        const lotes = await prisma.loteProduccion.findMany({
+            where: {
+                estado: false,
+                fechaProduccion: {lte: fechaLimite}
+            },
+            select: {idLote: true}
+        });
+
+        console.log(`[CRON] Lotes vencidos encontrados: ${lotes.length}`);
+
+        for (const lote of lotes) {
+            try {
+                await this.completarLote(lote.idLote);
+                console.log(`[CRON] Lote cerrado: ${lote.idLote}`);
+            } catch (error) {
+                console.error(`[CRON] Error cerrando lote ${lote.idLote}`, error);
+            }
+        }
+
+    }
 
     static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
         const config = await tx.configuracion.update({
