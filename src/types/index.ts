@@ -1,4 +1,4 @@
-import { Categoria, ConceptoCosto, Merma, RolEstablecimiento, RolOrganizacion, TipoMerma, Unidad } from "@prisma/client";
+import { Categoria, TipoCosto, Merma, RolEstablecimiento, RolOrganizacion, TipoMerma, Unidad } from "@prisma/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 declare module 'express' {
@@ -70,7 +70,7 @@ export type InfoMes = {
     idLote: string;
     fechaCreacion: Date;
     idCostoDirecto: string;
-    concepto: ConceptoCosto;
+    concepto: TipoCosto;
     monto: Decimal;
     observaciones: string | null;
   }[];
