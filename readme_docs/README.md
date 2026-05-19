@@ -16,6 +16,7 @@ Esta carpeta contiene la documentación completa de todos los endpoints de la AP
 | [mermas_README.md](mermas_README.md) | Endpoints de mermas | `/mermas/*` |
 | [alertas_README.md](alertas_README.md) | Endpoints de alertas | `/alertas/*` |
 | [landing_README.md](landing_README.md) | Endpoints de landing page | `/landing/*` |
+| [dashboard_README.md](dashboard_README.md) | Endpoints de dashboard | `/dashboard/*` |
 | [health_README.md](health_README.md) | Endpoint de health check | `/health` |
 
 ## Autenticación General
