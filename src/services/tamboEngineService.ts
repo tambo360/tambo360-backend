@@ -100,7 +100,7 @@ export class TamboEngineService {
                         unidad: l.unidad,
                     })),
                     costosDirectos: l.costosDirectos.map(c => ({
-                        concepto: c.concepto,
+                        concepto: c.tipoCosto,
                         monto: Number(c.monto),
                         moneda: "ARS",
                     })),
