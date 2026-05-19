@@ -39,11 +39,14 @@ enum TipoMerma {
   Danio
 }
 
-enum ConceptoCosto {
-  insumos_basicos
-  leche_cruda
-  cuajo_y_fermentos
-  refrigeracion
+enum TipoCosto {
+  ALIMENTACION
+  SANIDAD
+  MANO_OBRA
+  ENERGIA
+  MANTENIMIENTO
+  LOGISTICA
+  OTRO
 }
 
 enum RolOrganizacion {
@@ -284,12 +287,14 @@ model Merma {
 
 model CostosDirecto {
   idCostoDirecto String         @id @default(uuid())
-  concepto       ConceptoCosto
+  tipoCosto      TipoCosto
+  moneda         Moneda         @default(ARS)
   monto          Decimal        @db.Decimal(13, 2)
   observaciones  String?        @default("")
   fechaCreacion  DateTime       @default(now())
   idLote         String
   lote           LoteProduccion @relation(fields: [idLote], references: [idLote])
+  @@index([idLote])
 }
 
 model VerificarToken {
