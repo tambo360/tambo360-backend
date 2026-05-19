@@ -1,10 +1,32 @@
-/*import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { isValidEnum } from "../utils/enumValidation";
 import { MetricaObj } from "../types";
 import { DashboardService } from "../services/dashboardService";
 
+export class DashboardController {
+    static async costosPorCategoria(req: Request, res: Response, next: NextFunction) {
+        try {
+
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+            const costsByCategory = await DashboardService.costosPorCategoria(idEstablecimiento)
+
+            return res.status(200).json(ApiResponse.success(costsByCategory, "Costos por categoría obtenidos correctamente"))
+
+        } catch (error) {
+            next(error);
+        }
+    }
+}
+
+
+/*
 export const listarPorMes = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const user = (req as any).user;

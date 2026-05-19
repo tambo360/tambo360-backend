@@ -2,8 +2,44 @@ import { prisma } from "../lib/prisma";
 import { Categoria, CostosDirecto, Merma } from "@prisma/client";
 import { InfoMes, Metrica, SummaryResult } from "../types";
 import { meses } from "../utils/data";
-/*
+
 export class DashboardService {
+
+    static async costosPorCategoria(idEstablecimiento: string) {
+
+        // Fechas del mes actual
+        const hoy = new Date()
+        const anio = hoy.getFullYear()
+        const mes = hoy.getMonth() + 1 // 0-11, por eso +1
+
+        const inicio = new Date(anio, mes - 1, 1)
+        const fin = new Date(anio, mes, 0, 23, 59, 59, 999)
+
+        const costos = await prisma.costosDirecto.groupBy({
+            by: ["tipoCosto", "moneda"],
+            where: {
+                lote: {
+                    idEstablecimiento: idEstablecimiento,
+                    fechaProduccion: {
+                        gte: inicio,
+                        lte: fin
+                    }
+                }
+            },
+            _sum: {
+                monto: true
+            }
+        })
+
+        return costos.map(c => ({
+            categoria: c.tipoCosto,
+            moneda: c.moneda,
+            total: Number(c._sum.monto || 0)
+        }))
+
+    }
+
+    /*
     static async listarPorMes(userId: string) {
         // Fechas del mes actual
         const hoy = new Date()
@@ -167,9 +203,10 @@ export class DashboardService {
         return {resultado, Lote: true}
 
     }
+        */
+
 }
 
-*/
 
 
 
