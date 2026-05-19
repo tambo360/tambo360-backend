@@ -442,9 +442,9 @@ export class LoteService {
         const lotes = await prisma.loteProduccion.findMany({
             where: {
                 estado: false,
-                fechaProduccion: {lte: fechaLimite}
+                fechaProduccion: { lte: fechaLimite }
             },
-            select: {idLote: true}
+            select: { idLote: true }
         });
 
         console.log(`[CRON] Lotes vencidos encontrados: ${lotes.length}`);
@@ -468,6 +468,22 @@ export class LoteService {
         })
 
         return config.ultimoNumeroLote;
+    }
+
+    static async obtenerLoteEditable(idLote: string) {
+        const lote = await prisma.loteProduccion.findUnique(
+            { where: { idLote } }
+        )
+
+        if (!lote) {
+            throw new AppError("Lote no encontrado", 404)
+        }
+
+        if (lote.estado) {
+            throw new AppError("El lote está completo", 409)
+        }
+
+        return lote
     }
 }
 
