@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { eliminarCosto, actualizarCosto } from "../controllers/costController";
+import { eliminarCosto, actualizarCosto, crearCosto } from "../controllers/costController";
 import { RolEstablecimiento } from "@prisma/client";
 import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 
@@ -28,6 +28,12 @@ router.delete(
     "/:id",
     requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN] }),
     eliminarCosto
+);
+
+router.post(
+    "/",
+    requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE] }),
+    crearCosto
 );
 
 export default router;

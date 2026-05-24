@@ -71,6 +71,31 @@ import { crearCostoSchema, actualizarCostoSchema, idParamSchema, loteParamSchema
 //     }
 // };
 
+export const crearCosto = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const parsed = crearCostoSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            const errores = parsed.error.issues.map(e => e.message);
+            throw new AppError(errores.join(", "), 400);
+        }
+
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
+
+        const nuevoCosto = await ServicioCostos.crearCostoDirecto(idEstablecimiento, parsed.data);
+
+        return res.status(201).json(
+            ApiResponse.success(nuevoCosto, "Costo registrado correctamente", 201)
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const actualizarCosto = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsedParams = idParamSchema.safeParse(req.params);
@@ -109,7 +134,9 @@ export const eliminarCosto = async (req: Request, res: Response, next: NextFunct
 
         await ServicioCostos.eliminarCostoDirecto(parsedParams.data.id);
 
-        return res.status(204).send();
+        return res.status(200).json(
+            ApiResponse.success(null, "Costo eliminado correctamente")
+        );
     } catch (error) {
         next(error);
     }
