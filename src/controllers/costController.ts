@@ -71,36 +71,32 @@ import { crearCostoSchema, actualizarCostoSchema, idParamSchema, loteParamSchema
 //     }
 // };
 
-// export const actualizarCosto = async (req: Request, res: Response, next: NextFunction) => {
-//     try {
-//         const parsedParams = idParamSchema.safeParse(req.params);
-//         if (!parsedParams.success) {
-//             const errores = parsedParams.error.issues.map(e => e.message);
-//             throw new AppError(errores.join(", "), 400);
-//         }
+export const actualizarCosto = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const parsedParams = idParamSchema.safeParse(req.params);
+        if (!parsedParams.success) {
+            const errores = parsedParams.error.issues.map(e => e.message);
+            throw new AppError(errores.join(", "), 400);
+        }
 
-//         const parsedBody = actualizarCostoSchema.safeParse(req.body);
-//         if (!parsedBody.success) {
-//             const errores = parsedBody.error.issues.map(e => e.message);
-//             throw new AppError(errores.join(", "), 400);
-//         }
+        const parsedBody = actualizarCostoSchema.safeParse(req.body);
+        if (!parsedBody.success) {
+            const errores = parsedBody.error.issues.map(e => e.message);
+            throw new AppError(errores.join(", "), 400);
+        }
 
-//         const user = (req as any).user;
-//         if (!user) throw new AppError("Usuario no autenticado", 401);
+        const costoActualizado = await ServicioCostos.actualizarCostoDirecto(
+            parsedParams.data.id,
+            parsedBody.data
+        );
 
-//         const costoActualizado = await servicioCostos.actualizar(
-//             parsedParams.data.id,
-//             user.id,
-//             parsedBody.data
-//         );
-
-//         res.json(
-//             ApiResponse.success(costoActualizado, "Costo actualizado correctamente")
-//         );
-//     } catch (error) {
-//         next(error);
-//     }
-// };
+        return res.status(200).json(
+            ApiResponse.success(costoActualizado, "Costo actualizado correctamente")
+        );
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const eliminarCosto = async (req: Request, res: Response, next: NextFunction) => {
     try {

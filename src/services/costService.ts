@@ -80,65 +80,23 @@ class ServicioCostos {
     //     });
     // }
 
-    // async actualizar(id: string, idUsuario: string, data: ActualizarCostoDTO) {
-    //     const costo = await prisma.costosDirecto.findUnique({
-    //         where: { idCostoDirecto: id },
-    //         include: {
-    //             lote: {
-    //                 include: {
-    //                     establecimiento: true
-    //                 }
-    //             }
-    //         }
-    //     });
+    async actualizarCostoDirecto(idCostoDirecto: string, data: ActualizarCostoDTO) {
 
-    //     if (!costo) {
-    //         throw new AppError("Costo no encontrado", 404);
-    //     }
+        const costo = await prisma.costosDirecto.findUnique({
+            where: { idCostoDirecto }
+        });
 
-    //     if (costo.lote.establecimiento.idUsuario !== idUsuario) {
-    //         throw new AppError("No tiene permisos para actualizar este costo", 403);
-    //     }
+        if (!costo) {
+            throw new AppError("Costo no encontrado", 404);
+        }
 
-    //     if (costo.lote.estado) {
-    //         throw new AppError("No se pueden modificar costos de un lote terminado", 400);
-    //     }
+        await LoteService.obtenerLoteEditable(costo.idLote);
 
-
-    //     return prisma.costosDirecto.update({
-    //         where: { idCostoDirecto: id },
-    //         data,
-    //     });
-    // }
-
-    // async eliminar(id: string, idUsuario: string) {
-    //     const costo = await prisma.costosDirecto.findUnique({
-    //         where: { idCostoDirecto: id },
-    //         include: {
-    //             lote: {
-    //                 include: {
-    //                     establecimiento: true
-    //                 }
-    //             }
-    //         }
-    //     });
-
-    //     if (!costo) {
-    //         throw new AppError("Costo no encontrado", 404);
-    //     }
-
-    //     if (costo.lote.establecimiento.idUsuario !== idUsuario) {
-    //         throw new AppError("No tiene permisos para eliminar este costo", 403);
-    //     }
-
-    //     if (costo.lote.estado) {
-    //         throw new AppError("No se pueden eliminar costos de un lote terminado", 400);
-    //     }
-
-    //     await prisma.costosDirecto.delete({
-    //         where: { idCostoDirecto: id },
-    //     });
-    // }
+        return prisma.costosDirecto.update({
+            where: { idCostoDirecto },
+            data
+        });
+    }
 
     async eliminarCostoDirecto(idCostoDirecto: string) {
 
