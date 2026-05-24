@@ -80,6 +80,26 @@ class ServicioCostos {
     //     });
     // }
 
+    async crearCostoDirecto(idEstablecimiento: string, data: CrearCostoDTO) {
+
+        const lote = await LoteService.obtenerLoteEditable(data.loteId);
+
+        if (lote.idEstablecimiento !== idEstablecimiento) {
+            throw new AppError("El lote no pertenece al establecimiento", 403);
+        }
+
+        return prisma.$transaction(async (tx) => {
+            return tx.costosDirecto.create({
+                data: {
+                    idLote: data.loteId,
+                    tipoCosto: data.concepto,
+                    monto: data.monto,
+                    observaciones: data.observaciones,
+                }
+            });
+        });
+    }
+
     async actualizarCostoDirecto(idCostoDirecto: string, data: ActualizarCostoDTO) {
 
         const costo = await prisma.costosDirecto.findUnique({

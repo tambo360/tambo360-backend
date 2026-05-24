@@ -30,7 +30,7 @@ export const crearCostoSchema = z.object({
 
 export const actualizarCostoSchema = z.object({
 
-    concepto: (
+    tipoCosto: (
         z
             .string()
             .refine(
