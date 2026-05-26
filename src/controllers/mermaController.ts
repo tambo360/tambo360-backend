@@ -1,9 +1,7 @@
 import { Request, Response } from "express"
-import { MermaService } from "../services/mermaService"
+import mermaService from "../services/mermaService"
 
-const mermaService = new MermaService()
-
-export class MermaController {
+class MermaController {
 
   async getTipos(req: Request, res: Response) {
     const tipos = await mermaService.getTipos()
@@ -54,3 +52,5 @@ export class MermaController {
     }
   }
 }
+
+export default new MermaController()

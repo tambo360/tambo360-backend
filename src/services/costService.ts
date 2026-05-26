@@ -92,7 +92,7 @@ class ServicioCostos {
             return tx.costosDirecto.create({
                 data: {
                     idLote: data.loteId,
-                    tipoCosto: data.concepto,
+                    tipoCosto: data.TipoCosto,
                     monto: data.monto,
                     observaciones: data.observaciones,
                 }
