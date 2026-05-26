@@ -321,6 +321,8 @@ export class LoteService {
 
                 // Necesario para calcular merma_porcentaje
                 mermas: true,
+
+                costosDirectos: true,
             },
 
             // =====================================================
@@ -342,13 +344,13 @@ export class LoteService {
         // Fórmula:
         // (total_mermas / cantidad_produccion) * 100
         // =========================================================
-        const lotesTransformados = lotes.map((lote: any) => {
+        const lotesTransformados = lotes.map((lote) => {
 
             const cantidadProduccion =
                 Number(lote.cantidad);
 
             const totalMermas = lote.mermas.reduce(
-                (acc: number, merma: any) =>
+                (acc: number, merma) =>
                     acc + Number(merma.cantidad),
                 0
             );
