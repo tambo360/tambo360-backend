@@ -33,10 +33,18 @@ enum TipoToken {
 }
 
 enum TipoMerma {
-  Natural
-  Tecnica
-  Administrativa
-  Danio
+  MASTITIS
+  ESTRES_CALORICO
+  DERRAME_EN_ORDENE
+  FALLA_EQUIPO
+  RECHAZO_ANTIBIOTICOS
+  ACIDOSIS_RUMINAL
+  PERDIDA_EN_TRANSPORTE
+  VENCIMIENTO_PRODUCTO
+  DANO_POR_MANIPULACION
+  DISCREPANCIA_INVENTARIO
+  MERMA_DESCONOCIDA
+  OTRO
 }
 
 enum TipoCosto {
@@ -294,6 +302,7 @@ model CostosDirecto {
   fechaCreacion  DateTime       @default(now())
   idLote         String
   lote           LoteProduccion @relation(fields: [idLote], references: [idLote])
+
   @@index([idLote])
 }
 
