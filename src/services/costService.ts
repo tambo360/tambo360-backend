@@ -134,6 +134,42 @@ class ServicioCostos {
             where: { idCostoDirecto }
         });
     }
+    //Metodo para obtener costos por lote
+    async obtenerCostosPorLote(idLote: string, idEstablecimiento: string) {
+
+    const lote = await prisma.loteProduccion.findUnique({
+        where: { idLote }
+    });
+
+    if (!lote) {
+        throw new AppError("Lote no encontrado", 404);
+    }
+
+    if (lote.idEstablecimiento !== idEstablecimiento) {
+        throw new AppError(
+            "No tiene permisos para ver los costos de este lote",
+            403
+        );
+    }
+
+    return prisma.costosDirecto.findMany({
+        where: {
+            idLote
+        },
+
+        select: {
+            idCostoDirecto: true,
+            tipoCosto: true,
+            monto: true,
+            observaciones: true,
+            fechaCreacion: true,
+        },
+
+        orderBy: {
+            fechaCreacion: "desc"
+        }
+    });
+ }
 }
 
 export default new ServicioCostos();

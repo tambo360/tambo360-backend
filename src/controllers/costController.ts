@@ -96,6 +96,48 @@ export const crearCosto = async (req: Request, res: Response, next: NextFunction
     }
 };
 
+//Funcion para Obtener costos por lotes
+export const obtenerCostosPorLote = async (req: Request, res: Response, next: NextFunction) => {
+
+    try {
+
+        const parsedParams = loteParamSchema.safeParse(req.params);
+
+        if (!parsedParams.success) {
+
+            const errores = parsedParams.error.issues.map(
+                    e => e.message
+                );
+
+            throw new AppError(
+                errores.join(", "),
+                400
+            );
+        }
+
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError(
+                "No se pudo determinar el establecimiento",
+                400
+            );
+        }
+
+        const costos =
+            await ServicioCostos.obtenerCostosPorLote(
+                parsedParams.data.loteId,
+                idEstablecimiento
+            );
+
+        return res.status(200).json(
+            ApiResponse.success(costos)
+        );
+
+    } catch (error) {
+        next(error);
+    }
+};
 export const actualizarCosto = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const parsedParams = idParamSchema.safeParse(req.params);
