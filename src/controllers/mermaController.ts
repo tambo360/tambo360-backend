@@ -28,7 +28,7 @@ class MermaController {
     }
   }
 
-  async findAll(req: Request, res: Response) {
+ /* async findAll(req: Request, res: Response) {
     try {
       const mermas = await mermaService.findAll()
       res.status(200).json(
@@ -38,8 +38,35 @@ class MermaController {
       res.status(400).json({ message: error.message })
     }
   }
+*/
 
-  async findById(req: Request, res: Response) {
+//Nuevo findAll con verficacion de acceso
+
+async findAll(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+    if (!idEstablecimiento) {
+      throw new AppError("No se pudo determinar el establecimiento", 400)
+    }
+
+    const idLote =
+      typeof req.query.id_lote === "string"
+        ? req.query.id_lote
+        : undefined;
+
+    const mermas = await mermaService.findAll(idEstablecimiento, idLote)
+    return res.status(200).json(
+      ApiResponse.success(mermas)
+    )
+
+  } catch (error) {
+    next(error)
+  }
+}
+/*
+async findById(req: Request, res: Response) {
     try {
       const merma = await mermaService.findById(req.params.id)
       if (!merma) {
@@ -52,6 +79,29 @@ class MermaController {
       res.status(400).json({ message: error.message })
     }
   }
+*/
+
+//nuevo findById con vereficacion de acceso
+
+async findById(req: Request, res: Response, next: NextFunction) {
+  try {
+
+    const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+    if (!idEstablecimiento) {
+      throw new AppError("No se pudo determinar el establecimiento", 400)
+    }
+
+    const merma = await mermaService.findById(req.params.id, idEstablecimiento)
+    return res.status(200).json(
+      ApiResponse.success(merma)
+    )
+
+  } catch (error) {
+    next(error)
+  }
+}
+
 
   async update(req: Request, res: Response) {
     try {
