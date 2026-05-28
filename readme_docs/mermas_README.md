@@ -49,6 +49,37 @@ Authorization: Bearer <token>
 |--------|---------|
 | 401 | Usuario no autenticado |
 
+### 2. Eliminar merma
+
+**Método:** `DELETE`  
+**Ruta:** `/mermas/:id`
+
+#### Request
+
+```bash
+DELETE /mermas/<id-merma>
+Authorization: Bearer <token>
+```
+
+#### Response (204 - No Content)
+Sin body.
+
+#### Reglas de negocio
+- La merma debe existir.
+- El lote asociado debe existir.
+- El lote asociado debe pertenecer al establecimiento del usuario autenticado.
+- El lote debe seguir en estado `INCOMPLETO`.
+- Solo pueden eliminar roles de establecimiento autorizados.
+
+#### Posibles errores
+
+| Código | Mensaje |
+|--------|---------|
+| 401 | Usuario no autenticado |
+| 403 | No tiene permisos |
+| 404 | Merma no encontrada o lote no encontrado |
+| 409 | El lote asociado está completo |
+
 ## Notas
 - El campo `value` contiene el enum interno del tipo de merma.
 - El campo `label` contiene el texto legible para la UI.

@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma"
 import { TipoMerma } from "@prisma/client"
 import { TipoMermaMetadata } from "../utils"
+import { AppError } from "../utils/AppError"
+import { LoteService } from "./batchService"
 
 class MermaService {
 
@@ -107,12 +109,25 @@ class MermaService {
     })
   }
 
-  async delete(idMerma: string) {
-    const merma = await prisma.merma.findUnique({ where: { idMerma } })
-    if (!merma) throw new Error("La merma no existe")
+  async delete(idMerma: string, idEstablecimiento: string) {
+    await prisma.$transaction(async (tx) => {
+      const merma = await tx.merma.findUnique({
+        where: { idMerma },
+        include: { lote: true }
+      })
 
-    await prisma.merma.delete({ where: { idMerma } })
-    return { message: "Merma eliminada correctamente" }
+      if (!merma) {
+        throw new AppError("Merma no encontrada", 404)
+      }
+
+      const lote = await LoteService.obtenerLoteEditable(merma.idLote, tx)
+
+      if (lote.idEstablecimiento !== idEstablecimiento) {
+        throw new AppError("Merma no encontrada", 404)
+      }
+
+      await tx.merma.delete({ where: { idMerma } })
+    })
   }
 }
 

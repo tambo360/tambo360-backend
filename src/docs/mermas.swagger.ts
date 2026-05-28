@@ -118,6 +118,8 @@
  *   get:
  *     summary: Obtener una merma por ID
  *     tags: [Mermas]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -126,10 +128,16 @@
  *         schema:
  *           type: string
  *     responses:
- *       200:
- *         description: Merma encontrada
+ *       204:
+ *         description: Merma eliminada correctamente
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: No tiene permisos
  *       404:
- *         description: Merma no encontrada
+ *         description: Merma no encontrada o lote no encontrado
+ *       409:
+ *         description: El lote asociado está completo
  */
 
 

@@ -1,7 +1,8 @@
 import { Router } from "express"
 import  MermaController from "../controllers/mermaController"
-import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess } from "../middleware/orgMiddleware";
+import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { authenticate } from "../middleware/authMiddleware";
+import { RolEstablecimiento } from "@prisma/client";
 
 const router = Router()
 
@@ -18,6 +19,6 @@ router.post("/", MermaController.create)
 router.get("/", MermaController.findAll)
 router.get("/:id", MermaController.findById)
 router.put("/:id", MermaController.update)
-router.delete("/:id", MermaController.delete)
+router.delete("/:id",requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE] }), MermaController.delete)
 
 export default router

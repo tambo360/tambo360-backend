@@ -1,6 +1,7 @@
-import { Request, Response } from "express"
+import { Request, Response, NextFunction } from "express"
 import mermaService from "../services/mermaService"
 import { ApiResponse } from "../utils/ApiResponse";
+import { AppError } from "../utils/AppError";
 
 class MermaController {
 
@@ -63,14 +64,20 @@ class MermaController {
     }
   }
 
-  async delete(req: Request, res: Response) {
+  async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      await mermaService.delete(req.params.id)
-      res.status(200).json(
+      const idEstablecimiento = (req as any).estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      await mermaService.delete(req.params.id, idEstablecimiento)
+      return res.status(200).json(
         ApiResponse.success(null, "Merma eliminada correctamente")
-      )
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+      );
+    } catch (error) {
+      next(error)
     }
   }
 }

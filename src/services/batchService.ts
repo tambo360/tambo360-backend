@@ -472,8 +472,9 @@ export class LoteService {
         return config.ultimoNumeroLote;
     }
 
-    static async obtenerLoteEditable(idLote: string) {
-        const lote = await prisma.loteProduccion.findUnique(
+    static async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
+        const db = tx ?? prisma;
+        const lote = await db.loteProduccion.findUnique(
             { where: { idLote } }
         )
 
