@@ -11,20 +11,33 @@
  *   get:
  *     summary: Obtener tipos de merma disponibles
  *     tags: [Mermas]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Lista de tipos de merma
+ *         description: Lista de tipos de merma con valor y etiqueta
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   value:
+ *                     type: string
+ *                     example: "MASTITIS"
+ *                   label:
+ *                     type: string
+ *                     example: "Mastitis"
  *               example:
- *                 - Natural
- *                 - Tecnica
- *                 - Administrativa
- *                 - Danio
+ *                 - value: "MASTITIS"
+ *                   label: "Mastitis"
+ *                 - value: "ESTRES_CALORICO"
+ *                   label: "Estrés calórico"
+ *                 - value: "OTRO"
+ *                   label: "Otro"
+ *       401:
+ *         description: Usuario no autenticado
  */
 
 

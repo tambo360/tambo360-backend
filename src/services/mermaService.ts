@@ -1,15 +1,11 @@
 import { prisma } from "../lib/prisma"
 import { TipoMerma } from "@prisma/client"
+import { TipoMermaMetadata } from "../utils"
 
 class MermaService {
 
   async getTipos() {
-    return [
-      "Natural",
-      "Tecnica",
-      "Administrativa",
-      "Danio"
-    ]
+    return Object.values(TipoMerma).map(tipo => ({ value: tipo, label: TipoMermaMetadata[tipo].label }))
   }
 
   async create(data: any) {

@@ -1,6 +1,51 @@
+import { TipoMerma } from "@prisma/client";
+
 export const formatDate = (date: Date): string => {
-    const fecha = new Date(date); 
+    const fecha = new Date(date);
     const soloFecha = fecha.toISOString().split('T')[0];
 
     return soloFecha;
 }
+
+
+
+
+export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
+    MASTITIS: {
+        label: "Mastitis",
+    },
+    ESTRES_CALORICO: {
+        label: "Estrés calórico",
+    },
+    DERRAME_EN_ORDENE: {
+        label: "Derrame en ordeñe",
+    },
+    FALLA_EQUIPO: {
+        label: "Falla de equipo",
+    },
+    RECHAZO_ANTIBIOTICOS: {
+        label: "Rechazo por antibióticos",
+    },
+    ACIDOSIS_RUMINAL: {
+        label: "Acidosis ruminal",
+    },
+    PERDIDA_EN_TRANSPORTE: {
+        label: "Pérdida en transporte",
+    },
+    VENCIMIENTO_PRODUCTO: {
+        label: "Vencimiento de producto",
+    },
+
+    DANO_POR_MANIPULACION: {
+        label: "Daño por manipulación",
+    },
+    DISCREPANCIA_INVENTARIO: {
+        label: "Discrepancia de inventario",
+    },
+    MERMA_DESCONOCIDA: {
+        label: "Merma desconocida",
+    },
+    OTRO: {
+        label: "Otro",
+    },
+};

@@ -6,12 +6,14 @@ import { authenticate } from "../middleware/authMiddleware";
 const router = Router()
 
 router.use(authenticate);
+
+router.get("/tipos", MermaController.getTipos)
+
 router.use(orgContext);
 router.use(requireOrgAccess);
 router.use(estContext);
 router.use(establecimientoRequireOrgAccess);
 
-router.get("/tipos", MermaController.getTipos)
 router.post("/", MermaController.create)
 router.get("/", MermaController.findAll)
 router.get("/:id", MermaController.findById)
