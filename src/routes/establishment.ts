@@ -13,7 +13,7 @@ router.use(requireOrgAccess);
 router.post('/', registrarEstablecimiento);
 router.get('/:idEst', getEstablishmentById);
 router.get('/', listarEstablecimientos);
-router.post('/cuestionario', estContext, establecimientoRequireOrgAccess, registrarCuestionario);
+router.post('/cuestionario', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN], org: [RolOrganizacion.ORG_OWNER]}), registrarCuestionario);
 router.get('/cuestionario/info', estContext, establecimientoRequireOrgAccess, getCuestionario);
 router.patch('/editar-nombre', /* editarNombreEstablecimiento */);
 router.post('/invitacion', estContext, establecimientoRequireOrgAccess, sendInvitation);
