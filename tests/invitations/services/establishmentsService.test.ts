@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import establishmentsService from '../../../src/services/establishmentsService';
+import { TipoOrdenie, VentaLeche, Categoria } from '@prisma/client';
 
 const { prismaMock, sendInvitationEmailMock, generateTokenMock, hashTokenMock } = vi.hoisted(() => ({
     prismaMock: {
@@ -9,6 +10,7 @@ const { prismaMock, sendInvitationEmailMock, generateTokenMock, hashTokenMock } 
             findUnique: vi.fn(),
             delete: vi.fn(),
         },
+        $transaction: vi.fn(),
     },
     sendInvitationEmailMock: vi.fn(),
     generateTokenMock: vi.fn(),
@@ -167,5 +169,163 @@ describe('EstablishmentsService.sendInvitation', () => {
 
         expect(prismaMock.invitacionEstablecimiento.create).not.toHaveBeenCalled();
         expect(sendInvitationEmailMock).not.toHaveBeenCalled();
+    });
+});
+
+describe('EstablishmentsService.guardarCuestionario', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('guarda respuestas, reutiliza razas/productos existentes y crea los personalizados', async () => {
+        const txMock = {
+            establecimiento: {
+                findUnique: vi.fn().mockResolvedValue({
+                    idOrganizacion: 'org-1',
+                    configuracions: [{ idConfiguracion: 'config-1' }],
+                }),
+                update: vi.fn().mockResolvedValue({}),
+            },
+            configuracion: {
+                update: vi.fn().mockResolvedValue({}),
+            },
+            raza: {
+                findMany: vi.fn().mockResolvedValue([
+                    { idRaza: 'existing-race-1', nombreNormalizado: 'holstein' },
+                ]),
+                create: vi.fn().mockResolvedValue({ idRaza: 'new-race-1' }),
+            },
+            establecimientoRaza: {
+                deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+                createMany: vi.fn().mockResolvedValue({ count: 2 }),
+            },
+            producto: {
+                findMany: vi.fn().mockResolvedValue([
+                    { idProducto: 'existing-product-1', nombreNormalizado: 'leche' },
+                ]),
+                create: vi.fn().mockResolvedValue({ idProducto: 'new-product-1' }),
+            },
+            establecimientoProducto: {
+                deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+                createMany: vi.fn().mockResolvedValue({ count: 2 }),
+            },
+        };
+
+        prismaMock.$transaction.mockImplementation(async (callback) => callback(txMock));
+
+        const payload = {
+            idEstablecimiento: 'est-1',
+            cantidadVacas: 30,
+            razas: [
+                { tipo: 'existente' as const, idRaza: 'existing-race-1', nombre: 'Holstein' },
+                { tipo: 'nuevo' as const, nombre: 'Jersey' },
+            ],
+            productos: [
+                { tipo: 'existente' as const, idProducto: 'existing-product-1', nombre: 'Leche' },
+                { tipo: 'nuevo' as const, nombre: 'Queso', categoria:  Categoria.quesos },
+            ],
+            cantOrdenie: 2,
+            tipoOrdenie: TipoOrdenie.manual,
+            promLitros: 18,
+            ventaLeche: VentaLeche.usina,
+            empleados: true,
+            cantEmpleados: 5,
+            ubicacion: {
+                provincia: 'Córdoba',
+                localidad: 'Río Cuarto',
+            },
+        };
+
+        const result = await establishmentsService.guardarCuestionario(payload);
+
+        expect(prismaMock.$transaction).toHaveBeenCalled();
+        expect(txMock.establecimiento.update).toHaveBeenCalledWith({
+            where: { idEstablecimiento: 'est-1' },
+            data: {
+                localidad: 'Río Cuarto',
+                provincia: 'Córdoba',
+            },
+        });
+        expect(txMock.configuracion.update).toHaveBeenCalledWith({
+            where: { idConfiguracion: 'config-1' },
+            data: expect.objectContaining({
+                cantVacas: 30,
+                cantOrdenies: 2,
+                promLitros: 18,
+                tipoOrdenie: TipoOrdenie.manual,
+                ventaLeche: VentaLeche.usina,
+                empleados: true,
+                cantEmpleados: 5,
+                modificadoEn: expect.any(Date),
+            }),
+        });
+        expect(txMock.raza.findMany).toHaveBeenCalledWith({
+            where: {
+                nombreNormalizado: {
+                    in: ['jersey'],
+                },
+                OR: [
+                    { idOrganizacion: null },
+                    { idOrganizacion: 'org-1' },
+                ],
+            },
+        });
+        expect(txMock.raza.create).toHaveBeenCalledWith({
+            data: {
+                nombre: 'Jersey',
+                nombreNormalizado: 'jersey',
+                idOrganizacion: 'org-1',
+                esSistema: false,
+            },
+            select: {
+                idRaza: true,
+            },
+        });
+        expect(txMock.establecimientoRaza.deleteMany).toHaveBeenCalledWith({
+            where: {
+                idEstablecimiento: 'est-1',
+            },
+        });
+        expect(txMock.establecimientoRaza.createMany).toHaveBeenCalledWith({
+            data: [
+                { idEstablecimiento: 'est-1', idRaza: 'existing-race-1' },
+                { idEstablecimiento: 'est-1', idRaza: 'new-race-1' },
+            ],
+        });
+        expect(txMock.producto.findMany).toHaveBeenCalledWith({
+            where: {
+                nombreNormalizado: {
+                    in: ['queso'],
+                },
+                OR: [
+                    { idOrganizacion: null },
+                    { idOrganizacion: 'org-1' },
+                ],
+            },
+        });
+        expect(txMock.producto.create).toHaveBeenCalledWith({
+            data: {
+                nombre: 'Queso',
+                nombreNormalizado: 'queso',
+                idOrganizacion: 'org-1',
+                esSistema: false,
+                categoria: Categoria.quesos,
+            },
+            select: {
+                idProducto: true,
+            },
+        });
+        expect(txMock.establecimientoProducto.deleteMany).toHaveBeenCalledWith({
+            where: {
+                idEstablecimiento: 'est-1',
+            },
+        });
+        expect(txMock.establecimientoProducto.createMany).toHaveBeenCalledWith({
+            data: [
+                { idEstablecimiento: 'est-1', idProducto: 'existing-product-1' },
+                { idEstablecimiento: 'est-1', idProducto: 'new-product-1' },
+            ],
+        });
+        expect(result).toEqual({ status: 'success' });
     });
 });

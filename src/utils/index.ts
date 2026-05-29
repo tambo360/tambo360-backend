@@ -49,3 +49,10 @@ export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
         label: "Otro",
     },
 };
+
+
+export const UUIDS = {
+  establishment: '550e8400-e29b-41d4-a716-446655440000',
+  raza: '550e8400-e29b-41d4-a716-446655440001',
+  producto: '550e8400-e29b-41d4-a716-446655440002',
+};
