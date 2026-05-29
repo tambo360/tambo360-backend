@@ -162,6 +162,64 @@
  *                 data:
  *                   type: null
  */
+
+/**
+ * @swagger
+ * /establecimiento/invitacion/{idInvitacion}:
+ *   delete:
+ *     summary: Eliminar una invitación de establecimiento
+ *     description: Elimina una invitación pendiente asociada al establecimiento del usuario autenticado.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: idInvitacion
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID de la invitación a eliminar
+ *     responses:
+ *       200:
+ *         description: Invitación eliminada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitación eliminada correctamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idInvitacion:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f"
+ *                     idEstablecimiento:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     correo:
+ *                       type: string
+ *                       example: "usuario@dominio.com"
+ *                     estado:
+ *                       type: string
+ *                       example: "pendiente"
+ *       400:
+ *         description: La invitación ya fue procesada o datos inválidos
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Permisos insuficientes o no pertenece al establecimiento
+ *       404:
+ *         description: Invitación no encontrada
+ */
 /**
  * @swagger
  * /establecimiento/editar-nombre:

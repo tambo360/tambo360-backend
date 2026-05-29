@@ -74,7 +74,12 @@ export const sendInvitationSchema = z.object({
     rol: z.enum(["ADMIN", "EMPLOYEE"])
 });
 
+export const deleteInvitationSchema = z.object({
+    idInvitacion: z.string().uuid("ID de invitación no válido")
+});
+
 export type sendInvitationSchemaInput = z.infer<typeof sendInvitationSchema>;
+export type DeleteInvitationInput = z.infer<typeof deleteInvitationSchema>;
 
 
 export type CreateEstablishmentData = z.infer<typeof createEstablishmentSchema>;

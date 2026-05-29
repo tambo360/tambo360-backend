@@ -363,6 +363,57 @@ Solo usuarios con rol `OWNER` del establecimiento pueden enviar invitaciones.
 
 ---
 
+### 7. Eliminar Invitación de Establecimiento
+
+**Método:** `DELETE`  
+**Ruta:** `/establecimiento/invitacion/:idInvitacion`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Headers
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización |
+| `x-establecimiento-id` | string (UUID) | ID del establecimiento |
+
+#### Parámetros de Ruta
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `idInvitacion` | string (UUID) | ID de la invitación a eliminar |
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Invitación eliminada correctamente",
+  "data": {
+    "idInvitacion": "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f",
+    "idEstablecimiento": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+    "correo": "usuario@dominio.com",
+    "estado": "pendiente"
+  }
+}
+```
+
+#### Permisos
+Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden eliminar invitaciones.
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Datos inválidos |
+| 400 | La invitación ya ha sido procesada |
+| 400 | Acceso a organización no válido |
+| 400 | Acceso a establecimiento no válido |
+| 403 | Permisos insuficientes o no pertenece al establecimiento |
+| 404 | Invitación no encontrada |
+
+---
+
 ## Enums
 
 ### TipoOrdenie

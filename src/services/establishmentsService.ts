@@ -501,6 +501,39 @@ class EstablishmentsService {
 
         return invitation;
     }
+
+    async deleteInvitation(invitationId: string, estId: string) {
+        const invitation = await prisma.invitacionEstablecimiento.findUnique({
+            where: {
+                idInvitacion: invitationId
+            }
+        });
+
+        if (!invitation) {
+            throw new AppError("Invitación no encontrada", 404);
+        }
+
+        if (invitation.idEstablecimiento !== estId) {
+            throw new AppError("No tienes permiso para eliminar esta invitación", 403);
+        }
+
+        if (invitation.estado !== EstadoInvitacion.pendiente || invitation.respondidaEn) {
+            throw new AppError("La invitación ya ha sido procesada", 400);
+        }
+
+        await prisma.invitacionEstablecimiento.delete({
+            where: {
+                idInvitacion: invitation.idInvitacion
+            }
+        });
+
+        return {
+            idInvitacion: invitation.idInvitacion,
+            idEstablecimiento: invitation.idEstablecimiento,
+            correo: invitation.correo,
+            estado: invitation.estado
+        };
+    }
 }
 
 export default new EstablishmentsService();

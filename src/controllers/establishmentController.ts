@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import establishmentsService from "../services/establishmentsService";
-import { createEstablishmentSchema, questionnaireSchema, sendInvitationSchema } from "../schemas/establishmentSchema";
+import { createEstablishmentSchema, deleteInvitationSchema, questionnaireSchema, sendInvitationSchema } from "../schemas/establishmentSchema";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppError } from "../utils/AppError";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
@@ -210,6 +210,38 @@ export const sendInvitation = async (req: Request, res: Response, next: NextFunc
         return res.status(200).json(ApiResponse.success(invitation, "Invitación enviada correctamente"));
 
 
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const deleteInvitation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { idInvitacion } = req.params;
+        const orgAccess = req.orgAccess;
+        const estAccess = req.estAccess;
+
+        const result = deleteInvitationSchema.safeParse({ idInvitacion });
+
+        if (!result.success) {
+            throw new AppError("Datos inválidos", 400);
+        }
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (!estAccess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        if (estAccess.rol !== RolEstablecimiento.OWNER && estAccess.rol !== RolEstablecimiento.ADMIN) {
+            throw new AppError("Permisos insuficientes para eliminar invitación", 403);
+        }
+
+        const deletedInvitation = await establishmentsService.deleteInvitation(result.data.idInvitacion, estAccess.idEstablecimiento);
+
+        return res.status(200).json(ApiResponse.success(deletedInvitation, "Invitación eliminada correctamente"));
     } catch (error) {
         next(error);
     }
