@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { eliminarCosto, actualizarCosto, crearCosto, obtenerCostosPorLote } from "../controllers/costController";
+import { eliminarCosto, actualizarCosto, crearCosto, obtenerCostosPorLote, obtenerCostoPorId } from "../controllers/costController";
 import { RolEstablecimiento } from "@prisma/client";
 import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 
@@ -40,6 +40,12 @@ router.post(
 router.get( "/lote/:loteId",
     requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
     obtenerCostosPorLote
+);
+
+// Obtener costo por id
+router.get( "/:id",
+    requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
+    obtenerCostoPorId
 );
 
 export default router;

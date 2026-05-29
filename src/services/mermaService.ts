@@ -48,13 +48,45 @@ class MermaService {
     })
   }
 
+/*
   async findAll() {
     return prisma.merma.findMany({
       include: { lote: true }
     })
   }
+*/
 
-  async findById(idMerma: string) {
+//nuevo metodo finAll
+async findAll(idEstablecimiento: string, idLote?: string) {
+
+  return prisma.merma.findMany({
+
+    where: {
+      ...(idLote ? { idLote } : {}),
+
+      lote: {
+        idEstablecimiento
+      }
+    },
+
+    include: {
+      lote: {
+        select: {
+          idLote: true,
+          numeroLote: true,
+          fechaProduccion: true
+        }
+      }
+    },
+
+    orderBy: {
+      fechaCreacion: "desc"
+    }
+  })
+}
+ 
+/* 
+ async findById(idMerma: string) {
     const merma = await prisma.merma.findUnique({
       where: { idMerma },
       include: { lote: true }
@@ -62,6 +94,40 @@ class MermaService {
     if (!merma) throw new Error("La merma no existe")
     return merma
   }
+    */
+   
+  //nuevo findById
+
+  async findById(idMerma: string, idEstablecimiento: string) {
+
+  const merma = await prisma.merma.findUnique({
+    where: { idMerma },
+
+    include: {
+      lote: {
+        select: {
+          idLote: true,
+          numeroLote: true,
+          fechaProduccion: true,
+          idEstablecimiento: true
+        }
+      }
+    }
+  })
+
+  if (!merma) {
+    throw new AppError("Merma no encontrada", 404)
+  }
+
+  // =====================================================
+  // Aislamiento multi-tenant
+  // =====================================================
+  if (merma.lote.idEstablecimiento !== idEstablecimiento) {
+    throw new AppError("Merma no encontrada", 404)
+  }
+
+  return merma
+}
 
   async getByLote(idLote: string) {
     const lote = await prisma.loteProduccion.findUnique({ where: { idLote } })

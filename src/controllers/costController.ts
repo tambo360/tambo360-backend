@@ -183,3 +183,42 @@ export const eliminarCosto = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+
+//Funcion para obtener costo por id
+export const obtenerCostoPorId = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+
+        const parsedParams = idParamSchema.safeParse(req.params);
+
+        if (!parsedParams.success) {
+            const errores = parsedParams.error.issues.map(e => e.message);
+
+            throw new AppError(
+                errores.join(", "),
+                400
+            );
+        }
+
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError(
+                "No se pudo determinar el establecimiento",
+                400
+            );
+        }
+
+        const costo =
+            await ServicioCostos.obtenerCostoDirectoPorId(
+                parsedParams.data.id,
+                idEstablecimiento
+            );
+
+        return res.status(200).json(
+            ApiResponse.success(costo)
+        );
+
+    } catch (error) {
+        next(error);
+    }
+};

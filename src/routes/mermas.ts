@@ -14,11 +14,32 @@ router.use(orgContext);
 router.use(requireOrgAccess);
 router.use(estContext);
 router.use(establecimientoRequireOrgAccess);
-
+/*
 router.post("/", MermaController.create)
 router.get("/", MermaController.findAll)
 router.get("/:id", MermaController.findById)
 router.put("/:id", MermaController.update)
 router.delete("/:id",requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE] }), MermaController.delete)
+*/
+
+router.post("/", requireRoles({
+    est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
+  MermaController.create)
+
+router.get("/",requireRoles({
+    est: [ RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
+  MermaController.findAll)
+
+router.get("/:id", requireRoles({
+    est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
+  MermaController.findById)
+
+router.put("/:id", requireRoles({
+    est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN,  RolEstablecimiento.EMPLOYEE]}),
+  MermaController.update)
+
+router.delete("/:id", requireRoles({
+    est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]}),
+  MermaController.delete)
 
 export default router
