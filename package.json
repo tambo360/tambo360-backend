@@ -7,7 +7,9 @@
     "dev": "ts-node-dev --respawn --transpile-only --poll src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node src/lib/seedProductos.ts"
+    "seed": "ts-node src/lib/seedProductos.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "ts-node src/lib/seedProductos.ts"
@@ -37,6 +39,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.33",
     "@types/node-cron": "^3.0.11",
@@ -47,7 +50,8 @@
     "nodemon": "^3.0.1",
     "ts-node": "^10.9.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.7"
   },
   "keywords": [
     "express",
