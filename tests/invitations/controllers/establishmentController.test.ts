@@ -1,0 +1,169 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { sendInvitation } from '../../../src/controllers/establishmentController';
+
+const { establishmentsServiceMock } = vi.hoisted(() => ({
+    establishmentsServiceMock: {
+        sendInvitation: vi.fn(),
+    },
+}));
+
+vi.mock('../../../src/services/establishmentsService', () => ({
+    default: establishmentsServiceMock,
+}));
+
+describe('EstablishmentController.sendInvitation', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('rechaza payload inválido', async () => {
+        const req = {
+            body: {
+                correo: 'correo-invalido',
+                rol: 'OWNER',
+            },
+            orgAccess: {
+                idOrganizacion: 'org-1',
+                idUsuario: 'user-1',
+            },
+            estAccess: {
+                idEstablecimiento: 'est-1',
+                rol: 'OWNER',
+            },
+        } as any;
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as any;
+        const next = vi.fn();
+
+        await sendInvitation(req, res, next);
+
+        expect(establishmentsServiceMock.sendInvitation).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(next.mock.calls[0][0].message).toBe('Datos inválidos');
+        expect(next.mock.calls[0][0].statusCode).toBe(400);
+    });
+
+    it('rechaza cuando no hay acceso de organización', async () => {
+        const req = {
+            body: {
+                correo: 'user@example.com',
+                rol: 'ADMIN',
+            },
+            orgAccess: undefined,
+            estAccess: {
+                idEstablecimiento: 'est-1',
+                rol: 'OWNER',
+            },
+        } as any;
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as any;
+        const next = vi.fn();
+
+        await sendInvitation(req, res, next);
+
+        expect(establishmentsServiceMock.sendInvitation).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(next.mock.calls[0][0].message).toBe('Acceso a organización no válido');
+        expect(next.mock.calls[0][0].statusCode).toBe(400);
+    });
+
+    it('rechaza cuando no hay acceso de establecimiento', async () => {
+        const req = {
+            body: {
+                correo: 'user@example.com',
+                rol: 'ADMIN',
+            },
+            orgAccess: {
+                idOrganizacion: 'org-1',
+                idUsuario: 'user-1',
+            },
+            estAccess: undefined,
+        } as any;
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as any;
+        const next = vi.fn();
+
+        await sendInvitation(req, res, next);
+
+        expect(establishmentsServiceMock.sendInvitation).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(next.mock.calls[0][0].message).toBe('Acceso a establecimiento no válido');
+        expect(next.mock.calls[0][0].statusCode).toBe(400);
+    });
+
+    it('rechaza cuando el usuario no tiene rol dueño', async () => {
+        const req = {
+            body: {
+                correo: 'user@example.com',
+                rol: 'ADMIN',
+            },
+            orgAccess: {
+                idOrganizacion: 'org-1',
+                idUsuario: 'user-1',
+            },
+            estAccess: {
+                idEstablecimiento: 'est-1',
+                rol: 'EMPLOYEE',
+            },
+        } as any;
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as any;
+        const next = vi.fn();
+
+        await sendInvitation(req, res, next);
+
+        expect(establishmentsServiceMock.sendInvitation).not.toHaveBeenCalled();
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(next.mock.calls[0][0].message).toBe('Permisos insuficientes para enviar invitación');
+        expect(next.mock.calls[0][0].statusCode).toBe(403);
+    });
+
+    it('envía invitación correctamente', async () => {
+        const invitation = {
+            invitador: { nombre: 'Invitador' },
+            establecimiento: { nombre: 'Establecimiento' },
+            rol: 'ADMIN',
+            expiraEn: new Date(),
+        };
+
+        establishmentsServiceMock.sendInvitation.mockResolvedValue(invitation);
+
+        const req = {
+            body: {
+                correo: 'user@example.com',
+                rol: 'ADMIN',
+            },
+            orgAccess: {
+                idOrganizacion: 'org-1',
+                idUsuario: 'user-1',
+            },
+            estAccess: {
+                idEstablecimiento: 'est-1',
+                rol: 'OWNER',
+            },
+        } as any;
+        const res = {
+            status: vi.fn().mockReturnThis(),
+            json: vi.fn(),
+        } as any;
+        const next = vi.fn();
+
+        await sendInvitation(req, res, next);
+
+        expect(establishmentsServiceMock.sendInvitation).toHaveBeenCalledWith('org-1', 'est-1', 'user-1', 'user@example.com', 'ADMIN');
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            message: 'Invitación enviada correctamente',
+            data: invitation,
+        }));
+        expect(next).not.toHaveBeenCalled();
+    });
+});
