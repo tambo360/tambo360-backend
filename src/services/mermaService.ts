@@ -10,42 +10,42 @@ class MermaService {
     return Object.values(TipoMerma).map(tipo => ({ value: tipo, label: TipoMermaMetadata[tipo].label }))
   }
 
-  async create(data: any) {
-    if (!data.idLote) throw new Error("El id del lote es obligatorio")
-    if (!data.tipo) throw new Error("El tipo de merma es obligatorio")
-    if (!data.cantidad) throw new Error("La cantidad es obligatoria")
+  async create(idEstablecimiento: string, data: any) {
+    return prisma.$transaction(async (tx) => {
 
-    if (!Object.values(TipoMerma).includes(data.tipo)) {
-      throw new Error("Tipo de merma inválido")
-    }
+      const lote = await LoteService.obtenerLoteEditable(data.id_lote, tx);
 
-    if (isNaN(Number(data.cantidad)) || Number(data.cantidad) <= 0) {
-      throw new Error("La cantidad debe ser un número mayor a 0")
-    }
-
-    const lote = await prisma.loteProduccion.findUnique({
-      where: { idLote: data.idLote }
-    })
-    if (!lote) throw new Error("El lote indicado no existe")
-
-    const totalMermas = await prisma.merma.aggregate({
-      _sum: { cantidad: true },
-      where: { idLote: data.idLote }
-    })
-    const sumaMermas = Number(totalMermas._sum.cantidad || 0)
-
-    if (sumaMermas + Number(data.cantidad) > Number(lote.cantidad)) {
-      throw new Error("La merma supera la cantidad disponible del lote")
-    }
-
-    return prisma.merma.create({
-      data: {
-        tipo: data.tipo,
-        observacion: data.observacion,
-        cantidad: data.cantidad,
-        idLote: data.idLote
+      if (lote.idEstablecimiento !== idEstablecimiento) {
+        throw new AppError("El lote no pertenece al establecimiento", 403);
       }
-    })
+
+      if (!data.cantidad || isNaN(Number(data.cantidad)) || Number(data.cantidad) <= 0) {
+        throw new AppError("La cantidad debe ser mayor a 0", 400);
+      }
+
+      if (!data.tipoMerma || !Object.values(TipoMerma).includes(data.tipoMerma)) {
+        throw new AppError("Tipo de merma inválido", 400);
+      }
+
+      const totalMermas = await tx.merma.aggregate({
+        _sum: { cantidad: true },
+        where: { idLote: data.id_lote }
+      });
+      const sumaMermas = Number(totalMermas._sum.cantidad || 0);
+
+      if (sumaMermas + Number(data.cantidad) > Number(lote.cantidad)) {
+        throw new AppError("La merma supera la producción del lote", 409);
+      }
+
+      return tx.merma.create({
+        data: {
+          tipo: data.tipoMerma,
+          observacion: data.observaciones,
+          cantidad: data.cantidad,
+          idLote: data.id_lote
+        }
+      });
+    });
   }
 
   /*
