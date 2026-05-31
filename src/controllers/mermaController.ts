@@ -17,14 +17,20 @@ class MermaController {
 
   }
 
-  async create(req: Request, res: Response) {
+  async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const merma = await mermaService.create(req.body)
-      res.status(201).json(
-        ApiResponse.success(merma)
-      )
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400);
+      }
+
+      const merma = await mermaService.create(idEstablecimiento, req.body);
+
+      return res.status(201).json(
+        ApiResponse.success(merma, "Merma registrada correctamente")
+      );
+    } catch (error) {
+      next(error);
     }
   }
 
