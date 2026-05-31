@@ -28,89 +28,94 @@ class MermaController {
     }
   }
 
- /* async findAll(req: Request, res: Response) {
+  /* async findAll(req: Request, res: Response) {
+     try {
+       const mermas = await mermaService.findAll()
+       res.status(200).json(
+         ApiResponse.success(mermas)
+       )
+     } catch (error: any) {
+       res.status(400).json({ message: error.message })
+     }
+   }
+ */
+
+  //Nuevo findAll con verficacion de acceso
+
+  async findAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const mermas = await mermaService.findAll()
-      res.status(200).json(
+
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      const idLote =
+        typeof req.query.id_lote === "string"
+          ? req.query.id_lote
+          : undefined;
+
+      const mermas = await mermaService.findAll(idEstablecimiento, idLote)
+      return res.status(200).json(
         ApiResponse.success(mermas)
       )
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+
+    } catch (error) {
+      next(error)
     }
   }
-*/
-
-//Nuevo findAll con verficacion de acceso
-
-async findAll(req: Request, res: Response, next: NextFunction) {
-  try {
-
-    const idEstablecimiento = req.estAccess?.idEstablecimiento;
-
-    if (!idEstablecimiento) {
-      throw new AppError("No se pudo determinar el establecimiento", 400)
-    }
-
-    const idLote =
-      typeof req.query.id_lote === "string"
-        ? req.query.id_lote
-        : undefined;
-
-    const mermas = await mermaService.findAll(idEstablecimiento, idLote)
-    return res.status(200).json(
-      ApiResponse.success(mermas)
-    )
-
-  } catch (error) {
-    next(error)
-  }
-}
-/*
-async findById(req: Request, res: Response) {
-    try {
-      const merma = await mermaService.findById(req.params.id)
-      if (!merma) {
-        return res.status(404).json({ message: "Merma no encontrada" })
+  /*
+  async findById(req: Request, res: Response) {
+      try {
+        const merma = await mermaService.findById(req.params.id)
+        if (!merma) {
+          return res.status(404).json({ message: "Merma no encontrada" })
+        }
+        res.status(200).json(
+          ApiResponse.success(merma)
+        )
+      } catch (error: any) {
+        res.status(400).json({ message: error.message })
       }
-      res.status(200).json(
-        ApiResponse.success(merma)
-      )
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
     }
-  }
-*/
+  */
 
-//nuevo findById con vereficacion de acceso
+  //nuevo findById con vereficacion de acceso
 
-async findById(req: Request, res: Response, next: NextFunction) {
-  try {
-
-    const idEstablecimiento = req.estAccess?.idEstablecimiento;
-
-    if (!idEstablecimiento) {
-      throw new AppError("No se pudo determinar el establecimiento", 400)
-    }
-
-    const merma = await mermaService.findById(req.params.id, idEstablecimiento)
-    return res.status(200).json(
-      ApiResponse.success(merma)
-    )
-
-  } catch (error) {
-    next(error)
-  }
-}
-
-
-  async update(req: Request, res: Response) {
+  async findById(req: Request, res: Response, next: NextFunction) {
     try {
-      const merma = await mermaService.update(req.params.id, req.body)
-      res.status(200).json(
+
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      const merma = await mermaService.findById(req.params.id, idEstablecimiento)
+      return res.status(200).json(
         ApiResponse.success(merma)
       )
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400);
+      }
+
+      const merma = await mermaService.update(req.params.id, idEstablecimiento, req.body);
+
+      return res.status(200).json(
+        ApiResponse.success(merma, "Merma actualizada correctamente")
+      );
+    } catch (error) {
+      next(error);
     }
   }
 

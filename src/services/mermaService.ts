@@ -48,86 +48,86 @@ class MermaService {
     })
   }
 
-/*
-  async findAll() {
-    return prisma.merma.findMany({
-      include: { lote: true }
-    })
-  }
-*/
-
-//nuevo metodo finAll
-async findAll(idEstablecimiento: string, idLote?: string) {
-
-  return prisma.merma.findMany({
-
-    where: {
-      ...(idLote ? { idLote } : {}),
-
-      lote: {
-        idEstablecimiento
-      }
-    },
-
-    include: {
-      lote: {
-        select: {
-          idLote: true,
-          numeroLote: true,
-          fechaProduccion: true
-        }
-      }
-    },
-
-    orderBy: {
-      fechaCreacion: "desc"
+  /*
+    async findAll() {
+      return prisma.merma.findMany({
+        include: { lote: true }
+      })
     }
-  })
-}
- 
-/* 
- async findById(idMerma: string) {
-    const merma = await prisma.merma.findUnique({
-      where: { idMerma },
-      include: { lote: true }
+  */
+
+  //nuevo metodo finAll
+  async findAll(idEstablecimiento: string, idLote?: string) {
+
+    return prisma.merma.findMany({
+
+      where: {
+        ...(idLote ? { idLote } : {}),
+
+        lote: {
+          idEstablecimiento
+        }
+      },
+
+      include: {
+        lote: {
+          select: {
+            idLote: true,
+            numeroLote: true,
+            fechaProduccion: true
+          }
+        }
+      },
+
+      orderBy: {
+        fechaCreacion: "desc"
+      }
     })
-    if (!merma) throw new Error("La merma no existe")
-    return merma
   }
-    */
-   
+
+  /* 
+   async findById(idMerma: string) {
+      const merma = await prisma.merma.findUnique({
+        where: { idMerma },
+        include: { lote: true }
+      })
+      if (!merma) throw new Error("La merma no existe")
+      return merma
+    }
+      */
+
   //nuevo findById
 
   async findById(idMerma: string, idEstablecimiento: string) {
 
-  const merma = await prisma.merma.findUnique({
-    where: { idMerma },
+    const merma = await prisma.merma.findUnique({
+      where: { idMerma },
 
-    include: {
-      lote: {
-        select: {
-          idLote: true,
-          numeroLote: true,
-          fechaProduccion: true,
-          idEstablecimiento: true
+      include: {
+        lote: {
+          select: {
+            idLote: true,
+            numeroLote: true,
+            fechaProduccion: true,
+            idEstablecimiento: true
+          }
         }
       }
+    })
+
+    if (!merma) {
+      throw new AppError("Merma no encontrada", 404)
     }
-  })
 
-  if (!merma) {
-    throw new AppError("Merma no encontrada", 404)
+    // =====================================================
+    // Aislamiento multi-tenant
+    // =====================================================
+    if (merma.lote.idEstablecimiento !== idEstablecimiento) {
+      throw new AppError("Merma no encontrada", 404)
+    }
+
+    return merma
   }
-
-  // =====================================================
-  // Aislamiento multi-tenant
-  // =====================================================
-  if (merma.lote.idEstablecimiento !== idEstablecimiento) {
-    throw new AppError("Merma no encontrada", 404)
-  }
-
-  return merma
-}
 
   async getByLote(idLote: string) {
     const lote = await prisma.loteProduccion.findUnique({ where: { idLote } })
@@ -136,43 +136,54 @@ async findAll(idEstablecimiento: string, idLote?: string) {
     return prisma.merma.findMany({ where: { idLote } })
   }
 
-  async update(idMerma: string, data: any) {
-    const merma = await prisma.merma.findUnique({ where: { idMerma } })
-    if (!merma) throw new Error("La merma no existe")
 
-    const lote = await prisma.loteProduccion.findUnique({
-      where: { idLote: merma.idLote }
-    })
-    if (!lote) throw new Error("El lote asociado no existe")
+  async update(idMerma: string, idEstablecimiento: string, data: any) {
+    return prisma.$transaction(async (tx) => {
 
-    if (data.cantidad !== undefined) {
-      if (isNaN(Number(data.cantidad)) || Number(data.cantidad) <= 0) {
-        throw new Error("La cantidad debe ser un número y mayor a 0")
+      const merma = await tx.merma.findUnique({
+        where: { idMerma },
+        include: { lote: true }
+      });
+
+      if (!merma) {
+        throw new AppError("Merma no encontrada", 404);
       }
 
-      const totalMermas = await prisma.merma.aggregate({
-        _sum: { cantidad: true },
-        where: { idLote: merma.idLote, NOT: { idMerma } }
-      })
-      const sumaMermas = Number(totalMermas._sum.cantidad || 0)
-
-      if (sumaMermas + Number(data.cantidad) > Number(lote.cantidad)) {
-        throw new Error("La merma supera la cantidad disponible del lote")
+      if (merma.lote.idEstablecimiento !== idEstablecimiento) {
+        throw new AppError("Merma no encontrada", 404);
       }
-    }
 
-    if (data.tipo && !Object.values(TipoMerma).includes(data.tipo)) {
-      throw new Error("Tipo de merma inválido")
-    }
+      await LoteService.obtenerLoteEditable(merma.idLote, tx);
 
-    return prisma.merma.update({
-      where: { idMerma },
-      data: {
-        tipo: data.tipo ?? merma.tipo,
-        observacion: data.observacion ?? merma.observacion,
-        cantidad: data.cantidad ?? merma.cantidad
+      if (data.cantidad !== undefined) {
+        if (isNaN(Number(data.cantidad)) || Number(data.cantidad) <= 0) {
+          throw new AppError("La cantidad debe ser mayor a 0", 400);
+        }
+
+        const totalMermas = await tx.merma.aggregate({
+          _sum: { cantidad: true },
+          where: { idLote: merma.idLote, NOT: { idMerma } }
+        });
+        const sumaMermas = Number(totalMermas._sum.cantidad || 0);
+
+        if (sumaMermas + Number(data.cantidad) > Number(merma.lote.cantidad)) {
+          throw new AppError("La merma supera la producción del lote", 409);
+        }
       }
-    })
+
+      if (data.tipoMerma && !Object.values(TipoMerma).includes(data.tipoMerma)) {
+        throw new AppError("Tipo de merma inválido", 400);
+      }
+
+      return tx.merma.update({
+        where: { idMerma },
+        data: {
+          tipo: data.tipoMerma ?? merma.tipo,
+          observacion: data.observaciones ?? merma.observacion,
+          cantidad: data.cantidad ?? merma.cantidad
+        }
+      });
+    });
   }
 
   async delete(idMerma: string, idEstablecimiento: string) {
