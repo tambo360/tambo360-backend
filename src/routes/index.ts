@@ -11,7 +11,6 @@ import RutasProductos from "./product";
 import RutasDashboard from "./dashboard"
 import RutasLanding from "./landing";
 import RutasPerfil from "./profile";
-import RutasRazas from "./breedsRoutes"
 import RutasAlertas from "./alertRoutes";
 
 const router = express.Router();
@@ -26,7 +25,6 @@ router.use('/lote', RutasLotes);
 router.use('/mermas', RutasMermas);
 router.use('/costos', RutasCostos);
 router.use('/productos', RutasProductos);
-router.use('/razas', RutasRazas)
 router.use('/alertas', RutasAlertas);
 router.use('/dashboard', RutasDashboard)
 router.use('/landing', RutasLanding)

@@ -28,7 +28,11 @@ export const crearLote = async (req: Request, res: Response, next: NextFunction)
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const lote = await LoteService.crearLote(parsed.data, req.estAccess?.idEstablecimiento);
+        if(!req.estAccess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        const lote = await LoteService.crearLote(parsed.data, req.estAccess.idEstablecimiento);
 
         return res.status(201).json(ApiResponse.success(lote, "Lote creado correctamente", 201));
     } catch (error) {
