@@ -91,6 +91,12 @@ enum VentaLeche {
   varios
 }
 
+enum TipoRodeo {
+  ALTA_PRODUCCION
+  BAJA_PRODUCCION
+  VACAS_SECAS
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -114,7 +120,6 @@ model Organizacion {
   usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
   invitaciones     InvitacionOrganizacion[]
-  razas            Raza[]
   productos        Producto[]
 }
 
@@ -143,7 +148,6 @@ model Establecimiento {
   loteProducciones                    LoteProduccion[]
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
   configuracions                      configuracion[]
-  establecimientoRazas                EstablecimientoRaza[]
   invitaciones                        InvitacionEstablecimiento[]
   establecimientoProductos            EstablecimientoProducto[]
 }
@@ -174,6 +178,7 @@ model configuracion {
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
+  rodeos            Rodeo[]
 }
 
 model InvitacionOrganizacion {
@@ -236,31 +241,16 @@ model EstablecimientoProducto {
   @@unique([idEstablecimiento, idProducto])
 }
 
-model Raza {
-  idRaza            String  @id @default(uuid())
-  nombre            String
-  nombreNormalizado String
-  esSistema         Boolean @default(false)
+model Rodeo {
+  idRodeo         String           @id @default(uuid())
+  idConfiguracion String
+  configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  tipoRodeo       TipoRodeo
+  cantVacas       Int
+  costoRacion     Decimal          @db.Decimal(13, 2)
+  loteProduccions LoteProduccion[]
 
-  idOrganizacion String?
-  organizacion   Organizacion? @relation(fields: [idOrganizacion], references: [idOrganizacion])
-
-  establecimientos EstablecimientoRaza[]
-  loteProduccions  LoteProduccion[]
-
-  @@unique([nombreNormalizado, idOrganizacion])
-}
-
-model EstablecimientoRaza {
-  id String @id @default(uuid())
-
-  idEstablecimiento String
-  idRaza            String
-
-  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  raza            Raza            @relation(fields: [idRaza], references: [idRaza])
-
-  @@unique([idEstablecimiento, idRaza])
+  @@unique([idConfiguracion, tipoRodeo])
 }
 
 model LoteProduccion {
@@ -270,9 +260,8 @@ model LoteProduccion {
   cantidad          Decimal
   unidad            Unidad
   estado            Boolean         @default(false)
-  cantRazas         Int
-  idRaza            String
-  raza              Raza            @relation(fields: [idRaza], references: [idRaza])
+  idRodeo           String
+  rodeo             Rodeo           @relation(fields: [idRodeo], references: [idRodeo])
   idProducto        String
   producto          Producto        @relation(fields: [idProducto], references: [idProducto])
   idEstablecimiento String

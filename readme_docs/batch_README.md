@@ -32,27 +32,24 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idLote` | string (UUID) | Sí | ID único del lote |
 | `idProducto` | string (UUID) | Sí | ID del producto a producir |
 | `cantidad` | number | Sí | Cantidad a producir (mayor a 0) |
-| `unidad` | string | Sí | Unidad de medida (kg, litros) |
-| `fechaProduccion` | string | Sí | Fecha en formato dd/mm/aaaa (entre hoy y 7 días anteriores) |
-| `estado` | boolean | No | Estado del lote (opcional) |
-| `idRaza` | string (UUID) | Sí | ID de la raza utilizada |
-| `cantRaza` | number | Sí | Cantidad de la raza (mayor a 0) |
+| `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
+| `fechaProduccion` | string | Sí | Fecha en formato dd/mm/yyyy (entre hoy y 7 días anteriores) |
+| `idRodeo` | string (UUID) | Sí | ID del rodeo a utilizar |
+| `estado` | boolean | No | Estado del lote (opcional, default: false) |
+
+> Nota: el campo `idLote` se genera automáticamente como UUID. No debe incluirse en el request.
 
 #### Ejemplo de Request
 
 ```json
 {
-  "idLote": "550e8400-e29b-41d4-a716-446655440000",
   "idProducto": "550e8400-e29b-41d4-a716-446655440001",
   "cantidad": 100,
   "unidad": "kg",
   "fechaProduccion": "15/05/2026",
-  "estado": true,
-  "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-  "cantRaza": 50
+  "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
 }
 ```
 
@@ -68,9 +65,8 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
     "fechaProduccion": "2026-05-15T12:00:00.000Z",
     "cantidad": 100,
     "unidad": "kg",
-    "estado": true,
-    "cantRazas": 50,
-    "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+    "estado": false,
+    "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
     "idEstablecimiento": "uuid-establecimiento",
     "producto": {
@@ -88,9 +84,9 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 |--------|---------|
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
-| 400 | Unidad de medida inválida |
 | 400 | Datos inválidos (detalles específicos de validación) |
 | 401 | Usuario no autenticado |
+| 404 | Rodeo no encontrado |
 
 ---
 
@@ -221,22 +217,23 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idProducto` | string (UUID) | No | Nuevo producto para el lote |
-| `cantidad` | number | No | Nueva cantidad de producción |
-| `unidad` | string | No | Unidad de medida (`kg`, `litros`) |
-| `fechaProduccion` | string | No | Fecha en formato `dd/mm/aaaa` |
-| `idRaza` | string (UUID) | No | Nueva raza asociada |
-| `cantRazas` | number | No | Nueva cantidad de raza |
+| `idProducto` | string (UUID) | Sí | ID del producto para el lote |
+| `cantidad` | number | Sí | Cantidad de producción |
+| `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
+| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` |
+| `idRodeo` | string (UUID) | Sí | ID del rodeo a utilizar |
 
-> Nota: el body puede incluir solo los campos que se desean actualizar.
+> Nota: Todos los campos son requeridos en la actualización. El lote debe estar en estado `false` (no completado) para poder editarse.
 
 #### Ejemplo de Request
 
 ```json
 {
+  "idProducto": "550e8400-e29b-41d4-a716-446655440001",
   "cantidad": 120,
   "unidad": "litros",
-  "fechaProduccion": "16/05/2026"
+  "fechaProduccion": "16/05/2026",
+  "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
 }
 ```
 
@@ -252,9 +249,8 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
     "fechaProduccion": "2026-05-16T00:00:00.000Z",
     "cantidad": 120,
     "unidad": "litros",
-    "estado": true,
-    "cantRazas": 50,
-    "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+    "estado": false,
+    "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
     "idEstablecimiento": "uuid-establecimiento"
   }

@@ -1,4 +1,4 @@
-import {Categoria, TipoOrdenie, VentaLeche } from "@prisma/client";
+import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo } from "@prisma/client";
 import { z } from "zod";
 
 const requiredString = (message: string) =>
@@ -35,28 +35,25 @@ const productSchema = z.discriminatedUnion("tipo", [
 ])
 
 
-const existingRazasSchema = z.object({
-    tipo: z.literal("existente"),
-    idRaza: z.string().uuid("ID de raza no válido"),
-    nombre: requiredString("El nombre de la raza es obligatorio"),
+const RodeoSchema = z.object({
+    tipoRodeo: z.enum(TipoRodeo, "El tipo de rodeo debe ser un valor válido"),
+    cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
+    costoRacion: z.number().positive("El costo de la ración debe ser un número positivo"),
 })
 
-const newRazasSchema = z.object({
-    tipo: z.literal("nuevo"),
-    nombre: requiredString("El nombre de la raza es obligatorio"),
-})
 
-const razaSchema = z.discriminatedUnion("tipo", [
-    existingRazasSchema,
-    newRazasSchema
-])
 
 
 export const questionnaireSchema = z.object({
     idEstablecimiento: z.string().uuid("ID de establecimiento no válido"),
-    cantidadVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
-    razas: z.array(razaSchema).optional(),
     productos: z.array(productSchema).optional(),
+    rodeos: z.array(RodeoSchema).refine((rodeos) => {
+        const tiposPresentes = new Set(rodeos.map(r => r.tipoRodeo));
+        const todosLosTipos = Object.values(TipoRodeo); 
+        return todosLosTipos.every(tipo => tiposPresentes.has(tipo));
+    }, {
+        message: "Debe existir al menos un rodeo de cada tipo",
+    }),
     cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
     promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),

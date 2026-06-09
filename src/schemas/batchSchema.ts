@@ -51,8 +51,7 @@ export const crearLoteSchema = z.object({
             return fechaFinal.toDate();
         }),
     estado: z.boolean().optional(),
-    idRaza: z.string().uuid("Debe seleccionar una raza válida"),
-    cantRaza: z.coerce.number().positive("La cantidad de raza debe ser mayor a 0"),
+    idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
     unidad: z.enum(Unidad, "Unidad de medida inválida"),
 });
 
@@ -78,8 +77,7 @@ export const editarLoteSchema = z.object({
             const [dd, mm, yyyy] = val.split("/").map(Number);
             return new Date(yyyy, mm - 1, dd);
         }),
-    idRaza: z.string().uuid("Debe seleccionar una raza válida").optional(),
-    cantRazas: z.coerce.number().positive("La cantidad de raza debe ser mayor a 0").optional(),
+    idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
 });
 
 //Para utlizar en GETLOTES

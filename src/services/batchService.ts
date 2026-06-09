@@ -1,39 +1,31 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO, EditarLoteDTO } from "../schemas/batchSchema";
+import { CrearLoteDTO, EditarLoteDTO } from "../schemas/batchSchema"
+import EstablishmentService from "./establishmentsService";
 import { Prisma } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
 
 export class LoteService {
 
-    static async crearLote(data: CrearLoteDTO, idEstablecimiento?: string) {
+    static async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
 
-        if (!idEstablecimiento) {
-            throw new AppError("No se pudo determinar el establecimiento para crear el lote", 400);
-        }
 
-        const [producto, raza] = await Promise.all([
-            prisma.producto.findUnique({
-                where: {
-                    idProducto: data.idProducto
-                }
-            }),
-            prisma.raza.findUnique({
-                where: {
-                    idRaza: data.idRaza
-                }
+        const establecimiento = await prisma.establecimiento.findUnique({
+            where: { idEstablecimiento },
+            include: {
+                configuracions: true
             }
-            )
+        })
+
+        if (!establecimiento) {
+            throw new AppError("El establecimiento no existe", 400);
+        }
+
+        const [producto, rodeo] = await Promise.all([
+            EstablishmentService.validateProduct(data.idProducto),
+            EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
         ])
-
-        if (!producto) {
-            throw new AppError("El producto seleccionado no existe", 400);
-        }
-
-        if (!raza) {
-            throw new AppError("La raza seleccionada no existe", 400);
-        }
 
 
         const result = await prisma.$transaction(async (tx) => {
@@ -49,8 +41,7 @@ export class LoteService {
                     fechaProduccion: data.fechaProduccion ?? undefined,
                     ...(data.estado ? { estado: data.estado } : {}),
                     numeroLote: numeroLote,
-                    cantRazas: data.cantRaza,
-                    idRaza: data.idRaza
+                    idRodeo: rodeo.idRodeo
                 },
                 include: {
                     producto: {
@@ -150,27 +141,11 @@ export class LoteService {
             throw new AppError("No se pueden editar lotes que ya están completados", 409);
         }
 
-        if (data.idProducto) {
-            const producto = await prisma.producto.findUnique({
-                where: {
-                    idProducto: data.idProducto
-                }
-            })
-            if (!producto) {
-                throw new AppError("El producto seleccionado no existe", 404);
-            }
-        }
 
-        if (data.idRaza) {
-            const raza = await prisma.raza.findUnique({
-                where: {
-                    idRaza: data.idRaza
-                }
-            })
-            if (!raza) {
-                throw new AppError("La raza seleccionada no existe", 404);
-            }
-        }
+        const [producto, rodeo] = await Promise.all([
+            data.idProducto ? EstablishmentService.validateProduct(data.idProducto) : null,
+            EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
+        ])
 
 
         const loteActualizado = await prisma.loteProduccion.update({
@@ -315,9 +290,6 @@ export class LoteService {
 
                 // Información del producto asociado
                 producto: true,
-
-                // Información de raza asociada
-                raza: true,
 
                 // Necesario para calcular merma_porcentaje
                 mermas: true,

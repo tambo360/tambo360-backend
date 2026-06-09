@@ -143,7 +143,7 @@ class EstablishmentsService {
                     idConfiguracion: establecimiento.configuracions[0].idConfiguracion,
                 },
                 data: {
-                    cantVacas: data.cantidadVacas,
+                    cantVacas: data.rodeos.reduce((sum, r) => sum + r.cantVacas, 0),
                     cantOrdenies: data.cantOrdenie,
                     promLitros: data.promLitros,
                     tipoOrdenie: data.tipoOrdenie,
@@ -154,130 +154,16 @@ class EstablishmentsService {
                 }
             });
 
-            // =========================================================
-            // RAZAS
-            // =========================================================
-            if (data.razas) {
-
-                const razasExistentesInput = data.razas.filter((r): r is Extract<typeof r, { tipo: "existente" }> => r.tipo === "existente");
-
-                const razasNuevasInput = data.razas
-                    .filter((r): r is Extract<typeof r, { tipo: "nuevo" }> => r.tipo === "nuevo")
-                    .map(r => ({
-                        nombre: r.nombre,
-                        nombreNormalizado: r.nombre.trim().toLowerCase()
-                    }));
-
-                // =========================================
-                // BUSCAR RAZAS NUEVAS QUE YA EXISTAN
-                // =========================================
-
-                const nombresRazasNuevas = razasNuevasInput.map(
-                    r => r.nombreNormalizado
-                );
-
-                const razasExistentesDB = await tx.raza.findMany({
-                    where: {
-                        nombreNormalizado: {
-                            in: nombresRazasNuevas
-                        },
-                        OR: [
-                            { idOrganizacion: null },
-                            { idOrganizacion: orgId }
-                        ]
-                    }
-                });
-
-                const mapaRazasExistentes = new Map(
-                    razasExistentesDB.map(r => [
-                        r.nombreNormalizado,
-                        r
-                    ])
-                );
+            await tx.rodeo.createMany({
+                data: data.rodeos.map(r => ({
+                    tipoRodeo: r.tipoRodeo,
+                    cantVacas: r.cantVacas,
+                    costoRacion: r.costoRacion,
+                    idConfiguracion: establecimiento.configuracions[0].idConfiguracion,
+                })),
+            });
 
 
-                // =========================================
-                // FILTRAR LAS QUE REALMENTE HAY QUE CREAR
-                // =========================================
-
-                const nuevasRazasCrear = razasNuevasInput.filter(
-                    r => !mapaRazasExistentes.has(r.nombreNormalizado)
-                );
-
-
-                // =========================================
-                // CREAR NUEVAS
-                // =========================================
-
-                let nuevasRazasCreadas: { idRaza: string }[] = [];
-
-                if (nuevasRazasCrear.length > 0) {
-
-                    nuevasRazasCreadas = await Promise.all(
-                        nuevasRazasCrear.map(r =>
-                            tx.raza.create({
-                                data: {
-                                    nombre: r.nombre,
-                                    nombreNormalizado: r.nombreNormalizado,
-                                    idOrganizacion: orgId,
-                                    esSistema: false
-                                },
-                                select: {
-                                    idRaza: true
-                                }
-                            })
-                        )
-                    );
-                }
-
-
-                // =========================================
-                // ARMAR IDS FINALES
-                // =========================================
-
-                const idsRazasFinales = [
-
-                    // existentes enviadas por front
-                    ...razasExistentesInput.map(r => r.idRaza),
-
-                    // nuevas que ya existían
-                    ...razasNuevasInput
-                        .map(r =>
-                            mapaRazasExistentes.get(
-                                r.nombreNormalizado
-                            )?.idRaza
-                        )
-                        .filter(Boolean) as string[],
-
-                    // nuevas creadas
-                    ...nuevasRazasCreadas.map(
-                        r => r.idRaza
-                    )
-                ];
-
-
-                const idsRazasUnicos = [
-                    ...new Set(idsRazasFinales)
-                ];
-
-
-                // =========================================
-                // RELACIONES
-                // =========================================
-
-                await tx.establecimientoRaza.deleteMany({
-                    where: {
-                        idEstablecimiento: data.idEstablecimiento
-                    }
-                });
-
-                await tx.establecimientoRaza.createMany({
-                    data: idsRazasUnicos.map(idRaza => ({
-                        idEstablecimiento: data.idEstablecimiento,
-                        idRaza
-                    }))
-                });
-            }
             // =========================================================
             // PRODUCTOS
             // =========================================================
@@ -411,20 +297,23 @@ class EstablishmentsService {
     }
 
     async getCuestionario(idEstablecimiento: string) {
-        const [cuestionario, razas, establecimiento, productos] = await Promise.all([
-            prisma.configuracion.findFirst({
+        const cuestionario = await prisma.configuracion.findFirst({
+            where: {
+                idEstablecimiento,
+            }
+        })
+
+        if (!cuestionario) {
+            throw new AppError("Cuestionario no encontrado para este establecimiento", 404);
+        }
+
+        const [rodeos, establecimiento, productos] = await Promise.all([
+            prisma.rodeo.findMany({
                 where: {
-                    idEstablecimiento,
+                    idConfiguracion: cuestionario.idConfiguracion,
                 }
-            }),
-            prisma.establecimientoRaza.findMany({
-                where: {
-                    idEstablecimiento,
-                },
-                include: {
-                    raza: true,
-                }
-            }),
+            })
+            ,
             prisma.establecimiento.findFirst({
                 where: {
                     idEstablecimiento,
@@ -444,7 +333,7 @@ class EstablishmentsService {
             })
         ])
 
-        return { cuestionario, razas, establecimiento, productos };
+        return { cuestionario, rodeos, establecimiento, productos };
     }
 
     async sendInvitation(orgId: string, estId: string, userId: string, correo: string, rol: RolEstablecimiento) {
@@ -533,6 +422,35 @@ class EstablishmentsService {
             correo: invitation.correo,
             estado: invitation.estado
         };
+    }
+
+    async validateProduct(idProducto: string) {
+        const producto = await prisma.producto.findUnique({
+            where: {
+                idProducto: idProducto
+            }
+        })
+
+        if (!producto) {
+            throw new AppError("Producto no encontrado", 404);
+        }
+
+        return producto;
+    }
+
+    async validateRodeo(idRodeo: string, idConfiguracion: string) {
+        const rodeo = await prisma.rodeo.findUnique({
+            where: {
+                idRodeo: idRodeo,
+                idConfiguracion: idConfiguracion
+            }
+        })
+
+        if (!rodeo) {
+            throw new AppError("Rodeo no encontrado", 404);
+        }
+
+        return rodeo;
     }
 }
 

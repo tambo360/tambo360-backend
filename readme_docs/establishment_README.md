@@ -152,41 +152,46 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `cantidadVacas` | number (int) | Sí | Cantidad de vacas (positivo) |
-| `razas` | array | No | Array opcional de razas |
-| `razas[].tipo` | string | Sí | `existente` o `nuevo` |
-| `razas[].idRaza` | string (UUID) | No | ID de la raza cuando `tipo` es `existente` |
-| `razas[].nombre` | string | Sí | Nombre de la raza |
+| `rodeos` | array | Sí | Array de rodeos por tipo de producción |
+| `rodeos[].tipoRodeo` | enum | Sí | Tipo de rodeo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`) |
+| `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en este rodeo (positivo) |
+| `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca (positivo) |
 | `productos` | array | No | Array opcional de productos |
 | `productos[].tipo` | string | Sí | `existente` o `nuevo` |
 | `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
 | `productos[].nombre` | string | Sí | Nombre del producto |
 | `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
-| `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes (positivo) |
-| `tipoOrdenie` | enum | Sí | Tipo de ordeñe válido |
-| `promLitros` | number | Sí | Promedio de litros (positivo) |
-| `ventaLeche` | enum | Sí | Tipo de venta de leche válido |
+| `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (positivo) |
+| `tipoOrdenie` | enum | Sí | Tipo de ordeñe (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`) |
+| `promLitros` | number | Sí | Promedio de litros por día (positivo) |
+| `ventaLeche` | enum | Sí | Tipo de venta de leche (`usina`, `fabrica_propia`, `cooperativa`, `varios`) |
 | `empleados` | boolean | Sí | Indica si tiene empleados |
 | `cantEmpleados` | number (int) | No | Cantidad de empleados |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
 
 > Nota: el field `idEstablecimiento` se inyecta automáticamente desde el contexto del establecimiento, no debe enviarse en el body.
+> **Importante:** Debe incluir exactamente UN rodeo de cada tipo de TipoRodeo.
 
 #### Ejemplo de Request
 
 ```json
 {
-  "cantidadVacas": 150,
-  "razas": [
+  "rodeos": [
     {
-      "tipo": "existente",
-      "idRaza": "uuid-raza",
-      "nombre": "Holando"
+      "tipoRodeo": "ALTA_PRODUCCION",
+      "cantVacas": 80,
+      "costoRacion": 150.50
     },
     {
-      "tipo": "nuevo",
-      "nombre": "Jersey"
+      "tipoRodeo": "BAJA_PRODUCCION",
+      "cantVacas": 50,
+      "costoRacion": 120.00
+    },
+    {
+      "tipoRodeo": "VACAS_SECAS",
+      "cantVacas": 20,
+      "costoRacion": 80.00
     }
   ],
   "productos": [
@@ -202,9 +207,9 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
     }
   ],
   "cantOrdenie": 2,
-  "tipoOrdenie": "temporal",
+  "tipoOrdenie": "linea",
   "promLitros": 25.5,
-  "ventaLeche": "directa",
+  "ventaLeche": "usina",
   "empleados": true,
   "cantEmpleados": 3,
   "ubicacion": {
@@ -225,9 +230,9 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
     "idEstablecimiento": "uuid",
     "cantVacas": 150,
     "cantOrdenie": 2,
-    "tipoOrdenie": "temporal",
+    "tipoOrdenie": "linea",
     "promLitros": 25.5,
-    "ventaLeche": "directa",
+    "ventaLeche": "usina",
     "empleados": true,
     "cantEmpleados": 3
   }
@@ -244,7 +249,7 @@ Solo usuarios con rol `duenio` o `administrador` del establecimiento pueden regi
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
 | 400 | Todos los campos son obligatorios y deben ser válidos |
-| 400 | Formato de `razas` o `productos` inválido |
+| 400 | Debe existir al menos un rodeo de cada tipo |
 | 403 | Permisos insuficientes para registrar el cuestionario |
 
 ---
@@ -267,21 +272,37 @@ No requiere body. El ID del establecimiento se obtiene del contexto.
   "data": {
     "idEstablecimiento": "uuid",
     "cantidad_vacas": 150,
-    "razas": ["Holando", "Jersey"],
-    "cant_ordenie": 2,
-    "tipo_ordenie": "temporal",
-    "prom_litros": 25.5,
-    "venta_leche": "directa",
+    "productos": [
+      {
+        "nombre": "Leche Fresca",
+        "id": "uuid-producto"
+      }
+    ],
+    "ordeñe_por_dia": 2,
+    "tipo_ordeñe": "linea",
+    "litros_por_dia": 25.5,
+    "venta_leche": "usina",
     "empleados": true,
-    "cant_empleados": 3,
-    "ubicacion": {
-      "provincia": "Córdoba",
-      "localidad": "Villa María"
-    },
-    "establecimiento": {
-      "id": "uuid",
-      "nombre": "Establecimiento La Esperanza"
-    }
+    "cantidad_empleados": 3,
+    "localidad": "Villa María",
+    "provincia": "Córdoba",
+    "rodeos": [
+      {
+        "tipoRodeo": "ALTA_PRODUCCION",
+        "cantVacas": 80,
+        "costoRacion": 150.50
+      },
+      {
+        "tipoRodeo": "BAJA_PRODUCCION",
+        "cantVacas": 50,
+        "costoRacion": 120.00
+      },
+      {
+        "tipoRodeo": "VACAS_SECAS",
+        "cantVacas": 20,
+        "costoRacion": 80.00
+      }
+    ]
   }
 }
 ```
@@ -416,20 +437,33 @@ Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden eliminar invi
 
 ## Enums
 
+### TipoRodeo
+
+| Valor | Descripción |
+|-------|-------------|
+| `ALTA_PRODUCCION` | Rodeo de vacas de alta producción |
+| `BAJA_PRODUCCION` | Rodeo de vacas de baja producción |
+| `VACAS_SECAS` | Rodeo de vacas secas/no productivas |
+
 ### TipoOrdenie
 
 | Valor | Descripción |
 |-------|-------------|
-| `temporal` | Ordeñe temporal |
-| `fijo` | Ordeñe fijo |
+| `balde` | Ordeño manual con balde |
+| `linea` | Ordeño por línea de ordeño |
+| `espina_de_pescado` | Ordeño espina de pescado |
+| `rotativo` | Ordeño rotativo |
+| `manual` | Ordeño manual |
+| `otro` | Otro tipo de ordeño |
 
 ### VentaLeche
 
 | Valor | Descripción |
 |-------|-------------|
-| `directa` | Venta directa |
-| `intermediario` | Venta a intermediario |
+| `usina` | Venta a usina |
+| `fabrica_propia` | Venta con fábrica propia |
 | `cooperativa` | Venta a cooperativa |
+| `varios` | Varias opciones de venta |
 
 ### RolEstablecimiento
 
