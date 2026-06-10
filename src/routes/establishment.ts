@@ -1,5 +1,5 @@
 import express from "express";
-import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation, deleteInvitation } from "../controllers/establishmentController";
+import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation, deleteInvitation, listarRodeos } from "../controllers/establishmentController";
 import { authenticate } from "../middleware/authMiddleware";
 import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
@@ -18,6 +18,7 @@ router.get('/cuestionario/info', estContext, establecimientoRequireOrgAccess, ge
 router.patch('/editar-nombre', /* editarNombreEstablecimiento */);
 router.post('/invitacion', estContext, establecimientoRequireOrgAccess, sendInvitation);
 router.delete('/invitacion/:idInvitacion', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN]}), deleteInvitation);
+router.get('/rodeos', estContext, establecimientoRequireOrgAccess, listarRodeos);
 
 router.get('/test/rolMiddle', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER], org: [RolOrganizacion.ORG_OWNER]}));
 

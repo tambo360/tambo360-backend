@@ -5,7 +5,7 @@ import { Categoria, EstadoInvitacion, RolEstablecimiento } from "@prisma/client"
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
-import { formatDate } from "../utils";
+import { formatDate, TipoRodeoMetaData } from "../utils";
 
 type CreateEstablishmentServiceData = CreateEstablishmentData & {
     userId: string;
@@ -422,6 +422,39 @@ class EstablishmentsService {
             correo: invitation.correo,
             estado: invitation.estado
         };
+    }
+
+    async listarRodeos(idEstablecimiento: string) {
+        const est = await prisma.establecimiento.findUnique({
+            where: {
+                idEstablecimiento
+            },
+            include: {
+                configuracions: {
+                    select: {
+                        idConfiguracion: true
+                    }
+                }
+            }
+        })
+
+        if(!est) {
+            throw new AppError("Establecimiento no encontrado", 404);
+        }
+
+        const rodeos = await prisma.rodeo.findMany({
+            where: {
+                idConfiguracion: est.configuracions[0].idConfiguracion
+            }
+        })
+
+        return rodeos.map(r => ({
+            idRodeo: r.idRodeo,
+            label: TipoRodeoMetaData[r.tipoRodeo].label || "Tipo de rodeo no definido",
+            value: TipoRodeoMetaData[r.tipoRodeo].value || "tipo-rodeo-no-definido",
+            costoRacion: r.costoRacion,
+            cantVacas: r.cantVacas,
+        }));
     }
 
     async validateProduct(idProducto: string) {

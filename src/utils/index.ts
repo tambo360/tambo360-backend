@@ -1,4 +1,4 @@
-import { TipoMerma } from "@prisma/client";
+import { TipoMerma, TipoRodeo } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -50,6 +50,20 @@ export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
     },
 };
 
+export const TipoRodeoMetaData: Record<TipoRodeo, {label: string, value: string}> = {
+    [TipoRodeo.ALTA_PRODUCCION]: {
+        label: "Rodeo Alta Producción",
+        value: TipoRodeo.ALTA_PRODUCCION
+    },
+    [TipoRodeo.BAJA_PRODUCCION]: {
+        label: "Rodeo Baja Producción",
+        value: TipoRodeo.BAJA_PRODUCCION
+    },
+    [TipoRodeo.VACAS_SECAS]: {
+        label: "Vacas Secas (Preparto)",
+        value: TipoRodeo.VACAS_SECAS
+    }
+};
 
 export const UUIDS = {
   establishment: '550e8400-e29b-41d4-a716-446655440000',

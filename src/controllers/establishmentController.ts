@@ -244,6 +244,24 @@ export const deleteInvitation = async (req: Request, res: Response, next: NextFu
     }
 }
 
+export const listarRodeos = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        
+        const estAccess = req.estAccess;
+
+        if (!estAccess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        const rodeos = await establishmentsService.listarRodeos(estAccess.idEstablecimiento);
+
+        return res.status(200).json(ApiResponse.success(rodeos, "Rodeos obtenidos correctamente"));
+
+    }catch(error) {
+        next(error);
+    }
+}
+
 /*
 export const editarNombreEstablecimiento = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

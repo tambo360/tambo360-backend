@@ -435,6 +435,67 @@ Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden eliminar invi
 
 ---
 
+### 8. Listar Rodeos del Establecimiento
+
+**Método:** `GET`  
+**Ruta:** `/establecimiento/rodeos`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Headers
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización |
+| `x-establecimiento-id` | string (UUID) | ID del establecimiento |
+
+#### Request
+No requiere body. El ID del establecimiento se obtiene del contexto.
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Rodeos obtenidos correctamente",
+  "data": [
+    {
+      "idRodeo": "550e8400-e29b-41d4-a716-446655440001",
+      "tipoRodeo": "ALTA_PRODUCCION",
+      "cantVacas": 80,
+      "costoRacion": 150.50,
+      "idConfiguracion": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    },
+    {
+      "idRodeo": "550e8400-e29b-41d4-a716-446655440002",
+      "tipoRodeo": "BAJA_PRODUCCION",
+      "cantVacas": 50,
+      "costoRacion": 120.00,
+      "idConfiguracion": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    },
+    {
+      "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+      "tipoRodeo": "VACAS_SECAS",
+      "cantVacas": 20,
+      "costoRacion": 80.00,
+      "idConfiguracion": "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+    }
+  ]
+}
+```
+
+#### Permisos
+Solo usuarios con acceso al establecimiento pueden obtener sus rodeos.
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Acceso a establecimiento no válido |
+| 404 | Establecimiento no encontrado |
+
+---
+
 ## Enums
 
 ### TipoRodeo
