@@ -24,7 +24,7 @@ export class LoteService {
 
         const [producto, rodeo] = await Promise.all([
             EstablishmentService.validateProduct(data.idProducto),
-            EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
+            EstablishmentService.validateRodeo(data.idRodeo, establecimiento.configuracions[0].idConfiguracion)
         ])
 
 

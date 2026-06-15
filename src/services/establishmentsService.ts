@@ -475,12 +475,16 @@ class EstablishmentsService {
         const rodeo = await prisma.rodeo.findUnique({
             where: {
                 idRodeo: idRodeo,
-                idConfiguracion: idConfiguracion
             }
         })
 
+        
         if (!rodeo) {
             throw new AppError("Rodeo no encontrado", 404);
+        }
+
+        if(rodeo.idConfiguracion !== idConfiguracion) {
+            throw new AppError("El rodeo no pertenece a la configuración del establecimiento", 400);
         }
 
         return rodeo;
