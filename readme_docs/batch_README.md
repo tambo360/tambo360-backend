@@ -32,19 +32,25 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
+| `idLote` | string (UUID) | Sí | ID único del lote (debe enviarse) |
+| `tempTanque` | number | Sí | Temperatura del tanque (valor numérico, mayor a 0) |
+| `destino` | enum | Sí | Destino del lote (`TANQUE_FRIO`, `VENTA`, `FABRICA_QUESOS`) |
 | `idProducto` | string (UUID) | Sí | ID del producto a producir |
 | `cantidad` | number | Sí | Cantidad a producir (mayor a 0) |
 | `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
-| `fechaProduccion` | string | Sí | Fecha en formato dd/mm/yyyy (entre hoy y 7 días anteriores) |
+| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` (entre hoy y 7 días anteriores) |
 | `idRodeo` | string (UUID) | Sí | ID del rodeo a utilizar |
 | `estado` | boolean | No | Estado del lote (opcional, default: false) |
 
-> Nota: el campo `idLote` se genera automáticamente como UUID. No debe incluirse en el request.
+> Nota: `idLote` ya es requerido por la API y debe ser un UUID válido.
 
 #### Ejemplo de Request
 
 ```json
 {
+  "idLote": "550e8400-e29b-41d4-a716-446655440000",
+  "tempTanque": 4.5,
+  "destino": "TANQUE_FRIO",
   "idProducto": "550e8400-e29b-41d4-a716-446655440001",
   "cantidad": 100,
   "unidad": "kg",
@@ -65,6 +71,8 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
     "fechaProduccion": "2026-05-15T12:00:00.000Z",
     "cantidad": 100,
     "unidad": "kg",
+    "tempTanque": 4.5,
+    "destino": "TANQUE_FRIO",
     "estado": false,
     "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
@@ -85,6 +93,7 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
 | 400 | Datos inválidos (detalles específicos de validación) |
+| 400 | Formato de `idLote` inválido |
 | 401 | Usuario no autenticado |
 | 404 | Rodeo no encontrado |
 

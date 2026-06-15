@@ -38,6 +38,8 @@ export class LoteService {
                     idEstablecimiento: idEstablecimiento,
                     cantidad: data.cantidad,
                     unidad: data.unidad,
+                    tempTanque: data.tempTanque,
+                    destino: data.destino,
                     fechaProduccion: data.fechaProduccion ?? undefined,
                     ...(data.estado ? { estado: data.estado } : {}),
                     numeroLote: numeroLote,

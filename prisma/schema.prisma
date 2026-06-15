@@ -97,6 +97,12 @@ enum TipoRodeo {
   VACAS_SECAS
 }
 
+enum TipoDestino {
+  TANQUE_FRIO
+  VENTA
+  FABRICA_QUESOS
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -260,6 +266,8 @@ model LoteProduccion {
   cantidad          Decimal
   unidad            Unidad
   estado            Boolean         @default(false)
+  tempTanque        Decimal        @db.Decimal(13, 2)
+  destino           TipoDestino
   idRodeo           String
   rodeo             Rodeo           @relation(fields: [idRodeo], references: [idRodeo])
   idProducto        String

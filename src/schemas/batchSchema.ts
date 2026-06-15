@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import { Unidad } from "@prisma/client";
+import { Unidad, TipoDestino} from "@prisma/client";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -13,6 +13,13 @@ const ZONA_ARG = "America/Argentina/Buenos_Aires";
 
 export const crearLoteSchema = z.object({
     idLote: z.uuid("Id de lote inválido"),
+    tempTanque: z.coerce
+        .number()
+        .refine((v) => v !== undefined && v !== null, {
+            message: "La temperatura del tanque es obligatoria",
+        })
+        .positive("La temperatura del tanque debe ser mayor a 0"),
+    destino: z.enum(TipoDestino, "Destino inválido"),
     idProducto: z
         .string()
         .uuid("Debe seleccionar un producto válido"),
