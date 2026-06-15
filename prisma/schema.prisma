@@ -268,6 +268,7 @@ model LoteProduccion {
   estado            Boolean         @default(false)
   tempTanque        Decimal        @db.Decimal(13, 2)
   destino           TipoDestino
+  cantAnimales      Int
   idRodeo           String
   rodeo             Rodeo           @relation(fields: [idRodeo], references: [idRodeo])
   idProducto        String

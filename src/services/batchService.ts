@@ -34,6 +34,7 @@ export class LoteService {
             const lote = await prisma.loteProduccion.create({
                 data: {
                     idLote: data.idLote,
+                    cantAnimales: rodeo.cantVacas,
                     idProducto: producto.idProducto,
                     idEstablecimiento: idEstablecimiento,
                     cantidad: data.cantidad,
