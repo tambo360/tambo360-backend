@@ -438,7 +438,7 @@ Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden eliminar invi
 ### 8. Listar Rodeos del Establecimiento
 
 **Método:** `GET`  
-**Ruta:** `/establecimiento/rodeos`  
+**Ruta:** `/establecimiento/rodeos/get`  
 **Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
 
 #### Headers

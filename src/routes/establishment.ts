@@ -18,7 +18,7 @@ router.get('/cuestionario/info', estContext, establecimientoRequireOrgAccess, ge
 router.patch('/editar-nombre', /* editarNombreEstablecimiento */);
 router.post('/invitacion', estContext, establecimientoRequireOrgAccess, sendInvitation);
 router.delete('/invitacion/:idInvitacion', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN]}), deleteInvitation);
-router.get('/rodeos', estContext, establecimientoRequireOrgAccess, listarRodeos);
+router.get('/rodeos/get', estContext, establecimientoRequireOrgAccess, listarRodeos);
 
 router.get('/test/rolMiddle', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER], org: [RolOrganizacion.ORG_OWNER]}));
 
