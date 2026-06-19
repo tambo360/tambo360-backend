@@ -103,6 +103,16 @@ enum TipoDestino {
   FABRICA_QUESOS
 }
 
+enum TipoCostoGeneral {
+  PERSONAL
+  SERVICIOS
+  LOGISTICA
+  MANTENIMIENTO
+  VETERINARIO
+  INMUEBLE
+  OTRO
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -156,6 +166,7 @@ model Establecimiento {
   configuracions                      configuracion[]
   invitaciones                        InvitacionEstablecimiento[]
   establecimientoProductos            EstablecimientoProducto[]
+  costoGenerals                       CostoGeneral[]
 }
 
 model Establecimiento_OrganizacionUsuario {
@@ -266,7 +277,7 @@ model LoteProduccion {
   cantidad          Decimal
   unidad            Unidad
   estado            Boolean         @default(false)
-  tempTanque        Decimal        @db.Decimal(13, 2)
+  tempTanque        Decimal         @db.Decimal(13, 2)
   destino           TipoDestino
   cantAnimales      Int
   idRodeo           String
@@ -302,6 +313,17 @@ model CostosDirecto {
   lote           LoteProduccion @relation(fields: [idLote], references: [idLote])
 
   @@index([idLote])
+}
+
+model CostoGeneral {
+  idCostoGeneral    String           @id @default(uuid())
+  establecimiento   Establecimiento  @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  idEstablecimiento String
+  tipoCosto         TipoCostoGeneral
+  descripcion       String?          @default("")
+  monto             Decimal          @db.Decimal(13, 2)
+  fecha             DateTime         @default(now())
+  creadoEn          DateTime         @default(now())
 }
 
 model VerificarToken {
