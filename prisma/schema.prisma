@@ -160,6 +160,7 @@ model Establecimiento {
   provincia                           String?
   fechaCreacion                       DateTime                              @default(now())
   idOrganizacion                      String
+  cuestionarioCompletado              Boolean                               @default(false)
   organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
   loteProducciones                    LoteProduccion[]
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]

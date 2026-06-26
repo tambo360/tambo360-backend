@@ -71,6 +71,9 @@
  *                       type: string
  *                       format: uuid
  *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       400:
  *         description: Datos inválidos o usuario ya tiene establecimiento
  *         content:
@@ -146,6 +149,9 @@
  *                       type: string
  *                       format: uuid
  *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       401:
  *         description: Usuario no autenticado
  *         content:
@@ -276,6 +282,9 @@
  *                       type: string
  *                       format: uuid
  *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       400:
  *         description: Nombre inválido
  *         content:

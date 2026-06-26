@@ -135,6 +135,7 @@ class EstablishmentsService {
                 data: {
                     localidad: data.ubicacion.localidad,
                     provincia: data.ubicacion.provincia,
+                    cuestionarioCompletado: true,
                 }
             });
 

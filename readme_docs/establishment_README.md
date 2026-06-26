@@ -50,6 +50,7 @@ Esta API permite gestionar establecimientos dentro de una organización. Requier
     "id": "uuid",
     "nombre": "Establecimiento La Esperanza",
     "idOrganizacion": "uuid",
+    "cuestionarioCompletado": false,
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
@@ -87,12 +88,14 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
     {
       "id": "uuid",
       "nombre": "Establecimiento 1",
-      "idOrganizacion": "uuid"
+      "idOrganizacion": "uuid",
+      "cuestionarioCompletado": false
     },
     {
       "id": "uuid",
       "nombre": "Establecimiento 2",
-      "idOrganizacion": "uuid"
+      "idOrganizacion": "uuid",
+      "cuestionarioCompletado": true
     }
   ]
 }
@@ -128,6 +131,7 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
     "id": "uuid",
     "nombre": "Establecimiento La Esperanza",
     "idOrganizacion": "uuid",
+    "cuestionarioCompletado": false,
     "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
