@@ -4,6 +4,8 @@ import { createEstablishmentSchema, deleteInvitationSchema, questionnaireSchema,
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppError } from "../utils/AppError";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
+import { getRoleLabel } from "../utils/enumValidation";
+import { formatDate } from "../utils";
 
 export const registrarEstablecimiento = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -211,6 +213,53 @@ export const sendInvitation = async (req: Request, res: Response, next: NextFunc
         next(error);
     }
 }
+
+
+export const getInvitation = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const orgAccess = req.orgAccess;
+        const estAcess = req.estAccess;
+        const user = req.user;
+
+
+        if(!user) {
+            throw new AppError("Usuario no autenticado", 401);
+        }
+
+        if (!orgAccess) {
+            throw new AppError("Acceso a organización no válido", 400);
+        }
+
+        if (!estAcess) {
+            throw new AppError("Acceso a establecimiento no válido", 400);
+        }
+
+        if (estAcess.rol !== RolEstablecimiento.OWNER) {
+            throw new AppError("Permisos insuficientes para enviar invitación", 403);
+        }
+
+
+        const invitation = await establishmentsService.getInvitation(orgAccess.idOrganizacion, estAcess.idEstablecimiento,);
+
+
+        const response = invitation.map(inv => ({
+            id: inv.idInvitacion,
+            correo: inv.correo,
+            codigo: inv.codigo,
+            estado: inv.estado,
+            expiracion: formatDate(inv.expiraEn),
+            rol: getRoleLabel(inv.rol, "establecimiento"),
+        }))
+
+
+        return res.status(200).json(ApiResponse.success(response, "Invitación enviada correctamente"));
+
+
+    } catch (error) {
+        next(error);
+    }
+}
+
 
 export const deleteInvitation = async (req: Request, res: Response, next: NextFunction) => {
     try {

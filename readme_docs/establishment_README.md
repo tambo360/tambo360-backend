@@ -388,7 +388,56 @@ Solo usuarios con rol `OWNER` del establecimiento pueden enviar invitaciones.
 
 ---
 
-### 7. Eliminar Invitación de Establecimiento
+### 7. Obtener Invitaciones de Establecimiento
+
+**Método:** `GET`  
+**Ruta:** `/establecimiento/invitacion`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+#### Headers
+
+| Header | Tipo | Descripción |
+|--------|------|-------------|
+| `Authorization` | string | Token JWT de autenticación |
+| `x-organizacion-id` | string (UUID) | ID de la organización |
+| `x-establecimiento-id` | string (UUID) | ID del establecimiento |
+
+#### Request
+No requiere body. El ID del establecimiento se toma del contexto.
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Invitación enviada correctamente",
+  "data": [
+    {
+      "id": "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f",
+      "correo": "usuario@dominio.com",
+      "codigo": "abc123def456",
+      "estado": "pendiente",
+      "expiracion": "2024-01-08T00:00:00.000Z",
+      "rol": "ADMIN"
+    }
+  ]
+}
+```
+
+#### Permisos
+Solo usuarios con rol `OWNER` del establecimiento pueden obtener las invitaciones.
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Acceso a organización no válido |
+| 400 | Acceso a establecimiento no válido |
+| 403 | Permisos insuficientes para obtener invitaciones |
+
+---
+
+### 8. Eliminar Invitación de Establecimiento
 
 **Método:** `DELETE`  
 **Ruta:** `/establecimiento/invitacion/:idInvitacion`  

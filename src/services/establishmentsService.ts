@@ -392,6 +392,29 @@ class EstablishmentsService {
         return invitation;
     }
 
+    async getInvitation(estId: string, userId: string) {
+        const invitation = await prisma.invitacionEstablecimiento.findMany({
+            where: {
+                idEstablecimiento: estId,
+                idInvitador: userId
+            },
+            select: {
+                idInvitacion: true,
+                estado: true,
+                correo: true,
+                codigo: true,
+                expiraEn: true,
+                rol: true
+            }
+        });
+
+        if (!invitation) {
+            throw new Error('Invitación no encontrada');
+        }
+
+        return invitation;
+    }
+
     async deleteInvitation(invitationId: string, estId: string) {
         const invitation = await prisma.invitacionEstablecimiento.findUnique({
             where: {

@@ -228,6 +228,100 @@
  */
 /**
  * @swagger
+ * /establecimiento/invitacion:
+ *   get:
+ *     summary: Obtener invitaciones de establecimiento
+ *     description: Lista las invitaciones pendientes asociadas al establecimiento autenticado.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitaciones obtenidas correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitaciones obtenidas correctamente
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f"
+ *                       correo:
+ *                         type: string
+ *                         example: "usuario@dominio.com"
+ *                       codigo:
+ *                         type: string
+ *                         example: "abc123def456"
+ *                       estado:
+ *                         type: string
+ *                         example: "pendiente"
+ *                       expiracion:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-08T00:00:00.000Z"
+ *                       rol:
+ *                         type: string
+ *                         example: ADMIN
+ *       400:
+ *         description: Acceso no válido o datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: Acceso a establecimiento no válido
+ *                 data:
+ *                   type: null
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Usuario no autenticado
+ *                 data:
+ *                   type: null
+ *       403:
+ *         description: Permisos insuficientes para obtener invitaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 403
+ *                 message:
+ *                   type: string
+ *                   example: Permisos insuficientes para obtener invitaciones
+ *                 data:
+ *                   type: null
+ */
+/**
+ * @swagger
  * /establecimiento/editar-nombre:
  *   patch:
  *     summary: Editar el nombre del establecimiento
