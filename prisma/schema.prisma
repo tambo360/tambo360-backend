@@ -113,6 +113,24 @@ enum TipoCostoGeneral {
   OTRO
 }
 
+enum TipoSeguimiento {
+  RODEO
+  INDIVIDUAL
+}
+
+enum CategoriaAnimal {
+  ORDENE
+  SECAS
+  PREPARTO
+}
+
+enum EstadoAnimal {
+  MATITIS
+  TRATAMIENTO
+  PREPARTO
+  DESCARTE
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -168,6 +186,7 @@ model Establecimiento {
   invitaciones                        InvitacionEstablecimiento[]
   establecimientoProductos            EstablecimientoProducto[]
   costoGenerals                       CostoGeneral[]
+  animals                             Animal[]
 }
 
 model Establecimiento_OrganizacionUsuario {
@@ -193,6 +212,7 @@ model configuracion {
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
+  tipoSeguimiento   TipoSeguimiento @default(RODEO)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
@@ -267,28 +287,55 @@ model Rodeo {
   cantVacas       Int
   costoRacion     Decimal          @db.Decimal(13, 2)
   loteProduccions LoteProduccion[]
+  animals         Animal[]
 
   @@unique([idConfiguracion, tipoRodeo])
 }
 
-model LoteProduccion {
-  idLote            String          @id
-  numeroLote        Int
-  fechaProduccion   DateTime        @default(now())
-  cantidad          Decimal
-  unidad            Unidad
-  estado            Boolean         @default(false)
-  tempTanque        Decimal         @db.Decimal(13, 2)
-  destino           TipoDestino
-  cantAnimales      Int
-  idRodeo           String
-  rodeo             Rodeo           @relation(fields: [idRodeo], references: [idRodeo])
-  idProducto        String
-  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
+model Animal {
+  idAnimal          String             @id @default(uuid())
   idEstablecimiento String
-  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  mermas            Merma[]
-  costosDirectos    CostosDirecto[]
+  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  idRodeo           String
+  rodeo             Rodeo              @relation(fields: [idRodeo], references: [idRodeo])
+  codigo            String?
+  nombre            String?
+  categoria         CategoriaAnimal
+  estado            EstadoAnimal
+  activo            Boolean            @default(true)
+  fechaNacimiento   DateTime?
+  producciones      ProduccionAnimal[]
+}
+
+model ProduccionAnimal {
+  idProduccionAnimal String         @id @default(uuid())
+  idAnimal           String
+  animal             Animal         @relation(fields: [idAnimal], references: [idAnimal])
+  idLote             String
+  lote               LoteProduccion @relation(fields: [idLote], references: [idLote])
+  estado             EstadoAnimal
+  litros             Decimal
+}
+
+model LoteProduccion {
+  idLote                   String             @id
+  numeroLote               Int
+  fechaProduccion          DateTime           @default(now())
+  cantidad                 Decimal
+  unidad                   Unidad
+  estado                   Boolean            @default(false)
+  tempTanque               Decimal            @db.Decimal(13, 2)
+  destino                  TipoDestino
+  cantAnimales             Int
+  idRodeo                  String
+  rodeo                    Rodeo              @relation(fields: [idRodeo], references: [idRodeo])
+  idProducto               String
+  producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
+  idEstablecimiento        String
+  establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  mermas                   Merma[]
+  costosDirectos           CostosDirecto[]
+  produccionesIndividuales ProduccionAnimal[]
 
   @@unique([idEstablecimiento, numeroLote])
 }
