@@ -3,16 +3,17 @@
     "target": "ES2020",
     "module": "Node16",
     "moduleResolution": "Node16",
-    "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": [
-      "node"
+      "node",
+      "vitest/globals"
     ]
   },
   "include": [
-    "src"
+    "src",
+    "tests"
   ]
 }

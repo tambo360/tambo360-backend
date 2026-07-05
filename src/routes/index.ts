@@ -12,6 +12,7 @@ import RutasDashboard from "./dashboard"
 import RutasLanding from "./landing";
 import RutasPerfil from "./profile";
 import RutasAlertas from "./alertRoutes";
+import RutasCostoGeneral from "./costoGeneral";
 
 const router = express.Router();
 
@@ -28,6 +29,6 @@ router.use('/productos', RutasProductos);
 router.use('/alertas', RutasAlertas);
 router.use('/dashboard', RutasDashboard)
 router.use('/landing', RutasLanding)
+router.use('/costos-generales', RutasCostoGeneral)
 
 export default router;
-    
