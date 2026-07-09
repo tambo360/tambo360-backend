@@ -21,6 +21,51 @@ class CostoGeneralService {
         });
     }
 
+async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
+
+    const establecimiento = await prisma.establecimiento.findUnique({
+        where: {
+            idEstablecimiento
+        },
+        include: {
+            configuracions: {
+                include: {
+                    rodeos: true
+                }
+            }
+        }
+    });
+
+    if (!establecimiento) {
+        throw new AppError("Establecimiento no encontrado", 404);
+    }
+
+    const configuracion = establecimiento.configuracions[0];
+
+    if (!configuracion) {
+        return 0;
+    }
+
+    const MS_POR_DIA = 1000 * 60 * 60 * 24;
+
+    const dias =
+        Math.floor(
+            (fechaHasta.getTime() - fechaDesde.getTime()) /
+            MS_POR_DIA
+        ) + 1;
+
+    let costoTotal = 0;
+
+    for (const rodeo of configuracion.rodeos) {
+        costoTotal +=
+            rodeo.cantVacas *
+            Number(rodeo.costoRacion) *
+            dias;
+    }
+
+    return costoTotal;
+}
+
     async listar(idEstablecimiento: string, filtros?: {
         fechaDesde?: Date;
         fechaHasta?: Date;
