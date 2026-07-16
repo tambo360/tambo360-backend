@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import establishmentsService from '../../../src/services/establishmentsService';
-import { TipoOrdenie, VentaLeche, Categoria } from '@prisma/client';
+import { TipoOrdenie, VentaLeche, Categoria, TipoSeguimiento, TipoRodeo } from '@prisma/client';
 
 const { prismaMock, sendInvitationEmailMock, generateTokenMock, hashTokenMock } = vi.hoisted(() => ({
     prismaMock: {
@@ -177,7 +177,7 @@ describe('EstablishmentsService.guardarCuestionario', () => {
         vi.clearAllMocks();
     });
 
-    it('guarda respuestas, reutiliza razas/productos existentes y crea los personalizados', async () => {
+    it('guarda respuestas, reutiliza productos existentes y crea los personalizados en modo RODEO', async () => {
         const txMock = {
             establecimiento: {
                 findUnique: vi.fn().mockResolvedValue({
@@ -189,15 +189,11 @@ describe('EstablishmentsService.guardarCuestionario', () => {
             configuracion: {
                 update: vi.fn().mockResolvedValue({}),
             },
-            raza: {
-                findMany: vi.fn().mockResolvedValue([
-                    { idRaza: 'existing-race-1', nombreNormalizado: 'holstein' },
-                ]),
-                create: vi.fn().mockResolvedValue({ idRaza: 'new-race-1' }),
+            rodeo: {
+                createMany: vi.fn().mockResolvedValue({ count: 3 }),
             },
-            establecimientoRaza: {
-                deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-                createMany: vi.fn().mockResolvedValue({ count: 2 }),
+            animal: {
+                createMany: vi.fn().mockResolvedValue({ count: 0 }),
             },
             producto: {
                 findMany: vi.fn().mockResolvedValue([
@@ -215,14 +211,16 @@ describe('EstablishmentsService.guardarCuestionario', () => {
 
         const payload = {
             idEstablecimiento: 'est-1',
-            cantidadVacas: 30,
-            razas: [
-                { tipo: 'existente' as const, idRaza: 'existing-race-1', nombre: 'Holstein' },
-                { tipo: 'nuevo' as const, nombre: 'Jersey' },
-            ],
+            TipoSeguimiento: TipoSeguimiento.RODEO,
+            cantVacas: 30,
             productos: [
                 { tipo: 'existente' as const, idProducto: 'existing-product-1', nombre: 'Leche' },
-                { tipo: 'nuevo' as const, nombre: 'Queso', categoria:  Categoria.quesos },
+                { tipo: 'nuevo' as const, nombre: 'Queso', categoria: Categoria.quesos },
+            ],
+            rodeos: [
+                { tipoRodeo: TipoRodeo.ALTA_PRODUCCION, cantVacas: 10, costoRacion: 100 },
+                { tipoRodeo: TipoRodeo.BAJA_PRODUCCION, cantVacas: 10, costoRacion: 90 },
+                { tipoRodeo: TipoRodeo.VACAS_SECAS, cantVacas: 10, costoRacion: 80 },
             ],
             cantOrdenie: 2,
             tipoOrdenie: TipoOrdenie.manual,
@@ -244,6 +242,7 @@ describe('EstablishmentsService.guardarCuestionario', () => {
             data: {
                 localidad: 'Río Cuarto',
                 provincia: 'Córdoba',
+                cuestionarioCompletado: true,
             },
         });
         expect(txMock.configuracion.update).toHaveBeenCalledWith({
@@ -256,40 +255,30 @@ describe('EstablishmentsService.guardarCuestionario', () => {
                 ventaLeche: VentaLeche.usina,
                 empleados: true,
                 cantEmpleados: 5,
+                tipoSeguimiento: TipoSeguimiento.RODEO,
                 modificadoEn: expect.any(Date),
             }),
         });
-        expect(txMock.raza.findMany).toHaveBeenCalledWith({
-            where: {
-                nombreNormalizado: {
-                    in: ['jersey'],
-                },
-                OR: [
-                    { idOrganizacion: null },
-                    { idOrganizacion: 'org-1' },
-                ],
-            },
-        });
-        expect(txMock.raza.create).toHaveBeenCalledWith({
-            data: {
-                nombre: 'Jersey',
-                nombreNormalizado: 'jersey',
-                idOrganizacion: 'org-1',
-                esSistema: false,
-            },
-            select: {
-                idRaza: true,
-            },
-        });
-        expect(txMock.establecimientoRaza.deleteMany).toHaveBeenCalledWith({
-            where: {
-                idEstablecimiento: 'est-1',
-            },
-        });
-        expect(txMock.establecimientoRaza.createMany).toHaveBeenCalledWith({
+        expect(txMock.rodeo.createMany).toHaveBeenCalledWith({
             data: [
-                { idEstablecimiento: 'est-1', idRaza: 'existing-race-1' },
-                { idEstablecimiento: 'est-1', idRaza: 'new-race-1' },
+                {
+                    tipoRodeo: 'ALTA_PRODUCCION',
+                    cantVacas: 10,
+                    costoRacion: 100,
+                    idConfiguracion: 'config-1',
+                },
+                {
+                    tipoRodeo: 'BAJA_PRODUCCION',
+                    cantVacas: 10,
+                    costoRacion: 90,
+                    idConfiguracion: 'config-1',
+                },
+                {
+                    tipoRodeo: 'VACAS_SECAS',
+                    cantVacas: 10,
+                    costoRacion: 80,
+                    idConfiguracion: 'config-1',
+                },
             ],
         });
         expect(txMock.producto.findMany).toHaveBeenCalledWith({

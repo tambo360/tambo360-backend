@@ -156,31 +156,63 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `rodeos` | array | Sí | Array de rodeos por tipo de producción |
-| `rodeos[].tipoRodeo` | enum | Sí | Tipo de rodeo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`) |
-| `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en este rodeo (positivo) |
-| `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca (positivo) |
-| `productos` | array | No | Array opcional de productos |
-| `productos[].tipo` | string | Sí | `existente` o `nuevo` |
-| `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
-| `productos[].nombre` | string | Sí | Nombre del producto |
-| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
-| `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (positivo) |
+| `TipoSeguimiento` | enum | Sí | Modo de seguimiento: `RODEO` o `INDIVIDUAL` |
+| `cantVacas` | number (int) | Sí | Cantidad total de vacas (entero positivo) |
+| `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (entero positivo) |
 | `tipoOrdenie` | enum | Sí | Tipo de ordeñe (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`) |
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
 | `ventaLeche` | enum | Sí | Tipo de venta de leche (`usina`, `fabrica_propia`, `cooperativa`, `varios`) |
 | `empleados` | boolean | Sí | Indica si tiene empleados |
 | `cantEmpleados` | number (int) | No | Cantidad de empleados |
+| `productos` | array | No | Productos asociados al establecimiento |
+| `productos[].tipo` | string | Sí | `existente` o `nuevo` |
+| `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
+| `productos[].nombre` | string | Sí | Nombre del producto |
+| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
+| `rodeos` | array | Sí si `TipoSeguimiento = RODEO` | Rodeos por tipo de producción |
+| `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS` |
+| `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en ese rodeo |
+| `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
+| `animales` | array | Sí si `TipoSeguimiento = INDIVIDUAL` | Lista de animales a registrar |
+| `animales[].codigo` | string | No | Código del animal |
+| `animales[].nombre` | string | No | Nombre del animal |
+| `animales[].categoria` | enum | Sí | Categoría del animal (`ORDENE`, `SECAS`, `PREPARTO`) |
+| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
+| `animales[].fechaNacimiento` | string (ISO) | No | Fecha de nacimiento del animal |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
 
 > Nota: el field `idEstablecimiento` se inyecta automáticamente desde el contexto del establecimiento, no debe enviarse en el body.
-> **Importante:** Debe incluir exactamente UN rodeo de cada tipo de TipoRodeo.
+> **Reglas de negocio importantes:**
+> - Si `TipoSeguimiento = RODEO`, debe enviarse `rodeos` y el backend valida que exista al menos un rodeo de cada tipo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`).
+> - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
+> - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
+> - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
 
-#### Ejemplo de Request
+#### Ejemplo de Request (seguimiento por rodeos)
 
 ```json
 {
+  "TipoSeguimiento": "RODEO",
+  "cantVacas": 150,
+  "cantOrdenie": 2,
+  "tipoOrdenie": "linea",
+  "promLitros": 25.5,
+  "ventaLeche": "usina",
+  "empleados": true,
+  "cantEmpleados": 3,
+  "productos": [
+    {
+      "tipo": "existente",
+      "idProducto": "uuid-producto",
+      "nombre": "Leche Fresca"
+    },
+    {
+      "tipo": "nuevo",
+      "nombre": "Yogur Natural",
+      "categoria": "yogures"
+    }
+  ],
   "rodeos": [
     {
       "tipoRodeo": "ALTA_PRODUCCION",
@@ -198,24 +230,40 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
       "costoRacion": 80.00
     }
   ],
-  "productos": [
-    {
-      "tipo": "existente",
-      "idProducto": "uuid-producto",
-      "nombre": "Leche Fresca"
-    },
-    {
-      "tipo": "nuevo",
-      "nombre": "Yogur Natural",
-      "categoria": "yogures"
-    }
-  ],
+  "ubicacion": {
+    "provincia": "Córdoba",
+    "localidad": "Villa María"
+  }
+}
+```
+
+#### Ejemplo de Request (seguimiento individual)
+
+```json
+{
+  "TipoSeguimiento": "INDIVIDUAL",
+  "cantVacas": 2,
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
   "promLitros": 25.5,
   "ventaLeche": "usina",
   "empleados": true,
   "cantEmpleados": 3,
+  "animales": [
+    {
+      "codigo": "A-001",
+      "nombre": "Animal 1",
+      "categoria": "ORDENE",
+      "estado": "PREPARTO",
+      "fechaNacimiento": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "codigo": "A-002",
+      "nombre": "Animal 2",
+      "categoria": "SECAS",
+      "estado": "TRATAMIENTO"
+    }
+  ],
   "ubicacion": {
     "provincia": "Córdoba",
     "localidad": "Villa María"
@@ -230,21 +278,13 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
   "success": true,
   "message": "Cuestionario registrado correctamente",
   "data": {
-    "id": "uuid",
-    "idEstablecimiento": "uuid",
-    "cantVacas": 150,
-    "cantOrdenie": 2,
-    "tipoOrdenie": "linea",
-    "promLitros": 25.5,
-    "ventaLeche": "usina",
-    "empleados": true,
-    "cantEmpleados": 3
+    "status": "success"
   }
 }
 ```
 
 #### Permisos
-Solo usuarios con rol `duenio` o `administrador` del establecimiento pueden registrar el cuestionario.
+Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden registrar el cuestionario.
 
 #### Posibles Errores
 
@@ -253,8 +293,14 @@ Solo usuarios con rol `duenio` o `administrador` del establecimiento pueden regi
 | 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
 | 400 | Todos los campos son obligatorios y deben ser válidos |
+| 400 | Debe proporcionar los rodeos |
+| 400 | Debe proporcionar los animales |
 | 400 | Debe existir al menos un rodeo de cada tipo |
+| 400 | La suma de la cantidad de vacas por rodeo no coincide con la cantidad total de vacas |
+| 400 | La cantidad de animales no coincide con la cantidad total de vacas |
+| 400 | La cantidad de vacas excede el límite para el seguimiento individual |
 | 403 | Permisos insuficientes para registrar el cuestionario |
+| 404 | Establecimiento no encontrado |
 
 ---
 
