@@ -296,8 +296,8 @@ model Animal {
   idAnimal          String             @id @default(uuid())
   idEstablecimiento String
   establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  idRodeo           String
-  rodeo             Rodeo              @relation(fields: [idRodeo], references: [idRodeo])
+  idRodeo           String?
+  rodeo             Rodeo?              @relation(fields: [idRodeo], references: [idRodeo])
   codigo            String?
   nombre            String?
   categoria         CategoriaAnimal

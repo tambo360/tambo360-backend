@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { registrarCuestionario, sendInvitation } from '../../../src/controllers/establishmentController';
-import {TipoOrdenie, VentaLeche, Categoria} from '@prisma/client';
+import { TipoOrdenie, VentaLeche, Categoria, TipoSeguimiento, TipoRodeo } from '@prisma/client';
 import { UUIDS } from '../../../src/utils';
 
 const { establishmentsServiceMock } = vi.hoisted(() => ({
@@ -210,18 +210,8 @@ describe('EstablishmentController.registrarCuestionario', () => {
 
         const req = {
             body: {
-                cantidadVacas: 30,
-                razas: [
-                    {
-                        tipo: 'existente',
-                        idRaza: UUIDS.raza,
-                        nombre: 'Holstein',
-                    },
-                    {
-                        tipo: 'nuevo',
-                        nombre: 'Jersey',
-                    },
-                ],
+                TipoSeguimiento: TipoSeguimiento.RODEO,
+                cantVacas: 30,
                 productos: [
                     {
                         tipo: 'existente',
@@ -232,6 +222,23 @@ describe('EstablishmentController.registrarCuestionario', () => {
                         tipo: 'nuevo',
                         nombre: 'Queso',
                         categoria: Categoria.quesos,
+                    },
+                ],
+                rodeos: [
+                    {
+                        tipoRodeo: TipoRodeo.ALTA_PRODUCCION,
+                        cantVacas: 10,
+                        costoRacion: 100,
+                    },
+                    {
+                        tipoRodeo: TipoRodeo.BAJA_PRODUCCION,
+                        cantVacas: 10,
+                        costoRacion: 90,
+                    },
+                    {
+                        tipoRodeo: TipoRodeo.VACAS_SECAS,
+                        cantVacas: 10,
+                        costoRacion: 80,
                     },
                 ],
                 cantOrdenie: 2,
@@ -264,7 +271,8 @@ describe('EstablishmentController.registrarCuestionario', () => {
 
         expect(establishmentsServiceMock.guardarCuestionario).toHaveBeenCalledWith(expect.objectContaining({
             idEstablecimiento: UUIDS.establishment,
-            cantidadVacas: 30,
+            TipoSeguimiento: TipoSeguimiento.RODEO,
+            cantVacas: 30,
             cantOrdenie: 2,
             tipoOrdenie: TipoOrdenie.manual,
             promLitros: 18,
@@ -275,9 +283,10 @@ describe('EstablishmentController.registrarCuestionario', () => {
                 provincia: 'Córdoba',
                 localidad: 'Río Cuarto',
             },
-            razas: expect.arrayContaining([
-                expect.objectContaining({ tipo: 'existente', idRaza: UUIDS.raza, nombre: 'Holstein' }),
-                expect.objectContaining({ tipo: 'nuevo', nombre: 'Jersey' }),
+            rodeos: expect.arrayContaining([
+                expect.objectContaining({ tipoRodeo: 'ALTA_PRODUCCION', cantVacas: 10, costoRacion: 100 }),
+                expect.objectContaining({ tipoRodeo: 'BAJA_PRODUCCION', cantVacas: 10, costoRacion: 90 }),
+                expect.objectContaining({ tipoRodeo: 'VACAS_SECAS', cantVacas: 10, costoRacion: 80 }),
             ]),
             productos: expect.arrayContaining([
                 expect.objectContaining({ tipo: 'existente', idProducto: UUIDS.producto, nombre: 'Leche' }),

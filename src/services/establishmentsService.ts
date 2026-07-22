@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
-import { Categoria, EstadoInvitacion, RolEstablecimiento } from "@prisma/client";
+import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
@@ -14,6 +14,206 @@ type CreateEstablishmentServiceData = CreateEstablishmentData & {
 };
 
 class EstablishmentsService {
+    //Limite de animales para el seguimiento individual
+    private LIMITE_ANIMAL = 70
+
+    private async actualizarEstablecimiento(tx: Prisma.TransactionClient, data: QuestionnaireData) {
+        await tx.establecimiento.update({
+            where: { idEstablecimiento: data.idEstablecimiento },
+            data: {
+                localidad: data.ubicacion.localidad,
+                provincia: data.ubicacion.provincia,
+                cuestionarioCompletado: true,
+            }
+        });
+    }
+
+    private async actualizarConfiguracion(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
+        await tx.configuracion.update({
+            where: {
+                idConfiguracion: idConfiguracion,
+            },
+            data: {
+                cantVacas: data.cantVacas,
+                cantOrdenies: data.cantOrdenie,
+                promLitros: data.promLitros,
+                tipoOrdenie: data.tipoOrdenie,
+                ventaLeche: data.ventaLeche,
+                empleados: data.empleados,
+                cantEmpleados: data.cantEmpleados,
+                tipoSeguimiento: data.TipoSeguimiento,
+                modificadoEn: new Date(),
+            }
+        });
+    }
+
+    private async sincronizarRodeos(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
+        if(!data.rodeos) {
+            throw new AppError("Debe proporcionar los rodeos", 400);
+        }
+        const cant = data.rodeos.reduce((sum, r) => sum + r.cantVacas, 0)
+
+        if (cant !== data.cantVacas) {
+            throw new AppError("La suma de la cantidad de vacas por rodeo no coincide con la cantidad total de vacas", 400);
+        }
+
+        await tx.rodeo.createMany({
+            data: data.rodeos.map(r => ({
+                tipoRodeo: r.tipoRodeo,
+                cantVacas: r.cantVacas,
+                costoRacion: r.costoRacion,
+                idConfiguracion: idConfiguracion,
+            })),
+        });
+    }
+
+    private async sincronizarProductos(tx: Prisma.TransactionClient, data: QuestionnaireData, idOrganizacion: string) {
+        if (data.productos) {
+            const productosExistentesInput = data.productos.filter((p): p is Extract<typeof p, { tipo: "existente" }> => p.tipo === "existente");
+
+            const productosNuevosInput = data.productos
+                .filter((p): p is Extract<typeof p, { tipo: "nuevo" }> => p.tipo === "nuevo")
+                .map(p => ({
+                    nombre: p.nombre,
+                    nombreNormalizado: p.nombre.trim().toLowerCase(),
+                    categoria: p.categoria
+                }));
+
+
+            // =========================================
+            // BUSCAR NUEVOS QUE YA EXISTAN
+            // =========================================
+
+            const nombresProductosNuevos = productosNuevosInput.map(
+                p => p.nombreNormalizado
+            );
+
+            const productosExistentesDB = await tx.producto.findMany({
+                where: {
+                    nombreNormalizado: {
+                        in: nombresProductosNuevos
+                    },
+                    OR: [
+                        { idOrganizacion: null },
+                        { idOrganizacion: idOrganizacion }
+                    ]
+                }
+            });
+
+            const mapaProductosExistentes = new Map(
+                productosExistentesDB.map(p => [
+                    p.nombreNormalizado,
+                    p
+                ])
+            );
+
+
+            // =========================================
+            // FILTRAR LOS QUE REALMENTE HAY QUE CREAR
+            // =========================================
+
+            const nuevosProductosCrear = productosNuevosInput.filter(
+                p => !mapaProductosExistentes.has(p.nombreNormalizado)
+            );
+
+
+            // =========================================
+            // CREAR NUEVOS
+            // =========================================
+
+            let nuevosProductosCreados: { idProducto: string }[] = [];
+
+            if (nuevosProductosCrear.length > 0) {
+
+                nuevosProductosCreados = await Promise.all(
+                    nuevosProductosCrear.map(p =>
+                        tx.producto.create({
+                            data: {
+                                nombre: p.nombre,
+                                nombreNormalizado: p.nombreNormalizado,
+                                idOrganizacion: idOrganizacion,
+                                esSistema: false,
+                                categoria: p.categoria
+                            },
+                            select: {
+                                idProducto: true
+                            }
+                        })
+                    )
+                );
+            }
+
+
+            // =========================================
+            // ARMAR IDS FINALES
+            // =========================================
+
+            const idsProductosFinales = [
+
+                // existentes enviados por front
+                ...productosExistentesInput.map(p => p.idProducto),
+
+                // nuevos que ya existían en DB
+                ...productosNuevosInput
+                    .map(p =>
+                        mapaProductosExistentes.get(
+                            p.nombreNormalizado
+                        )?.idProducto
+                    )
+                    .filter(Boolean) as string[],
+
+                // nuevos creados
+                ...nuevosProductosCreados.map(
+                    p => p.idProducto
+                )
+            ];
+
+
+            const idsProductosUnicos = [
+                ...new Set(idsProductosFinales)
+            ];
+
+
+            // =========================================
+            // RELACIONES
+            // =========================================
+
+            await tx.establecimientoProducto.deleteMany({
+                where: {
+                    idEstablecimiento: data.idEstablecimiento
+                }
+            });
+
+            await tx.establecimientoProducto.createMany({
+                data: idsProductosUnicos.map(idProducto => ({
+                    idEstablecimiento: data.idEstablecimiento,
+                    idProducto
+                }))
+            });
+        }
+    }
+
+    private async sincronizarAnimales(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
+        if(!data.animales){
+            throw new AppError("Debe proporcionar los animales", 400);
+        }
+        const cant = data.animales.length
+
+        if (cant !== data.cantVacas) {
+            throw new AppError("La cantidad de animales no coincide con la cantidad total de vacas", 400);
+        }
+
+        await tx.animal.createMany({
+            data: data.animales.map(a => ({
+                idEstablecimiento: data.idEstablecimiento,
+                codigo: a.codigo,
+                nombre: a.nombre,
+                categoria: a.categoria,
+                estado: a.estado,
+                fechaNacimiento: a.fechaNacimiento
+            }))
+        })
+    }
 
     async create(data: CreateEstablishmentServiceData) {
 
@@ -109,6 +309,7 @@ class EstablishmentsService {
         return establishment;
     }
 
+
     async guardarCuestionario(data: QuestionnaireData) {
         return await prisma.$transaction(async (tx) => {
 
@@ -129,169 +330,21 @@ class EstablishmentsService {
 
             const orgId = establecimiento.idOrganizacion;
 
-            // 2. Actualizar datos básicos
-            await tx.establecimiento.update({
-                where: { idEstablecimiento: data.idEstablecimiento },
-                data: {
-                    localidad: data.ubicacion.localidad,
-                    provincia: data.ubicacion.provincia,
-                    cuestionarioCompletado: true,
-                }
-            });
-
-            await tx.configuracion.update({
-                where: {
-                    idConfiguracion: establecimiento.configuracions[0].idConfiguracion,
-                },
-                data: {
-                    cantVacas: data.rodeos.reduce((sum, r) => sum + r.cantVacas, 0),
-                    cantOrdenies: data.cantOrdenie,
-                    promLitros: data.promLitros,
-                    tipoOrdenie: data.tipoOrdenie,
-                    ventaLeche: data.ventaLeche,
-                    empleados: data.empleados,
-                    cantEmpleados: data.cantEmpleados,
-                    modificadoEn: new Date(),
-                }
-            });
-
-            await tx.rodeo.createMany({
-                data: data.rodeos.map(r => ({
-                    tipoRodeo: r.tipoRodeo,
-                    cantVacas: r.cantVacas,
-                    costoRacion: r.costoRacion,
-                    idConfiguracion: establecimiento.configuracions[0].idConfiguracion,
-                })),
-            });
-
-
-            // =========================================================
-            // PRODUCTOS
-            // =========================================================
-            if (data.productos) {
-
-                const productosExistentesInput = data.productos.filter((p): p is Extract<typeof p, { tipo: "existente" }> => p.tipo === "existente");
-
-                const productosNuevosInput = data.productos
-                    .filter((p): p is Extract<typeof p, { tipo: "nuevo" }> => p.tipo === "nuevo")
-                    .map(p => ({
-                        nombre: p.nombre,
-                        nombreNormalizado: p.nombre.trim().toLowerCase(),
-                        categoria: p.categoria
-                    }));
-
-
-                // =========================================
-                // BUSCAR NUEVOS QUE YA EXISTAN
-                // =========================================
-
-                const nombresProductosNuevos = productosNuevosInput.map(
-                    p => p.nombreNormalizado
-                );
-
-                const productosExistentesDB = await tx.producto.findMany({
-                    where: {
-                        nombreNormalizado: {
-                            in: nombresProductosNuevos
-                        },
-                        OR: [
-                            { idOrganizacion: null },
-                            { idOrganizacion: orgId }
-                        ]
-                    }
-                });
-
-                const mapaProductosExistentes = new Map(
-                    productosExistentesDB.map(p => [
-                        p.nombreNormalizado,
-                        p
-                    ])
-                );
-
-
-                // =========================================
-                // FILTRAR LOS QUE REALMENTE HAY QUE CREAR
-                // =========================================
-
-                const nuevosProductosCrear = productosNuevosInput.filter(
-                    p => !mapaProductosExistentes.has(p.nombreNormalizado)
-                );
-
-
-                // =========================================
-                // CREAR NUEVOS
-                // =========================================
-
-                let nuevosProductosCreados: { idProducto: string }[] = [];
-
-                if (nuevosProductosCrear.length > 0) {
-
-                    nuevosProductosCreados = await Promise.all(
-                        nuevosProductosCrear.map(p =>
-                            tx.producto.create({
-                                data: {
-                                    nombre: p.nombre,
-                                    nombreNormalizado: p.nombreNormalizado,
-                                    idOrganizacion: orgId,
-                                    esSistema: false,
-                                    categoria: p.categoria
-                                },
-                                select: {
-                                    idProducto: true
-                                }
-                            })
-                        )
-                    );
-                }
-
-
-                // =========================================
-                // ARMAR IDS FINALES
-                // =========================================
-
-                const idsProductosFinales = [
-
-                    // existentes enviados por front
-                    ...productosExistentesInput.map(p => p.idProducto),
-
-                    // nuevos que ya existían en DB
-                    ...productosNuevosInput
-                        .map(p =>
-                            mapaProductosExistentes.get(
-                                p.nombreNormalizado
-                            )?.idProducto
-                        )
-                        .filter(Boolean) as string[],
-
-                    // nuevos creados
-                    ...nuevosProductosCreados.map(
-                        p => p.idProducto
-                    )
-                ];
-
-
-                const idsProductosUnicos = [
-                    ...new Set(idsProductosFinales)
-                ];
-
-
-                // =========================================
-                // RELACIONES
-                // =========================================
-
-                await tx.establecimientoProducto.deleteMany({
-                    where: {
-                        idEstablecimiento: data.idEstablecimiento
-                    }
-                });
-
-                await tx.establecimientoProducto.createMany({
-                    data: idsProductosUnicos.map(idProducto => ({
-                        idEstablecimiento: data.idEstablecimiento,
-                        idProducto
-                    }))
-                });
+            if (data.cantVacas > this.LIMITE_ANIMAL && data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
+                throw new AppError("La cantidad de vacas excede el límite para el seguimiento individual", 400);
             }
+
+            // 2. Actualizar datos básicos
+            await this.actualizarEstablecimiento(tx, data)
+            await this.actualizarConfiguracion(tx, data, establecimiento.configuracions[0].idConfiguracion)
+            await this.sincronizarProductos(tx, data, orgId)
+
+            if (data.TipoSeguimiento === TipoSeguimiento.RODEO) {
+                await this.sincronizarRodeos(tx, data, establecimiento.configuracions[0].idConfiguracion)
+            }else {
+                await this.sincronizarAnimales(tx, data, establecimiento.configuracions[0].idConfiguracion)
+            }
+
 
             return { status: "success" };
         });
@@ -462,7 +515,7 @@ class EstablishmentsService {
             }
         })
 
-        if(!est) {
+        if (!est) {
             throw new AppError("Establecimiento no encontrado", 404);
         }
 
@@ -502,12 +555,12 @@ class EstablishmentsService {
             }
         })
 
-        
+
         if (!rodeo) {
             throw new AppError("Rodeo no encontrado", 404);
         }
 
-        if(rodeo.idConfiguracion !== idConfiguracion) {
+        if (rodeo.idConfiguracion !== idConfiguracion) {
             throw new AppError("El rodeo no pertenece a la configuración del establecimiento", 400);
         }
 

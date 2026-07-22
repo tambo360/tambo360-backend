@@ -108,6 +108,111 @@
 
 /**
  * @swagger
+ * /establecimiento/cuestionario:
+ *   post:
+ *     summary: Registrar cuestionario del establecimiento
+ *     description: Registra la configuración del establecimiento y, según el tipo de seguimiento, sincroniza rodeos o animales.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - TipoSeguimiento
+ *               - cantVacas
+ *               - cantOrdenie
+ *               - tipoOrdenie
+ *               - promLitros
+ *               - ventaLeche
+ *               - empleados
+ *               - ubicacion
+ *             properties:
+ *               TipoSeguimiento:
+ *                 type: string
+ *                 enum: [RODEO, INDIVIDUAL]
+ *                 example: RODEO
+ *               cantVacas:
+ *                 type: integer
+ *                 example: 150
+ *               cantOrdenie:
+ *                 type: integer
+ *                 example: 2
+ *               tipoOrdenie:
+ *                 type: string
+ *                 enum: [balde, linea, espina_de_pescado, rotativo, manual, otro]
+ *                 example: linea
+ *               promLitros:
+ *                 type: number
+ *                 example: 25.5
+ *               ventaLeche:
+ *                 type: string
+ *                 enum: [usina, fabrica_propia, cooperativa, varios]
+ *                 example: usina
+ *               empleados:
+ *                 type: boolean
+ *                 example: true
+ *               cantEmpleados:
+ *                 type: integer
+ *                 example: 3
+ *               productos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               rodeos:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               animales:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               ubicacion:
+ *                 type: object
+ *                 required:
+ *                   - provincia
+ *                   - localidad
+ *                 properties:
+ *                   provincia:
+ *                     type: string
+ *                     example: Córdoba
+ *                   localidad:
+ *                     type: string
+ *                     example: Villa María
+ *     responses:
+ *       201:
+ *         description: Cuestionario registrado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Cuestionario registrado correctamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: success
+ *       400:
+ *         description: Datos inválidos, faltan rodeos/animales o validación del negocio
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Permisos insuficientes
+ *       404:
+ *         description: Establecimiento no encontrado
+ */
+/**
+ * @swagger
  * /establecimiento/listar:
  *   get:
  *     summary: Listar el establecimiento de un usuario
