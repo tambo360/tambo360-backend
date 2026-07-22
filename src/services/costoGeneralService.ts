@@ -65,7 +65,7 @@ async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fec
 
     return costoTotal;
 }
-
+/*
     async listar(idEstablecimiento: string, filtros?: {
         fechaDesde?: Date;
         fechaHasta?: Date;
@@ -83,6 +83,82 @@ async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fec
             orderBy: { fecha: "desc" }
         });
     }
+*/
+
+async listar(idEstablecimiento: string, filtros?: {
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+}) {
+
+    // =====================================================
+    // Validar que se haya enviado un período de consulta.
+    // El cálculo del costo de alimentación depende de las
+    // fechas seleccionadas por el usuario.
+    // =====================================================
+    if (!filtros?.fechaDesde || !filtros?.fechaHasta) {
+        throw new AppError(
+            "Debe indicar un período de consulta",
+            400
+        );
+    }
+
+    const fechaDesde = filtros.fechaDesde;
+    const fechaHasta = filtros.fechaHasta;
+
+    // =====================================================
+    // Obtener costos generales manuales registrados
+    // =====================================================
+    const costosManuales = await prisma.costoGeneral.findMany({
+        where: {
+            idEstablecimiento,
+            fecha: {
+                gte: fechaDesde,
+                lte: fechaHasta,
+            },
+        },
+        orderBy: {
+            fecha: "desc",
+        },
+    });
+
+    // =====================================================
+    // Calcular automáticamente el costo de alimentación
+    // (no se encuentra almacenado en la base de datos)
+    // =====================================================
+    const costoAlimentacion =
+        await this.calcularCostoAlimentacion(
+            idEstablecimiento,
+            fechaDesde,
+            fechaHasta
+        );
+
+    // =====================================================
+    // Crear un registro virtual para que el frontend pueda
+    // mostrarlo junto a los costos manuales.
+    // =====================================================
+    const costoAutomatico = {
+        idCostoGeneral: "alimentacion",
+        tipoCosto: "ALIMENTACION",
+        descripcion: "Costo de alimentación (calculado automáticamente)",
+        monto: costoAlimentacion,
+        fecha: fechaHasta,
+
+        // El frontend podrá identificar este registro
+        // como un costo automático de solo lectura.
+        automatico: true,
+        soloLectura: true,
+    };
+
+    // =====================================================
+    // Devolver un único listado con costos manuales
+    // y el costo automático de alimentación.
+    // =====================================================
+    return [...costosManuales, costoAutomatico].sort(
+        (a, b) =>
+            new Date(b.fecha).getTime() -
+            new Date(a.fecha).getTime()
+    );
+}
 
     async actualizar(idCostoGeneral: string, idEstablecimiento: string, data: {
         tipoCosto?: TipoCostoGeneral;
