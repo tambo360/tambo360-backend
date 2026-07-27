@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { CrearCostoDTO, ActualizarCostoDTO } from "../schemas/costShema";
 import { AppError } from "../utils/AppError";
-import { LoteService } from "./batchService";
+import LoteService from "./batchService";
 
 
 class ServicioCostos {

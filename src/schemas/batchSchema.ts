@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import { Unidad, TipoDestino} from "@prisma/client";
+import { Unidad, TipoDestino, TipoSeguimiento, EstadoAnimal} from "@prisma/client";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -11,7 +11,8 @@ dayjs.extend(customParseFormat);
 
 const ZONA_ARG = "America/Argentina/Buenos_Aires";
 
-export const crearLoteSchema = z.object({
+//Estructura base de un lote, utilizada para crear 
+const baseLoteSchema = z.object({
     idLote: z.uuid("Id de lote inválido"),
     tempTanque: z.coerce
         .number()
@@ -19,18 +20,11 @@ export const crearLoteSchema = z.object({
             message: "La temperatura del tanque es obligatoria",
         })
         .positive("La temperatura del tanque debe ser mayor a 0"),
+
     destino: z.enum(TipoDestino, "Destino inválido"),
     idProducto: z
         .string()
         .uuid("Debe seleccionar un producto válido"),
-
-    cantidad: z.coerce
-        .number()
-        .refine((v) => v !== undefined && v !== null, {
-            message: "La cantidad es obligatoria",
-        })
-        .positive("La cantidad debe ser mayor a 0"),
-
     fechaProduccion: z
         .string()
         .regex(/^\d{2}\/\d{2}\/\d{4}$/, "Formato inválido, usar dd/mm/aaaa")
@@ -50,17 +44,69 @@ export const crearLoteSchema = z.object({
 
             const fechaBase = dayjs(val, "DD/MM/YYYY", true).startOf("day");
 
-            const fechaFinal = fechaBase
+            return fechaBase
                 .hour(ahoraArgentina.hour())
                 .minute(ahoraArgentina.minute())
-                .second(ahoraArgentina.second());
-
-            return fechaFinal.toDate();
+                .second(ahoraArgentina.second())
+                .toDate();
         }),
+
     estado: z.boolean().optional(),
-    idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
+
     unidad: z.enum(Unidad, "Unidad de medida inválida"),
 });
+
+// Estructura de un lote con seguimiento por rodeo + Estructura base
+const loteRodeoSchema = baseLoteSchema.extend({
+    tipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
+    idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
+    cantidad: z.coerce
+        .number()
+        .refine((v) => v !== undefined && v !== null, {
+            message: "La cantidad es obligatoria",
+        })
+        .positive("La cantidad debe ser mayor a 0"),
+});
+
+//Estructura de objeto de un animal para seguimiento individual
+const produccionAnimalSchema = z.object({
+    idAnimal: z.string().uuid("Animal inválido"),
+
+    litros: z.coerce
+        .number()
+        .positive("Los litros deben ser mayores a 0"),
+
+    estado: z.enum(EstadoAnimal, "Estado inválido"),
+});
+
+// Estructura de un lote con seguimiento individual + Estructura base
+const loteIndividualSchema = baseLoteSchema.extend({
+    tipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
+
+    cantidad: z.coerce
+        .number()
+        .refine((v) => v !== undefined && v !== null, {
+            message: "La cantidad es obligatoria",
+        })
+        .positive("La cantidad debe ser mayor a 0"),
+
+    animales: z
+        .array(produccionAnimalSchema)
+        .min(1, "Debe seleccionar al menos un animal")
+        .refine(
+            (animales) =>
+                new Set(animales.map((a) => a.idAnimal)).size === animales.length,
+            {
+                message: "No puede seleccionar un mismo animal más de una vez",
+            }
+        ),
+});
+
+// Discriminacion de tipos de lote según el tipo de seguimiento (rodeo o individual) (USADO EN CREAR LOTE)
+export const crearLoteSchema = z.discriminatedUnion("tipoSeguimiento", [
+    loteRodeoSchema,
+    loteIndividualSchema,
+]);
 
 
 export const editarLoteSchema = z.object({
@@ -183,48 +229,14 @@ export const listarLotesSchema = z.object({
         .default(10),
 });
 
-//esto estaba antes de la modificacion para la issue #29
-/*
-export const listarLotesSchema = z.object({
-    nombre: z
-        .string()
-        .min(1, "El nombre no puede estar vacío")
-        .optional(),
-
-    numeroLote: z
-        .string()
-        .regex(/^\d+$/, "Número de lote inválido")
-        .transform((val) => (val ? Number(val) : undefined))
-        .optional(),
-
-    fecha: z
-        .string()
-        .regex(/^\d{2}\/\d{2}\/\d{4}$/, "Formato inválido, usar dd/mm/aaaa")
-        .optional()
-        .transform((val) => {
-            if (!val) return undefined;
-            const [dd, mm, yyyy] = val.split("/").map(Number);
-            const inicio = new Date(yyyy, mm - 1, dd, 0, 0, 0, 0);
-            const fin = new Date(yyyy, mm - 1, dd, 23, 59, 59, 999);
-            return { inicio, fin };
-        }),
-
-    orden: z.enum(["asc", "desc"], "El orden debe ser 'asc' o 'desc'").optional(),
-
-    pagina: z
-        .string()
-        .regex(/^\d+$/, "Página inválida")
-        .transform((val) => (val ? Number(val) : 1))
-        .refine((val) => val > 0, "La página debe ser mayor a 0")
-        .optional(),
-});
-*/
-
 
 export const idLoteParamSchema = z.object({
     idLote: z.string().uuid("Id de lote inválido"),
 });
 
 export type CrearLoteDTO = z.infer<typeof crearLoteSchema>;
+export type CrearLoteRodeoDTO = z.infer<typeof loteRodeoSchema>;
+export type ProduccionAnimalDTO = z.infer<typeof produccionAnimalSchema>;
+export type CrearLoteIndividualDTO = z.infer<typeof loteIndividualSchema>;
 export type EditarLoteDTO = z.infer<typeof editarLoteSchema>;
 export type ListarLotesQuery = z.infer<typeof listarLotesSchema>;

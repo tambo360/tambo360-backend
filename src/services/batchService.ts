@@ -1,16 +1,13 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO, EditarLoteDTO } from "../schemas/batchSchema"
+import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, ProduccionAnimalDTO } from "../schemas/batchSchema"
 import EstablishmentService from "./establishmentsService";
-import { Prisma } from "@prisma/client";
+import { Prisma, TipoSeguimiento } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
 
 export class LoteService {
-
-    static async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
-
-
+    private async obtenerEstablecimiento(idEstablecimiento: string) {
         const establecimiento = await prisma.establecimiento.findUnique({
             where: { idEstablecimiento },
             include: {
@@ -22,54 +19,126 @@ export class LoteService {
             throw new AppError("El establecimiento no existe", 400);
         }
 
-        const [producto, rodeo] = await Promise.all([
-            EstablishmentService.validateProduct(data.idProducto),
-            EstablishmentService.validateRodeo(data.idRodeo, establecimiento.configuracions[0].idConfiguracion)
-        ])
-
-
-        const result = await prisma.$transaction(async (tx) => {
-            const numeroLote = await LoteService.generateBatchNumber(tx, idEstablecimiento)
-
-            const lote = await prisma.loteProduccion.create({
-                data: {
-                    idLote: data.idLote,
-                    cantAnimales: rodeo.cantVacas,
-                    idProducto: producto.idProducto,
-                    idEstablecimiento: idEstablecimiento,
-                    cantidad: data.cantidad,
-                    unidad: data.unidad,
-                    tempTanque: data.tempTanque,
-                    destino: data.destino,
-                    fechaProduccion: data.fechaProduccion ?? undefined,
-                    ...(data.estado ? { estado: data.estado } : {}),
-                    numeroLote: numeroLote,
-                    idRodeo: rodeo.idRodeo
-                },
-                include: {
-                    producto: {
-                        select: {
-                            idProducto: true,
-                            nombre: true,
-                            categoria: true
-                        }
-                    }
-                }
-            })
-
-            return lote
-        });
-
-
-        // Disparar en background el análisis de IA si se creó como completado
-        if (result.estado) {
-            TamboEngineService.analizarSiCorresponde(idEstablecimiento, result.idLote);
-        }
-
-        return result;
+        return establecimiento;
     }
 
-    static async eliminarLote(idLote: string, idEstablecimiento: string) {
+    private async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
+        const config = await tx.configuracion.update({
+            where: { idEstablecimiento: idEstablecimiento },
+            data: { ultimoNumeroLote: { increment: 1 } },
+            select: { ultimoNumeroLote: true }
+        })
+
+        return config.ultimoNumeroLote;
+    }
+
+    private async crearLoteRodeo(tx: Prisma.TransactionClient, data: CrearLoteRodeoDTO, idEstablecimiento: string, numeroLote: number, idProducto: string) {
+
+        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
+
+        const lote = await tx.loteProduccion.create({
+            data: {
+                idLote: data.idLote,
+                cantAnimales: rodeo.cantVacas,
+                idProducto: idProducto,
+                idEstablecimiento: idEstablecimiento,
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                fechaProduccion: data.fechaProduccion ?? undefined,
+                ...(data.estado ? { estado: data.estado } : {}),
+                numeroLote: numeroLote,
+                idRodeo: rodeo.idRodeo
+            },
+            include: {
+                producto: {
+                    select: {
+                        idProducto: true,
+                        nombre: true,
+                        categoria: true
+                    }
+                }
+            }
+        })
+
+        return lote
+    };
+
+    private async validarCantidadProducto(cantidadLitros: number, animales: ProduccionAnimalDTO[]) {
+        const produccionAnimales = animales.reduce((acc, animal) => acc + Number(animal.litros), 0);
+        if (produccionAnimales !== cantidadLitros) {
+            throw new AppError("La cantidad total de producción no coincide con la cantidad del lote", 400);
+        }
+    }
+
+    private async crearLoteIndividual(tx: Prisma.TransactionClient, data: CrearLoteIndividualDTO, establecimiento: any, numeroLote: number) {
+        const animales = await EstablishmentService.validateAnimals(establecimiento.idEstablecimiento, data.animales.map(a => a.idAnimal))
+        this.validarCantidadProducto(data.cantidad, data.animales)
+
+        const lote = await tx.loteProduccion.create({
+            data: {
+                idLote: data.idLote,
+                cantAnimales: animales.length,
+                idProducto: data.idProducto,
+                idEstablecimiento: establecimiento.idEstablecimiento,
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                fechaProduccion: data.fechaProduccion ?? undefined,
+                ...(data.estado ? { estado: data.estado } : {}),
+                numeroLote: numeroLote
+            }
+        })
+
+        await tx.produccionAnimal.createMany({
+            data: data.animales.map(animal => ({
+                idAnimal: animal.idAnimal,
+                idLote: lote.idLote,
+                litros: animal.litros,
+                estado: animal.estado 
+            }))
+        })
+
+        return lote
+
+    }
+
+    async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
+        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        if (tipoSeguimiento !== data.tipoSeguimiento) {
+            throw new AppError("El tipo de seguimiento enviado no coincide con la configuración del establecimiento", 400);
+        }
+
+        const producto = await EstablishmentService.validateProduct(data.idProducto)
+
+        const lote = await prisma.$transaction(async (tx) => {
+            const numeroLote = await this.generateBatchNumber(tx, idEstablecimiento);
+            switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO:
+                    return this.crearLoteRodeo(tx, data, establecimiento.idEstablecimiento, numeroLote, producto.idProducto);
+
+                case TipoSeguimiento.INDIVIDUAL:
+                    return this.crearLoteIndividual(tx, data, establecimiento, numeroLote);
+
+                default:
+                    throw new AppError("Tipo de seguimiento inválido", 400);
+            }
+
+        });
+
+        // Disparar en background el análisis de IA si se creó como completado
+        if (lote.estado) {
+            TamboEngineService.analizarSiCorresponde(idEstablecimiento, lote.idLote);
+        }
+
+        return lote;
+    }
+
+    async eliminarLote(idLote: string, idEstablecimiento: string) {
         const lote = await prisma.loteProduccion.findUnique({
             where: { idLote, idEstablecimiento: idEstablecimiento },
         })
@@ -98,7 +167,7 @@ export class LoteService {
 
     }
 
-    static async obtenerLote(idLote: string, idEstablecimiento: string) {
+    async obtenerLote(idLote: string, idEstablecimiento: string) {
         const lote = await prisma.loteProduccion.findUnique({
             where: { idLote, idEstablecimiento: idEstablecimiento },
             include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
@@ -131,7 +200,7 @@ export class LoteService {
         };
     }
 
-    static async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
+    async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
         const lote = await prisma.loteProduccion.findUnique({
             where: { idLote, idEstablecimiento: idEstablecimiento },
         })
@@ -176,7 +245,7 @@ export class LoteService {
     // - filtros dinámicos
     // ====================================================================================
 
-    static async listarLotes(
+    async listarLotes(
         idEstablecimiento: string,
         filtros?: {
             estado?: boolean;
@@ -386,7 +455,7 @@ export class LoteService {
     }
     */
 
-    static async completarLote(idLote: string) {
+    async completarLote(idLote: string) {
 
         const lote = await prisma.loteProduccion.findUnique({
             where: { idLote },
@@ -411,7 +480,7 @@ export class LoteService {
         return loteActualizado;
     }
 
-    static async cerrarLotesVencidos() {
+    async cerrarLotesVencidos() {
 
         const fechaLimite = new Date();
         fechaLimite.setDate(fechaLimite.getDate() - 15);
@@ -437,17 +506,8 @@ export class LoteService {
 
     }
 
-    static async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
-        const config = await tx.configuracion.update({
-            where: { idEstablecimiento: idEstablecimiento },
-            data: { ultimoNumeroLote: { increment: 1 } },
-            select: { ultimoNumeroLote: true }
-        })
 
-        return config.ultimoNumeroLote;
-    }
-
-    static async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
+    async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
         const db = tx ?? prisma;
         const lote = await db.loteProduccion.findUnique(
             { where: { idLote } }
@@ -465,3 +525,4 @@ export class LoteService {
     }
 }
 
+export default new LoteService();

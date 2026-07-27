@@ -7,9 +7,9 @@
 
 /**
  * @swagger
- * /lote/registrar:
+ * /lote:
  *   post:
- *     summary: Crear un nuevo lote
+ *     summary: Crear un nuevo lote de producción
  *     tags: [Lotes]
  *     security:
  *       - bearerAuth: []
@@ -18,23 +18,99 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - idProducto
- *               - cantidad
- *               - fechaProduccion
- *             properties:
- *               idProducto:
- *                 type: string
- *                 format: uuid
- *                 example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
- *               cantidad:
- *                 type: number
- *                 example: 100
- *               fechaProduccion:
- *                 type: string
- *                 format: date
- *                 example: "01/03/2026"
+ *             oneOf:
+ *               - type: object
+ *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, idRodeo]
+ *                 properties:
+ *                   tipoSeguimiento:
+ *                     type: string
+ *                     enum: [RODEO]
+ *                     example: RODEO
+ *                   idLote:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440000"
+ *                   tempTanque:
+ *                     type: number
+ *                     example: 4.5
+ *                   destino:
+ *                     type: string
+ *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
+ *                     example: TANQUE_FRIO
+ *                   idProducto:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440001"
+ *                   cantidad:
+ *                     type: number
+ *                     example: 100
+ *                   unidad:
+ *                     type: string
+ *                     enum: [kg, litros]
+ *                     example: kg
+ *                   fechaProduccion:
+ *                     type: string
+ *                     example: "15/05/2026"
+ *                   estado:
+ *                     type: boolean
+ *                     example: false
+ *                   idRodeo:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440003"
+ *               - type: object
+ *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, animales]
+ *                 properties:
+ *                   tipoSeguimiento:
+ *                     type: string
+ *                     enum: [INDIVIDUAL]
+ *                     example: INDIVIDUAL
+ *                   idLote:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440010"
+ *                   tempTanque:
+ *                     type: number
+ *                     example: 3.2
+ *                   destino:
+ *                     type: string
+ *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
+ *                     example: VENTA
+ *                   idProducto:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440001"
+ *                   cantidad:
+ *                     type: number
+ *                     example: 80
+ *                   unidad:
+ *                     type: string
+ *                     enum: [kg, litros]
+ *                     example: litros
+ *                   fechaProduccion:
+ *                     type: string
+ *                     example: "15/05/2026"
+ *                   estado:
+ *                     type: boolean
+ *                     example: false
+ *                   animales:
+ *                     type: array
+ *                     minItems: 1
+ *                     items:
+ *                       type: object
+ *                       required: [idAnimal, litros, estado]
+ *                       properties:
+ *                         idAnimal:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440020"
+ *                         litros:
+ *                           type: number
+ *                           example: 40
+ *                         estado:
+ *                           type: string
+ *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
+ *                           example: PREPARTO
  *     responses:
  *       201:
  *         description: Lote creado correctamente
@@ -48,27 +124,28 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     idLote: { type: string, format: uuid, example: "b2c3d4e5-6789-01ab-cdef-234567890abc" }
- *                     idProducto: { type: string, format: uuid, example: "a1b2c3d4-5678-90ab-cdef-1234567890ab" }
+ *                     idLote: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" }
+ *                     idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
  *                     cantidad: { type: number, example: 100 }
  *                     unidad: { type: string, example: "kg" }
- *                     fechaProduccion: { type: string, format: date-time, example: "2026-03-01T00:00:00.000Z" }
+ *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-15T12:00:00.000Z" }
  *                     estado: { type: boolean, example: false }
  *                     numeroLote: { type: integer, example: 1 }
  *                     producto:
  *                       type: object
  *                       properties:
- *                         nombre: { type: string, example: "Queso Cremoso" }
- *                         categoria: { type: string, example: "quesos" }
+ *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
+ *                         nombre: { type: string, example: "Leche Fresca" }
+ *                         categoria: { type: string, example: "leches" }
  *       400:
- *         description: Datos inválidos o usuario sin establecimiento
+ *         description: Datos inválidos, seguimiento incompatible con la configuración del establecimiento o cuerpo inválido
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
  *                 statusCode: { type: integer, example: 400 }
- *                 message: { type: string, example: "El usuario no tiene un establecimiento registrado" }
+ *                 message: { type: string, example: "El tipo de seguimiento enviado no coincide con la configuración del establecimiento" }
  *                 data: { type: null }
  *       401:
  *         description: Usuario no autenticado
@@ -79,6 +156,16 @@
  *               properties:
  *                 statusCode: { type: integer, example: 401 }
  *                 message: { type: string, example: "Usuario no autenticado" }
+ *                 data: { type: null }
+ *       404:
+ *         description: Producto o rodeo no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 404 }
+ *                 message: { type: string, example: "Producto no encontrado" }
  *                 data: { type: null }
  */
 

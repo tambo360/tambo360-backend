@@ -28,26 +28,49 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 **Ruta:** `/lote`  
 **Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
 
+El body del request acepta dos variantes según el tipo de seguimiento configurado en el establecimiento:
+
+- `tipoSeguimiento: "RODEO"` para lotes asociados a un rodeo existente.
+- `tipoSeguimiento: "INDIVIDUAL"` para lotes creados a partir de animales individuales.
+
 #### Request Body
+
+Campos comunes a ambas variantes:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idLote` | string (UUID) | Sí | ID único del lote (debe enviarse) |
-| `tempTanque` | number | Sí | Temperatura del tanque (valor numérico, mayor a 0) |
-| `destino` | enum | Sí | Destino del lote (`TANQUE_FRIO`, `VENTA`, `FABRICA_QUESOS`) |
+| `tipoSeguimiento` | enum | Sí | `RODEO` o `INDIVIDUAL` |
+| `idLote` | string (UUID) | Sí | ID único del lote |
+| `tempTanque` | number | Sí | Temperatura del tanque, debe ser mayor a 0 |
+| `destino` | enum | Sí | `TANQUE_FRIO`, `VENTA` o `FABRICA_QUESOS` |
 | `idProducto` | string (UUID) | Sí | ID del producto a producir |
-| `cantidad` | number | Sí | Cantidad a producir (mayor a 0) |
-| `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
-| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` (entre hoy y 7 días anteriores) |
-| `idRodeo` | string (UUID) | Sí | ID del rodeo a utilizar |
-| `estado` | boolean | No | Estado del lote (opcional, default: false) |
+| `cantidad` | number | Sí | Cantidad de producción, debe ser mayor a 0 |
+| `unidad` | enum | Sí | `kg` o `litros` |
+| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` entre hoy y 7 días anteriores |
+| `estado` | boolean | No | Estado del lote, si se omite queda en `false` |
 
-> Nota: `idLote` ya es requerido por la API y debe ser un UUID válido.
+Campos adicionales si `tipoSeguimiento = RODEO`:
 
-#### Ejemplo de Request
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `idRodeo` | string (UUID) | Sí | ID del rodeo existente que pertenece al establecimiento |
+
+Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
+
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `animales` | array | Sí | Lista de animales participantes en la producción |
+| `animales[].idAnimal` | string (UUID) | Sí | ID del animal |
+| `animales[].litros` | number | Sí | Litros producidos por el animal, debe ser mayor a 0 |
+| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
+
+> El backend valida que el `tipoSeguimiento` enviado coincida con la configuración del establecimiento. Además, en modo `RODEO` el rodeo debe pertenecer al establecimiento y, en modo `INDIVIDUAL`, la suma de `litros` debe coincidir exactamente con `cantidad` y los animales deben pertenecer al establecimiento.
+
+#### Ejemplo de Request (RODEO)
 
 ```json
 {
+  "tipoSeguimiento": "RODEO",
   "idLote": "550e8400-e29b-41d4-a716-446655440000",
   "tempTanque": 4.5,
   "destino": "TANQUE_FRIO",
@@ -56,6 +79,33 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
   "unidad": "kg",
   "fechaProduccion": "15/05/2026",
   "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
+}
+```
+
+#### Ejemplo de Request (INDIVIDUAL)
+
+```json
+{
+  "tipoSeguimiento": "INDIVIDUAL",
+  "idLote": "550e8400-e29b-41d4-a716-446655440010",
+  "tempTanque": 3.2,
+  "destino": "VENTA",
+  "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+  "cantidad": 80,
+  "unidad": "litros",
+  "fechaProduccion": "15/05/2026",
+  "animales": [
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+      "litros": 40,
+      "estado": "PREPARTO"
+    },
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440021",
+      "litros": 40,
+      "estado": "TRATAMIENTO"
+    }
+  ]
 }
 ```
 
@@ -90,12 +140,14 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 
 | Código | Mensaje |
 |--------|---------|
-| 400 | Acceso a organización no válido |
 | 400 | Acceso a establecimiento no válido |
-| 400 | Datos inválidos (detalles específicos de validación) |
-| 400 | Formato de `idLote` inválido |
+| 400 | Datos inválidos o body no coincide con el schema esperado |
+| 400 | El tipo de seguimiento enviado no coincide con la configuración del establecimiento |
+| 400 | El rodeo no pertenece a la configuración del establecimiento |
+| 400 | Algunos animales no pertenecen al establecimiento |
+| 400 | La cantidad total de producción no coincide con la cantidad del lote |
 | 401 | Usuario no autenticado |
-| 404 | Rodeo no encontrado |
+| 404 | Producto no encontrado o rodeo no encontrado |
 
 ---
 

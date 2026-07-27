@@ -566,6 +566,25 @@ class EstablishmentsService {
 
         return rodeo;
     }
+
+    async validateAnimals(idEstablecimiento: string, idAnimales: string[]) {
+        const uniqueIds = [...new Set(idAnimales)];
+        const animales = await prisma.animal.findMany({
+            where: {
+                idEstablecimiento: idEstablecimiento,
+                activo: true,
+                idAnimal: {
+                    in: uniqueIds
+                }
+            }
+        });
+
+        if (animales.length !== uniqueIds.length) {
+            throw new AppError("Algunos animales no pertenecen al establecimiento", 400);
+        }
+
+        return animales;
+    }
 }
 
 export default new EstablishmentsService();

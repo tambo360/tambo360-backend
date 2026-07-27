@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma"
 import { TipoMerma } from "@prisma/client"
 import { TipoMermaMetadata } from "../utils"
 import { AppError } from "../utils/AppError"
-import { LoteService } from "./batchService"
+import LoteService from "./batchService"
 
 class MermaService {
 

@@ -297,7 +297,7 @@ model Animal {
   idEstablecimiento String
   establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   idRodeo           String?
-  rodeo             Rodeo?              @relation(fields: [idRodeo], references: [idRodeo])
+  rodeo             Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
   codigo            String?
   nombre            String?
   categoria         CategoriaAnimal
@@ -327,8 +327,8 @@ model LoteProduccion {
   tempTanque               Decimal            @db.Decimal(13, 2)
   destino                  TipoDestino
   cantAnimales             Int
-  idRodeo                  String
-  rodeo                    Rodeo              @relation(fields: [idRodeo], references: [idRodeo])
+  idRodeo                  String?
+  rodeo                    Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
   idProducto               String
   producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
   idEstablecimiento        String
