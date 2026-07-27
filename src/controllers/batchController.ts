@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { LoteService } from "../services/batchService";
+import LoteService from "../services/batchService";
 import { crearLoteSchema, editarLoteSchema, idLoteParamSchema, listarLotesSchema } from "../schemas/batchSchema";
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
@@ -28,7 +28,7 @@ export const crearLote = async (req: Request, res: Response, next: NextFunction)
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        if(!req.estAccess) {
+        if (!req.estAccess) {
             throw new AppError("Acceso a establecimiento no válido", 400);
         }
 

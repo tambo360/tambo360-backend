@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { LoteService } from "../services/batchService";
+import LoteService from "../services/batchService";
 
 export function iniciarLotesCron() {
 
