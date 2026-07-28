@@ -276,25 +276,68 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 #### Request Body
 
+El body del request debe incluir el `tipoSeguimiento` configurado en el establecimiento y los datos de edición del lote.
+
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idProducto` | string (UUID) | Sí | ID del producto para el lote |
-| `cantidad` | number | Sí | Cantidad de producción |
+| `tipoSeguimiento` | enum | Sí | `RODEO` o `INDIVIDUAL` |
+| `idProducto` | string (UUID) | No | ID del producto del lote (opcional) |
+| `cantidad` | number | Sí | Cantidad de producción, mayor a 0 |
 | `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
 | `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` |
-| `idRodeo` | string (UUID) | Sí | ID del rodeo a utilizar |
+| `tempTanque` | number | Sí | Temperatura del tanque, mayor a 0 |
+| `destino` | enum | Sí | `TANQUE_FRIO`, `VENTA` o `FABRICA_QUESOS` |
 
-> Nota: Todos los campos son requeridos en la actualización. El lote debe estar en estado `false` (no completado) para poder editarse.
+Campos adicionales según el `tipoSeguimiento`:
 
-#### Ejemplo de Request
+| Campo | Tipo | Obligatorio | Descripción |
+|-------|------|-------------|-------------|
+| `idRodeo` | string (UUID) | Sí si `tipoSeguimiento = RODEO` | ID del rodeo del establecimiento |
+| `animales` | array | Sí si `tipoSeguimiento = INDIVIDUAL` | Lista de animales usados en el lote |
+| `animales[].idAnimal` | string (UUID) | Sí | ID del animal |
+| `animales[].litros` | number | Sí | Litros producidos por el animal |
+| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
+
+> El backend valida que el `tipoSeguimiento` enviado coincida con la configuración del establecimiento. El lote debe estar en estado `false` para poder editarlo.
+
+#### Ejemplo de Request (RODEO)
 
 ```json
 {
+  "tipoSeguimiento": "RODEO",
   "idProducto": "550e8400-e29b-41d4-a716-446655440001",
   "cantidad": 120,
   "unidad": "litros",
   "fechaProduccion": "16/05/2026",
+  "tempTanque": 4.5,
+  "destino": "VENTA",
   "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
+}
+```
+
+#### Ejemplo de Request (INDIVIDUAL)
+
+```json
+{
+  "tipoSeguimiento": "INDIVIDUAL",
+  "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+  "cantidad": 80,
+  "unidad": "litros",
+  "fechaProduccion": "16/05/2026",
+  "tempTanque": 3.5,
+  "destino": "TANQUE_FRIO",
+  "animales": [
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+      "litros": 40,
+      "estado": "PREPARTO"
+    },
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440021",
+      "litros": 40,
+      "estado": "TRATAMIENTO"
+    }
+  ]
 }
 ```
 
@@ -310,10 +353,16 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
     "fechaProduccion": "2026-05-16T00:00:00.000Z",
     "cantidad": 120,
     "unidad": "litros",
+    "tempTanque": 4.5,
+    "destino": "VENTA",
     "estado": false,
-    "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-    "idEstablecimiento": "uuid-establecimiento"
+    "idEstablecimiento": "uuid-establecimiento",
+    "producto": {
+      "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+      "nombre": "Leche Fresca",
+      "categoria": "leches"
+    }
   }
 }
 ```
@@ -325,6 +374,10 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 | 400 | No se pudo determinar el establecimiento |
 | 400 | Parámetros inválidos |
 | 400 | Datos del cuerpo inválidos |
+| 400 | El tipo de seguimiento enviado no coincide con la configuración del establecimiento |
+| 400 | El rodeo no pertenece a la configuración del establecimiento |
+| 400 | Algunos animales no pertenecen al establecimiento |
+| 400 | La cantidad total de producción no coincide con la cantidad del lote |
 | 401 | Usuario no autenticado |
 | 404 | El lote no existe o no pertenece al establecimiento |
 | 409 | No se pueden editar lotes que ya están completados |

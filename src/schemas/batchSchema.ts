@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import { Unidad, TipoDestino, TipoSeguimiento, EstadoAnimal} from "@prisma/client";
+import { Unidad, TipoDestino, TipoSeguimiento, EstadoAnimal } from "@prisma/client";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -109,16 +109,11 @@ export const crearLoteSchema = z.discriminatedUnion("tipoSeguimiento", [
 ]);
 
 
-export const editarLoteSchema = z.object({
-    idProducto: z
-        .string()
-        .uuid("Producto inválido")
-        .optional(),
-
+const baseEditarLoteSchema = z.object({
+    idProducto: z.string().uuid("Producto inválido").optional(),
     cantidad: z.coerce
         .number()
-        .positive("La cantidad debe ser mayor a 0")
-        .optional(),
+        .positive("La cantidad debe ser mayor a 0"),
     unidad: z.enum(Unidad, "Unidad de medida inválida").optional(),
     fechaProduccion: z
         .string()
@@ -130,8 +125,38 @@ export const editarLoteSchema = z.object({
             const [dd, mm, yyyy] = val.split("/").map(Number);
             return new Date(yyyy, mm - 1, dd);
         }),
+    tempTanque: z.coerce
+        .number()
+        .positive("La temperatura del tanque debe ser mayor a 0"),
+    destino: z.enum(TipoDestino, "Destino inválido"),
+});
+
+const editarLoteRodeoSchema = baseEditarLoteSchema.extend({
+    tipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
     idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
 });
+
+const editarLoteIndividualSchema = baseEditarLoteSchema.extend({
+    tipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
+    animales: z
+        .array(produccionAnimalSchema)
+        .min(1, "Debe seleccionar al menos un animal")
+        .refine(
+            (animales) =>
+                new Set(animales.map(a => a.idAnimal)).size === animales.length,
+            {
+                message: "No puede seleccionar un mismo animal más de una vez",
+            }
+        ),
+});
+
+export const editarLoteSchema = z.discriminatedUnion(
+    "tipoSeguimiento",
+    [
+        editarLoteRodeoSchema,
+        editarLoteIndividualSchema,
+    ]
+);
 
 //Para utlizar en GETLOTES
 export const listarLotesSchema = z.object({
@@ -239,4 +264,6 @@ export type CrearLoteRodeoDTO = z.infer<typeof loteRodeoSchema>;
 export type ProduccionAnimalDTO = z.infer<typeof produccionAnimalSchema>;
 export type CrearLoteIndividualDTO = z.infer<typeof loteIndividualSchema>;
 export type EditarLoteDTO = z.infer<typeof editarLoteSchema>;
+export type EditarLoteRodeoDTO = z.infer<typeof editarLoteRodeoSchema>;
+export type EditarLoteIndividualDTO = z.infer<typeof editarLoteIndividualSchema>;
 export type ListarLotesQuery = z.infer<typeof listarLotesSchema>;
