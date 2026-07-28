@@ -300,8 +300,8 @@
 
 /**
  * @swagger
- * /lote/actualizar/{idLote}:
- *   put:
+ * /lote/{idLote}:
+ *   patch:
  *     summary: Editar un lote existente
  *     tags: [Lotes]
  *     security:
@@ -319,25 +319,133 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               idProducto:
- *                 type: string
- *                 format: uuid
- *                 example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
- *               cantidad:
- *                 type: number
- *                 example: 150
- *               fechaProduccion:
- *                 type: string
- *                 example: "03/03/2026"
+ *             oneOf:
+ *               - type: object
+ *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, idRodeo]
+ *                 properties:
+ *                   tipoSeguimiento:
+ *                     type: string
+ *                     enum: [RODEO]
+ *                     example: RODEO
+ *                   idProducto:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                   cantidad:
+ *                     type: number
+ *                     example: 120
+ *                   unidad:
+ *                     type: string
+ *                     enum: [kg, litros]
+ *                     example: litros
+ *                   fechaProduccion:
+ *                     type: string
+ *                     example: "16/05/2026"
+ *                   tempTanque:
+ *                     type: number
+ *                     example: 4.5
+ *                   destino:
+ *                     type: string
+ *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
+ *                     example: VENTA
+ *                   idRodeo:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "550e8400-e29b-41d4-a716-446655440003"
+ *               - type: object
+ *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, animales]
+ *                 properties:
+ *                   tipoSeguimiento:
+ *                     type: string
+ *                     enum: [INDIVIDUAL]
+ *                     example: INDIVIDUAL
+ *                   idProducto:
+ *                     type: string
+ *                     format: uuid
+ *                     example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                   cantidad:
+ *                     type: number
+ *                     example: 80
+ *                   unidad:
+ *                     type: string
+ *                     enum: [kg, litros]
+ *                     example: litros
+ *                   fechaProduccion:
+ *                     type: string
+ *                     example: "16/05/2026"
+ *                   tempTanque:
+ *                     type: number
+ *                     example: 3.5
+ *                   destino:
+ *                     type: string
+ *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
+ *                     example: TANQUE_FRIO
+ *                   animales:
+ *                     type: array
+ *                     minItems: 1
+ *                     items:
+ *                       type: object
+ *                       required: [idAnimal, litros, estado]
+ *                       properties:
+ *                         idAnimal:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440020"
+ *                         litros:
+ *                           type: number
+ *                           example: 40
+ *                         estado:
+ *                           type: string
+ *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
+ *                           example: PREPARTO
  *     responses:
  *       200:
  *         description: Lote actualizado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Lote actualizado correctamente" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idLote: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440000" }
+ *                     idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
+ *                     cantidad: { type: number, example: 120 }
+ *                     unidad: { type: string, example: "litros" }
+ *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-16T00:00:00.000Z" }
+ *                     tempTanque: { type: number, example: 4.5 }
+ *                     destino: { type: string, example: "VENTA" }
+ *                     estado: { type: boolean, example: false }
+ *                     numeroLote: { type: integer, example: 123 }
+ *                     producto:
+ *                       type: object
+ *                       properties:
+ *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
+ *                         nombre: { type: string, example: "Leche Fresca" }
+ *                         categoria: { type: string, example: "leches" }
  *       400:
- *         description: Datos inválidos o lote con información asociada
+ *         description: Datos inválidos o el lote no puede editarse
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 400 }
+ *                 message: { type: string, example: "Datos inválidos" }
+ *                 data: { type: null }
  *       401:
  *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 401 }
+ *                 message: { type: string, example: "Usuario no autenticado" }
+ *                 data: { type: null }
  *       403:
  *         description: No tiene permisos
  *       404:

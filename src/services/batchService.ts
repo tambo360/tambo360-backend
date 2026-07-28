@@ -1,12 +1,14 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, ProduccionAnimalDTO } from "../schemas/batchSchema"
+import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, EditarLoteIndividualDTO, EditarLoteRodeoDTO, ProduccionAnimalDTO } from "../schemas/batchSchema"
 import EstablishmentService from "./establishmentsService";
 import { Prisma, TipoSeguimiento } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
 
 
 export class LoteService {
+
+    // HELPER METHODS ------------------------------------------------------------------------------------
     private async obtenerEstablecimiento(idEstablecimiento: string) {
         const establecimiento = await prisma.establecimiento.findUnique({
             where: { idEstablecimiento },
@@ -65,7 +67,7 @@ export class LoteService {
         return lote
     };
 
-    private async validarCantidadProducto(cantidadLitros: number, animales: ProduccionAnimalDTO[]) {
+    private async validarCantidadProduccion(cantidadLitros: number, animales: ProduccionAnimalDTO[]) {
         const produccionAnimales = animales.reduce((acc, animal) => acc + Number(animal.litros), 0);
         if (produccionAnimales !== cantidadLitros) {
             throw new AppError("La cantidad total de producción no coincide con la cantidad del lote", 400);
@@ -74,7 +76,7 @@ export class LoteService {
 
     private async crearLoteIndividual(tx: Prisma.TransactionClient, data: CrearLoteIndividualDTO, establecimiento: any, numeroLote: number) {
         const animales = await EstablishmentService.validateAnimals(establecimiento.idEstablecimiento, data.animales.map(a => a.idAnimal))
-        this.validarCantidadProducto(data.cantidad, data.animales)
+        this.validarCantidadProduccion(data.cantidad, data.animales)
 
         const lote = await tx.loteProduccion.create({
             data: {
@@ -97,13 +99,135 @@ export class LoteService {
                 idAnimal: animal.idAnimal,
                 idLote: lote.idLote,
                 litros: animal.litros,
-                estado: animal.estado 
+                estado: animal.estado
             }))
         })
 
         return lote
 
     }
+
+    async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
+        const db = tx ?? prisma;
+        const lote = await db.loteProduccion.findUnique(
+            { where: { idLote } }
+        )
+
+        if (!lote) {
+            throw new AppError("Lote no encontrado", 404)
+        }
+
+        if (lote.estado) {
+            throw new AppError("El lote está completo", 409)
+        }
+
+        return lote
+    }
+
+    private async editarLoteRodeo(tx: Prisma.TransactionClient, idLote: string, data: EditarLoteRodeoDTO, idConfiguracion: string, idEstablecimiento: string) {
+        const producto = data.idProducto ? await EstablishmentService.validateProduct(data.idProducto) : null;
+        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idConfiguracion);
+
+        return await tx.loteProduccion.update({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            data: {
+                ...(producto && { idProducto: producto.idProducto }),
+                idRodeo: rodeo.idRodeo,
+                cantAnimales: rodeo.cantVacas,
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                fechaProduccion: data.fechaProduccion,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+            },
+            include: {
+                producto: {
+                    select: {
+                        idProducto: true,
+                        nombre: true,
+                        categoria: true,
+                    },
+                },
+            },
+        });
+    }
+
+    private async sincronizarProduccionesAnimales(tx: Prisma.TransactionClient, idLote: string, animales: ProduccionAnimalDTO[]) {
+        const produccionesActuales = await tx.produccionAnimal.findMany({ where: { idLote }, });
+
+        //diccionarios para buscar por idAnimal ------
+        const actuales = new Map(produccionesActuales.map(p => [p.idAnimal, p]));
+        const nuevas = new Map(animales.map(a => [a.idAnimal, a]));
+
+        // Determinar qué producciones crear, eliminar o actualizar --------
+        const crear = animales.filter(a => !actuales.has(a.idAnimal));
+        const eliminar = produccionesActuales.filter(p => !nuevas.has(p.idAnimal));
+        const actualizar = animales.filter(a => actuales.has(a.idAnimal));
+
+
+        // Ejecutar las operaciones en la base de datos --------
+        if (crear.length > 0) {
+            await tx.produccionAnimal.createMany({
+                data: crear.map(a => ({
+                    idAnimal: a.idAnimal,
+                    idLote,
+                    litros: a.litros,
+                    estado: a.estado,
+                })),
+            });
+        }
+
+        if (eliminar.length > 0) {
+            await tx.produccionAnimal.deleteMany({
+                where: {
+                    idProduccionAnimal: {
+                        in: eliminar.map(p => p.idProduccionAnimal),
+                    },
+                },
+            });
+        }
+
+        await Promise.all(
+            actualizar.map(async (animal) => {
+                const actual = actuales.get(animal.idAnimal)!;
+                if (actual.estado === animal.estado && actual.litros.equals(animal.litros)) {return}
+
+                await tx.produccionAnimal.update({
+                    where: {idProduccionAnimal: actual.idProduccionAnimal},
+                    data: {
+                        estado: animal.estado,
+                        litros: animal.litros,
+                    },
+                });
+            })
+        );
+
+    }
+
+    private async editarLoteIndividual(tx: Prisma.TransactionClient, idLote: string, data: EditarLoteIndividualDTO, idEstablecimiento: string) {
+        const producto = data.idProducto ? await EstablishmentService.validateProduct(data.idProducto) : null;
+        await EstablishmentService.validateAnimals(idEstablecimiento, data.animales.map(a => a.idAnimal));
+        this.validarCantidadProduccion(data.cantidad, data.animales);
+
+        const lote = await tx.loteProduccion.update({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            data: {
+                ...(producto && { idProducto: producto.idProducto }),
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                fechaProduccion: data.fechaProduccion,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                cantAnimales: data.animales.length,
+            }
+        });
+
+        await this.sincronizarProduccionesAnimales(tx, idLote, data.animales);
+
+        return lote;
+    }
+
+    // SERVICE METHODS ------------------------------------------------------------------------------------
 
     async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
         const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
@@ -201,31 +325,24 @@ export class LoteService {
     }
 
     async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote, idEstablecimiento: idEstablecimiento },
+        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const lote = await this.obtenerLoteEditable(idLote);
+
+        if (establecimiento.configuracions[0].tipoSeguimiento !== data.tipoSeguimiento) {
+            throw new AppError("El tipo de seguimiento enviado no coincide con la configuración del establecimiento", 400);
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO:
+                    return this.editarLoteRodeo(tx, idLote, data, establecimiento.configuracions[0].idConfiguracion, idEstablecimiento);
+
+                case TipoSeguimiento.INDIVIDUAL:
+                    return this.editarLoteIndividual(tx, idLote, data, idEstablecimiento);
+            }
         })
 
-        if (!lote) {
-            throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
-        }
-
-        if (lote.estado) {
-            throw new AppError("No se pueden editar lotes que ya están completados", 409);
-        }
-
-
-        const [producto, rodeo] = await Promise.all([
-            data.idProducto ? EstablishmentService.validateProduct(data.idProducto) : null,
-            EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
-        ])
-
-
-        const loteActualizado = await prisma.loteProduccion.update({
-            where: { idLote, idEstablecimiento: idEstablecimiento },
-            data
-        });
-
-        return loteActualizado;
+        return result;
     }
 
     // ====================================================================================
@@ -507,22 +624,6 @@ export class LoteService {
     }
 
 
-    async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
-        const db = tx ?? prisma;
-        const lote = await db.loteProduccion.findUnique(
-            { where: { idLote } }
-        )
-
-        if (!lote) {
-            throw new AppError("Lote no encontrado", 404)
-        }
-
-        if (lote.estado) {
-            throw new AppError("El lote está completo", 409)
-        }
-
-        return lote
-    }
 }
 
 export default new LoteService();
