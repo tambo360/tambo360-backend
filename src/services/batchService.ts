@@ -190,10 +190,10 @@ export class LoteService {
         await Promise.all(
             actualizar.map(async (animal) => {
                 const actual = actuales.get(animal.idAnimal)!;
-                if (actual.estado === animal.estado && actual.litros.equals(animal.litros)) {return}
+                if (actual.estado === animal.estado && actual.litros.equals(animal.litros)) { return }
 
                 await tx.produccionAnimal.update({
-                    where: {idProduccionAnimal: actual.idProduccionAnimal},
+                    where: { idProduccionAnimal: actual.idProduccionAnimal },
                     data: {
                         estado: animal.estado,
                         litros: animal.litros,
@@ -294,7 +294,19 @@ export class LoteService {
     async obtenerLote(idLote: string, idEstablecimiento: string) {
         const lote = await prisma.loteProduccion.findUnique({
             where: { idLote, idEstablecimiento: idEstablecimiento },
-            include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
+            include: {
+                producto: true,
+                mermas: true,
+                costosDirectos: true,
+                establecimiento: true,
+                produccionesIndividuales: {
+                    select: {
+                        idAnimal: true,
+                        litros: true,
+                        estado: true
+                    }
+                }
+            },
         });
 
 
@@ -484,6 +496,15 @@ export class LoteService {
                 mermas: true,
 
                 costosDirectos: true,
+
+                produccionesIndividuales: {
+                    select: {
+                        idProduccionAnimal: true,
+                        idAnimal: true,
+                        litros: true,
+                        estado: true,
+                    },
+                },
             },
 
             // =====================================================
@@ -506,7 +527,6 @@ export class LoteService {
         // (total_mermas / cantidad_produccion) * 100
         // =========================================================
         const lotesTransformados = lotes.map((lote) => {
-
             const cantidadProduccion =
                 Number(lote.cantidad);
 

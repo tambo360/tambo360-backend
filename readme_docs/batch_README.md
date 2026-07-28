@@ -211,7 +211,15 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
           "idRaza": "550e8400-e29b-41d4-a716-446655440002",
           "nombre": "Holando"
         },
-        "mermas": []
+        "mermas": [],
+        "produccionesIndividuales": [
+          {
+            "idProduccionAnimal": "uuid-produccion-animal",
+            "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+            "litros": 40,
+            "estado": "PREPARTO"
+          }
+        ]
       }
     ]
   }
@@ -452,6 +460,14 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
         "monto": 150.50,
         "observaciones": "Costo de insumos",
         "fechaCreacion": "2026-05-15T13:00:00.000Z"
+      }
+    ],
+    "produccionesIndividuales": [
+      {
+        "idProduccionAnimal": "uuid-produccion-animal",
+        "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+        "litros": 40,
+        "estado": "PREPARTO"
       }
     ],
     "alertas": [
