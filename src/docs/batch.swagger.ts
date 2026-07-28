@@ -247,6 +247,15 @@
  *                               categoria: { type: string }
  *                           mermas: { type: array, items: { type: object } }
  *                           costosDirectos: { type: array, items: { type: object } }
+ *                           produccionesIndividuales:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 idProduccionAnimal: { type: string, format: uuid }
+ *                                 idAnimal: { type: string, format: uuid }
+ *                                 litros: { type: number }
+ *                                 estado: { type: string }
  *       400:
  *         description: Error de validación o usuario sin establecimiento
  *         content:
@@ -288,6 +297,25 @@
  *     responses:
  *       200:
  *         description: Lote obtenido correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Lote obtenido correctamente" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     produccionesIndividuales:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idProduccionAnimal: { type: string, format: uuid }
+ *                           idAnimal: { type: string, format: uuid }
+ *                           litros: { type: number, example: 40 }
+ *                           estado: { type: string, example: "PREPARTO" }
  *       400:
  *         description: ID inválido
  *       401:
