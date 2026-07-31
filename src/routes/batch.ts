@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote, completarLote/*,  , , produccionDelDia */ } from "../controllers/batchController";
+import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote, completarLote,/*,  , , produccionDelDia */ 
+obtenerOpcionesCreacion} from "../controllers/batchController";
 import { aiLimiter } from "../middleware/RateLimit";
 import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento } from "@prisma/client";
@@ -18,11 +19,10 @@ router.post('/', crearLote);
 
 // Listar lotes paginados con filtros
 router.get("/listar", listarLotes);
-
 router.delete("/:idLote", requireRoles({ est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER] }), eliminarLote);
 router.get("/buscar/:idLote", obtenerLote);
 router.patch('/:idLote', editarLote);
-
 router.post("/completar/:idLote", authenticate, orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, aiLimiter, completarLote);
+router.get("/opciones-creacion", obtenerOpcionesCreacion);
 
 export default router;

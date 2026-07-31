@@ -151,7 +151,48 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
 
 ---
 
-### 2. Listar Lotes
+### 2. Obtener opciones de creación
+
+**Método:** `GET`  
+**Ruta:** `/lote/opciones-creacion`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+Este endpoint devuelve los recursos disponibles para crear un lote según la configuración de seguimiento del establecimiento.
+
+- Si el establecimiento está configurado con `tipoSeguimiento: "RODEO"`, la respuesta incluye `rodeos`.
+- Si está configurado con `tipoSeguimiento: "INDIVIDUAL"`, la respuesta incluye `animales`.
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Opciones de creación obtenidas correctamente",
+  "data": {
+    "tipoSeguimiento": "RODEO",
+    "rodeos": [
+      {
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "label": "Rodeo 1",
+        "value": "rodeo-1",
+        "costoRacion": 120,
+        "cantVacas": 15
+      }
+    ]
+  }
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 401 | Usuario no autenticado |
+
+---
+
+### 3. Listar Lotes
 
 **Método:** `GET`  
 **Ruta:** `/lote/listar`  

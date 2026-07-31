@@ -171,6 +171,83 @@
 
 /**
  * @swagger
+ * /lote/opciones-creacion:
+ *   get:
+ *     summary: Obtener opciones de creación para un lote según la configuración del establecimiento
+ *     tags: [Lotes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Opciones de creación obtenidas correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string, example: "Opciones de creación obtenidas correctamente" }
+ *                 data:
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [tipoSeguimiento, rodeos]
+ *                       properties:
+ *                         tipoSeguimiento:
+ *                           type: string
+ *                           enum: [RODEO]
+ *                           example: RODEO
+ *                         rodeos:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               idRodeo: { type: string, format: uuid }
+ *                               label: { type: string }
+ *                               value: { type: string }
+ *                               costoRacion: { type: number }
+ *                               cantVacas: { type: integer }
+ *                     - type: object
+ *                       required: [tipoSeguimiento, animales]
+ *                       properties:
+ *                         tipoSeguimiento:
+ *                           type: string
+ *                           enum: [INDIVIDUAL]
+ *                           example: INDIVIDUAL
+ *                         animales:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               idAnimal: { type: string, format: uuid }
+ *                               codigo: { type: string }
+ *                               nombre: { type: string }
+ *                               categoria: { type: string }
+ *                               estado: { type: string }
+ *                               fechaNacimiento: { type: string, format: date-time }
+ *       400:
+ *         description: No se pudo determinar el establecimiento
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 400 }
+ *                 message: { type: string, example: "No se pudo determinar el establecimiento" }
+ *                 data: { type: null }
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 401 }
+ *                 message: { type: string, example: "Usuario no autenticado" }
+ *                 data: { type: null }
+ */
+
+/**
+ * @swagger
  * /lote/listar:
  *   get:
  *     summary: Listar todos los lotes del usuario

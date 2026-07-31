@@ -48,7 +48,7 @@ class EstablishmentsService {
     }
 
     private async sincronizarRodeos(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
-        if(!data.rodeos) {
+        if (!data.rodeos) {
             throw new AppError("Debe proporcionar los rodeos", 400);
         }
         const cant = data.rodeos.reduce((sum, r) => sum + r.cantVacas, 0)
@@ -194,7 +194,7 @@ class EstablishmentsService {
     }
 
     private async sincronizarAnimales(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
-        if(!data.animales){
+        if (!data.animales) {
             throw new AppError("Debe proporcionar los animales", 400);
         }
         const cant = data.animales.length
@@ -341,7 +341,7 @@ class EstablishmentsService {
 
             if (data.TipoSeguimiento === TipoSeguimiento.RODEO) {
                 await this.sincronizarRodeos(tx, data, establecimiento.configuracions[0].idConfiguracion)
-            }else {
+            } else {
                 await this.sincronizarAnimales(tx, data, establecimiento.configuracions[0].idConfiguracion)
             }
 
@@ -501,39 +501,6 @@ class EstablishmentsService {
         };
     }
 
-    async listarRodeos(idEstablecimiento: string) {
-        const est = await prisma.establecimiento.findUnique({
-            where: {
-                idEstablecimiento
-            },
-            include: {
-                configuracions: {
-                    select: {
-                        idConfiguracion: true
-                    }
-                }
-            }
-        })
-
-        if (!est) {
-            throw new AppError("Establecimiento no encontrado", 404);
-        }
-
-        const rodeos = await prisma.rodeo.findMany({
-            where: {
-                idConfiguracion: est.configuracions[0].idConfiguracion
-            }
-        })
-
-        return rodeos.map(r => ({
-            idRodeo: r.idRodeo,
-            label: TipoRodeoMetaData[r.tipoRodeo].label || "Tipo de rodeo no definido",
-            value: TipoRodeoMetaData[r.tipoRodeo].value || "tipo-rodeo-no-definido",
-            costoRacion: r.costoRacion,
-            cantVacas: r.cantVacas,
-        }));
-    }
-
     async validateProduct(idProducto: string) {
         const producto = await prisma.producto.findUnique({
             where: {
@@ -584,6 +551,57 @@ class EstablishmentsService {
         }
 
         return animales;
+    }
+
+    async listarAnimales(idEstablecimiento: string) {
+        const animales = await prisma.animal.findMany({
+            where: {
+                idEstablecimiento: idEstablecimiento,
+                activo: true
+            }
+        });
+        return animales.map(a => ({
+            idAnimal: a.idAnimal,
+            codigo: a.codigo,
+            nombre: a.nombre,
+            categoria: a.categoria,
+            estado: a.estado,
+            fechaNacimiento: a.fechaNacimiento
+        }));
+    }
+
+
+    async listarRodeos(idEstablecimiento: string) {
+        const est = await prisma.establecimiento.findUnique({
+            where: {
+                idEstablecimiento
+            },
+            include: {
+                configuracions: {
+                    select: {
+                        idConfiguracion: true
+                    }
+                }
+            }
+        })
+
+        if (!est) {
+            throw new AppError("Establecimiento no encontrado", 404);
+        }
+
+        const rodeos = await prisma.rodeo.findMany({
+            where: {
+                idConfiguracion: est.configuracions[0].idConfiguracion
+            }
+        })
+
+        return rodeos.map(r => ({
+            idRodeo: r.idRodeo,
+            label: TipoRodeoMetaData[r.tipoRodeo].label || "Tipo de rodeo no definido",
+            value: TipoRodeoMetaData[r.tipoRodeo].value || "tipo-rodeo-no-definido",
+            costoRacion: r.costoRacion,
+            cantVacas: r.cantVacas,
+        }));
     }
 }
 

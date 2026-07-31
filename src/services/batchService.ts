@@ -357,6 +357,27 @@ export class LoteService {
         return result;
     }
 
+    async obtenerOpcionesCreacion(idEstablecimiento: string) {
+        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        switch (tipoSeguimiento) {
+            case TipoSeguimiento.RODEO:
+                const rodeos = await EstablishmentService.listarRodeos(idEstablecimiento);
+                return {
+                    tipoSeguimiento,
+                    rodeos
+                };
+            case TipoSeguimiento.INDIVIDUAL:
+                const animales = await EstablishmentService.listarAnimales(idEstablecimiento);
+                return {
+                    tipoSeguimiento,
+                    animales
+                };
+        }
+        
+    }
+
     // ====================================================================================
     // LISTAR LOTES
     // Endpoint GET /lotes
