@@ -496,16 +496,6 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
         "nombre": "Leche Fresca",
         "categoria": "leches"
       },
-      "raza": {
-        "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-        "nombre": "Holando"
-      },
-      "establecimiento": {
-        "idEstablecimiento": "uuid-establecimiento",
-        "nombre": "Establecimiento La Esperanza",
-        "provincia": "Córdoba",
-        "localidad": "Villa María"
-      },
       "mermas": [
         {
           "idMerma": "uuid-merma",

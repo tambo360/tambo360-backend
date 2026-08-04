@@ -256,39 +256,66 @@
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: nombre
- *         schema:
- *           type: string
- *         required: false
- *         description: Filtrar por nombre del producto (opcional, si no se pasa se listan todos los lotes)
- *       - in: query
- *         name: numeroLote
+ *         name: page
  *         schema:
  *           type: string
  *           pattern: "^[0-9]+$"
  *         required: false
- *         description: Filtrar por número de lote (opcional, si no se pasa se listan todos los lotes)
+ *         description: Número de página (la primera página es 1) (opcional)
  *       - in: query
- *         name: fecha
+ *         name: limit
  *         schema:
  *           type: string
- *           pattern: "^\\d{2}/\\d{2}/\\d{4}$"
+ *           pattern: "^[0-9]+$"
  *         required: false
- *         description: Filtrar por fecha de producción (dd/mm/aaaa) (opcional)
+ *         description: Cantidad de resultados por página (máx 100) (opcional)
  *       - in: query
  *         name: orden
  *         schema:
  *           type: string
  *           enum: [asc, desc]
  *         required: false
- *         description: Ordenar por fecha de producción ('asc' o 'desc') (opcional)
+ *         description: Ordenar por número de lote ('asc' o 'desc') (opcional)
  *       - in: query
- *         name: pagina
+ *         name: estado
+ *         schema:
+ *           type: string
+ *           enum: [true, false]
+ *         required: false
+ *         description: Filtrar por estado del lote (`true` o `false`) (opcional)
+ *       - in: query
+ *         name: nombre
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Buscar por texto en el nombre o producto (opcional)
+ *       - in: query
+ *         name: producto
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Buscar por texto en el nombre del producto (opcional)
+ *       - in: query
+ *         name: numeroLote
  *         schema:
  *           type: string
  *           pattern: "^[0-9]+$"
  *         required: false
- *         description: Número de página (la primera página es 1) (opcional)
+ *         description: Filtrar por número de lote exacto (opcional)
+ *       - in: query
+ *         name: fecha_desde
+ *         schema:
+ *           type: string
+ *           pattern: "^\\d{2}/\\d{2}/\\d{4}$"
+ *         required: false
+ *         description: Fecha inicial en formato dd/mm/aaaa (opcional)
+ *       - in: query
+ *         name: fecha_hasta
+ *         schema:
+ *           type: string
+ *           pattern: "^\\d{2}/\\d{2}/\\d{4}$"
+ *         required: false
+ *         description: Fecha final en formato dd/mm/aaaa (opcional)
  *     responses:
  *       200:
  *         description: Lotes listados correctamente
@@ -324,8 +351,21 @@
  *                               producto:
  *                                 type: object
  *                                 properties:
+ *                                   idProducto: { type: string, format: uuid }
  *                                   nombre: { type: string }
  *                                   categoria: { type: string }
+ *                               idEstablecimiento: { type: string, format: uuid }
+ *                               idRodeo: { type: string, format: uuid }
+ *                               cantAnimales: { type: integer }
+ *                               destino: { type: string }
+ *                               tempTanque: { type: number }
+ *                               rodeo:
+ *                                 type: object
+ *                                 properties:
+ *                                   idRodeo: { type: string, format: uuid }
+ *                                   tipoRodeo: { type: string }
+ *                                   costoRacion: { type: number }
+ *                                   cantVacas: { type: integer }
  *                               mermas: { type: array, items: { type: object } }
  *                               costosDirectos: { type: array, items: { type: object } }
  *                               produccionesIndividuales:
@@ -412,8 +452,6 @@
  *                             categoria: { type: string }
  *                         idRodeo: { type: string, format: uuid }
  *                         cantAnimales: { type: integer }
- *                         destino: { type: string }
- *                         tempTanque: { type: number }
  *                         rodeo:
  *                           type: object
  *                           properties:
@@ -421,11 +459,6 @@
  *                             tipoRodeo: { type: string }
  *                             costoRacion: { type: number }
  *                             cantVacas: { type: integer }
- *                         raza:
- *                           type: object
- *                           properties:
- *                             idRaza: { type: string, format: uuid }
- *                             nombre: { type: string }
  *                         establecimiento:
  *                           type: object
  *                           properties:
