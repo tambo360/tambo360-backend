@@ -302,37 +302,43 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     pagina: { type: integer, example: 1 }
- *                     totalPaginas: { type: integer, example: 2 }
+ *                     page: { type: integer, example: 1 }
+ *                     limit: { type: integer, example: 10 }
  *                     totalLotes: { type: integer, example: 30 }
+ *                     totalPaginas: { type: integer, example: 2 }
  *                     lotes:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
- *                           idLote: { type: string, format: uuid }
- *                           idProducto: { type: string, format: uuid }
- *                           cantidad: { type: number }
- *                           unidad: { type: string }
- *                           fechaProduccion: { type: string, format: date-time }
- *                           estado: { type: boolean }
- *                           numeroLote: { type: integer }
- *                           producto:
+ *                           lote:
  *                             type: object
  *                             properties:
- *                               nombre: { type: string }
- *                               categoria: { type: string }
- *                           mermas: { type: array, items: { type: object } }
- *                           costosDirectos: { type: array, items: { type: object } }
- *                           produccionesIndividuales:
- *                             type: array
- *                             items:
- *                               type: object
- *                               properties:
- *                                 idProduccionAnimal: { type: string, format: uuid }
- *                                 idAnimal: { type: string, format: uuid }
- *                                 litros: { type: number }
- *                                 estado: { type: string }
+ *                               idLote: { type: string, format: uuid }
+ *                               idProducto: { type: string, format: uuid }
+ *                               cantidad: { type: number }
+ *                               unidad: { type: string }
+ *                               fechaProduccion: { type: string, format: date-time }
+ *                               estado: { type: boolean }
+ *                               numeroLote: { type: integer }
+ *                               producto:
+ *                                 type: object
+ *                                 properties:
+ *                                   nombre: { type: string }
+ *                                   categoria: { type: string }
+ *                               mermas: { type: array, items: { type: object } }
+ *                               costosDirectos: { type: array, items: { type: object } }
+ *                               produccionesIndividuales:
+ *                                 type: array
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     idProduccionAnimal: { type: string, format: uuid }
+ *                                     idAnimal: { type: string, format: uuid }
+ *                                     litros: { type: number }
+ *                                     estado: { type: string }
+ *                               turno: { type: string }
+ *                           merma_porcentaje: { type: number }
  *       400:
  *         description: Error de validación o usuario sin establecimiento
  *         content:
@@ -357,7 +363,7 @@
 
 /**
  * @swagger
- * /lote/buscar-lote/{idLote}:
+ * /lote/buscar/{idLote}:
  *   get:
  *     summary: Obtener un lote por ID
  *     tags: [Lotes]
@@ -384,15 +390,92 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     produccionesIndividuales:
+ *                     lote:
+ *                       type: object
+ *                       properties:
+ *                         idLote: { type: string, format: uuid }
+ *                         numeroLote: { type: integer }
+ *                         fechaProduccion: { type: string, format: date-time }
+ *                         cantidad: { type: number }
+ *                         unidad: { type: string }
+ *                         estado: { type: boolean }
+ *                         tempTanque: { type: number }
+ *                         destino: { type: string }
+ *                         idProducto: { type: string, format: uuid }
+ *                         idEstablecimiento: { type: string, format: uuid }
+ *                         turno: { type: string }
+ *                         producto:
+ *                           type: object
+ *                           properties:
+ *                             idProducto: { type: string, format: uuid }
+ *                             nombre: { type: string }
+ *                             categoria: { type: string }
+ *                         idRodeo: { type: string, format: uuid }
+ *                         cantAnimales: { type: integer }
+ *                         destino: { type: string }
+ *                         tempTanque: { type: number }
+ *                         rodeo:
+ *                           type: object
+ *                           properties:
+ *                             idRodeo: { type: string, format: uuid }
+ *                             tipoRodeo: { type: string }
+ *                             costoRacion: { type: number }
+ *                             cantVacas: { type: integer }
+ *                         raza:
+ *                           type: object
+ *                           properties:
+ *                             idRaza: { type: string, format: uuid }
+ *                             nombre: { type: string }
+ *                         establecimiento:
+ *                           type: object
+ *                           properties:
+ *                             idEstablecimiento: { type: string, format: uuid }
+ *                             nombre: { type: string }
+ *                             provincia: { type: string }
+ *                             localidad: { type: string }
+ *                         mermas:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               idMerma: { type: string, format: uuid }
+ *                               tipo: { type: string }
+ *                               cantidad: { type: number }
+ *                               fechaCreacion: { type: string, format: date-time }
+ *                         costosDirectos:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               idCostoDirecto: { type: string, format: uuid }
+ *                               concepto: { type: string }
+ *                               monto: { type: number }
+ *                               observaciones: { type: string }
+ *                               fechaCreacion: { type: string, format: date-time }
+ *                         produccionesIndividuales:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               idProduccionAnimal: { type: string, format: uuid }
+ *                               idAnimal: { type: string, format: uuid }
+ *                               litros: { type: number }
+ *                               estado: { type: string }
+ *                     alertas:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
- *                           idProduccionAnimal: { type: string, format: uuid }
- *                           idAnimal: { type: string, format: uuid }
- *                           litros: { type: number, example: 40 }
- *                           estado: { type: string, example: "PREPARTO" }
+ *                           id: { type: string, format: uuid }
+ *                           idEstablecimiento: { type: string, format: uuid }
+ *                           idLote: { type: string, format: uuid }
+ *                           producto: { type: string }
+ *                           categoria: { type: string }
+ *                           nivel: { type: string }
+ *                           descripcion: { type: string }
+ *                           creadoEn: { type: string, format: date-time }
+ *                           visto: { type: boolean }
+ *                     alertasError: { type: string, nullable: true }
  *       400:
  *         description: ID inválido
  *       401:

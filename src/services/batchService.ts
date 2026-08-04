@@ -4,6 +4,7 @@ import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO,
 import EstablishmentService from "./establishmentsService";
 import { Prisma, TipoSeguimiento } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
+import { obtenerTurno } from "../utils";
 
 
 export class LoteService {
@@ -305,7 +306,8 @@ export class LoteService {
                         litros: true,
                         estado: true
                     }
-                }
+                },
+                rodeo: true
             },
         });
 
@@ -313,6 +315,7 @@ export class LoteService {
         if (!lote) {
             throw new AppError("El lote no existe", 404);
         }
+
 
 
         let alertas = null;
@@ -330,7 +333,10 @@ export class LoteService {
 
 
         return {
-            ...lote,
+            lote: {
+                ...lote,
+                turno: lote.fechaProduccion ? obtenerTurno(lote.fechaProduccion) : null
+            },
             alertas,
             alertasError
         };
@@ -375,7 +381,7 @@ export class LoteService {
                     animales
                 };
         }
-        
+
     }
 
     // ====================================================================================
@@ -515,6 +521,7 @@ export class LoteService {
 
                 // Necesario para calcular merma_porcentaje
                 mermas: true,
+                rodeo: true,
 
                 costosDirectos: true,
 
@@ -548,8 +555,7 @@ export class LoteService {
         // (total_mermas / cantidad_produccion) * 100
         // =========================================================
         const lotesTransformados = lotes.map((lote) => {
-            const cantidadProduccion =
-                Number(lote.cantidad);
+            const cantidadProduccion = Number(lote.cantidad);
 
             const totalMermas = lote.mermas.reduce(
                 (acc: number, merma) =>
@@ -570,7 +576,10 @@ export class LoteService {
                     : 0;
 
             return {
-                ...lote,
+                lote: {
+                    ...lote,
+                    turno: lote.fechaProduccion ? obtenerTurno(lote.fechaProduccion) : null
+                },
                 merma_porcentaje,
             };
         });

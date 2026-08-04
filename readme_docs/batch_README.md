@@ -202,7 +202,8 @@ Este endpoint devuelve los recursos disponibles para crear un lote según la con
 
 | Parámetro | Tipo | Obligatorio | Descripción |
 |-----------|------|-------------|-------------|
-| `pagina` | number | No | Página de resultados |
+| `page` | number | No | Página de resultados |
+| `limit` | number | No | Cantidad de resultados por página (máx 100) |
 | `orden` | string | No | Orden de los resultados (`asc`, `desc`) |
 | `estado` | boolean | No | Filtrar por estado del lote (`true` o `false`) |
 | `nombre` | string | No | Buscar por texto en el nombre o producto |
@@ -214,7 +215,7 @@ Este endpoint devuelve los recursos disponibles para crear un lote según la con
 #### Ejemplo de Request
 
 ```bash
-GET /lote/listar?pagina=1&orden=asc&estado=false&fecha_desde=01/05/2026&fecha_hasta=15/05/2026
+GET /lote/listar?page=1&limit=10&orden=asc&estado=false&fecha_desde=01/05/2026&fecha_hasta=15/05/2026
 Authorization: Bearer jwt_token_here
 x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
 x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
@@ -233,34 +234,43 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
     "totalPaginas": 1,
     "lotes": [
       {
-        "idLote": "550e8400-e29b-41d4-a716-446655440000",
-        "numeroLote": 123,
-        "fechaProduccion": "2026-05-15T12:00:00.000Z",
-        "cantidad": 100,
-        "unidad": "kg",
-        "estado": true,
-        "cantRazas": 50,
-        "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-        "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-        "idEstablecimiento": "uuid-establecimiento",
-        "producto": {
+        "lote": {
+          "idLote": "550e8400-e29b-41d4-a716-446655440000",
+          "numeroLote": 123,
+          "fechaProduccion": "2026-05-15T12:00:00.000Z",
+          "cantidad": 100,
+          "unidad": "kg",
+          "estado": true,
           "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-          "nombre": "Leche Fresca",
-          "categoria": "leches"
+          "idEstablecimiento": "uuid-establecimiento",
+          "producto": {
+            "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+            "nombre": "Leche Fresca",
+            "categoria": "leches"
+          },
+          "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+          "cantAnimales": 15,
+          "destino": "VENTA",
+          "tempTanque": 4.5,
+          "rodeo": {
+            "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+            "tipoRodeo": "PASTO",
+            "costoRacion": 120,
+            "cantVacas": 15
+          },
+          "mermas": [],
+          "costosDirectos": [],
+          "produccionesIndividuales": [
+            {
+              "idProduccionAnimal": "uuid-produccion-animal",
+              "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+              "litros": 40,
+              "estado": "PREPARTO"
+            }
+          ],
+          "turno": "Mañana"
         },
-        "raza": {
-          "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-          "nombre": "Holando"
-        },
-        "mermas": [],
-        "produccionesIndividuales": [
-          {
-            "idProduccionAnimal": "uuid-produccion-animal",
-            "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
-            "litros": 40,
-            "estado": "PREPARTO"
-          }
-        ]
+        "merma_porcentaje": 0
       }
     ]
   }
@@ -461,56 +471,67 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
   "success": true,
   "message": "Lote obtenido correctamente",
   "data": {
-    "idLote": "550e8400-e29b-41d4-a716-446655440000",
-    "numeroLote": 123,
-    "fechaProduccion": "2026-05-15T12:00:00.000Z",
-    "cantidad": 100,
-    "unidad": "kg",
-    "estado": true,
-    "cantRazas": 50,
-    "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-    "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-    "idEstablecimiento": "uuid-establecimiento",
-    "producto": {
+    "lote": {
+      "idLote": "550e8400-e29b-41d4-a716-446655440000",
+      "numeroLote": 123,
+      "fechaProduccion": "2026-05-15T12:00:00.000Z",
+      "cantidad": 100,
+      "unidad": "kg",
+      "estado": true,
+      "tempTanque": 4.5,
+      "destino": "VENTA",
+      "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+      "cantAnimales": 15,
       "idProducto": "550e8400-e29b-41d4-a716-446655440001",
-      "nombre": "Leche Fresca",
-      "categoria": "leches"
-    },
-    "raza": {
-      "idRaza": "550e8400-e29b-41d4-a716-446655440002",
-      "nombre": "Holando"
-    },
-    "establecimiento": {
       "idEstablecimiento": "uuid-establecimiento",
-      "nombre": "Establecimiento La Esperanza",
-      "provincia": "Córdoba",
-      "localidad": "Villa María"
+      "turno": "Mañana",
+      "rodeo": {
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "tipoRodeo": "PASTO",
+        "costoRacion": 120,
+        "cantVacas": 15
+      },
+      "producto": {
+        "idProducto": "550e8400-e29b-41d4-a716-446655440001",
+        "nombre": "Leche Fresca",
+        "categoria": "leches"
+      },
+      "raza": {
+        "idRaza": "550e8400-e29b-41d4-a716-446655440002",
+        "nombre": "Holando"
+      },
+      "establecimiento": {
+        "idEstablecimiento": "uuid-establecimiento",
+        "nombre": "Establecimiento La Esperanza",
+        "provincia": "Córdoba",
+        "localidad": "Villa María"
+      },
+      "mermas": [
+        {
+          "idMerma": "uuid-merma",
+          "tipo": "Natural",
+          "cantidad": 5.5,
+          "fechaCreacion": "2026-05-15T13:00:00.000Z"
+        }
+      ],
+      "costosDirectos": [
+        {
+          "idCostoDirecto": "uuid-costo",
+          "concepto": "insumos_basicos",
+          "monto": 150.5,
+          "observaciones": "Costo de insumos",
+          "fechaCreacion": "2026-05-15T13:00:00.000Z"
+        }
+      ],
+      "produccionesIndividuales": [
+        {
+          "idProduccionAnimal": "uuid-produccion-animal",
+          "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+          "litros": 40,
+          "estado": "PREPARTO"
+        }
+      ]
     },
-    "mermas": [
-      {
-        "idMerma": "uuid-merma",
-        "tipo": "Natural",
-        "cantidad": 5.5,
-        "fechaCreacion": "2026-05-15T13:00:00.000Z"
-      }
-    ],
-    "costosDirectos": [
-      {
-        "idCostoDirecto": "uuid-costo",
-        "concepto": "insumos_basicos",
-        "monto": 150.50,
-        "observaciones": "Costo de insumos",
-        "fechaCreacion": "2026-05-15T13:00:00.000Z"
-      }
-    ],
-    "produccionesIndividuales": [
-      {
-        "idProduccionAnimal": "uuid-produccion-animal",
-        "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
-        "litros": 40,
-        "estado": "PREPARTO"
-      }
-    ],
     "alertas": [
       {
         "id": "uuid-alerta",
