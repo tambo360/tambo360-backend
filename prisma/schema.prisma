@@ -131,6 +131,25 @@ enum EstadoAnimal {
   DESCARTE
 }
 
+enum TipoMovimientoRodeo {
+  INGRESO
+  EGRESO
+  TRANSFERENCIA
+}
+
+enum MotivoMovimientoRodeo {
+  INGRESO_COMPRA
+  INGRESO_NACIMIENTO
+  EGRESO_VENTA
+  EGRESO_DESCARTE
+  EGRESO_MUERTE
+  TRANSFERENCIA_BAJA_PRODUCCION
+  TRANSFERENCIA_ALTA_PRODUCCION
+  TRANSFERENCIA_SECADO
+  TRANSFERENCIA_CAMBIO_ESTADO
+  TRANSFERENCIA_OTRO
+}
+
 // Definición de modelos -------------------------------------------------------------------------------------------------------------
 
 model Usuario {
@@ -203,20 +222,21 @@ model Establecimiento_OrganizacionUsuario {
 }
 
 model configuracion {
-  idConfiguracion   String          @id @default(uuid())
-  idEstablecimiento String          @unique
-  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  ultimoNumeroLote  Int             @default(0)
+  idConfiguracion   String            @id @default(uuid())
+  idEstablecimiento String            @unique
+  establecimiento   Establecimiento   @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  ultimoNumeroLote  Int               @default(0)
   cantVacas         Int?
   cantOrdenies      Int?
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
-  tipoSeguimiento   TipoSeguimiento @default(RODEO)
+  tipoSeguimiento   TipoSeguimiento   @default(RODEO)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
   rodeos            Rodeo[]
+  movimientoRodeos  MovimientoRodeo[]
 }
 
 model InvitacionOrganizacion {
@@ -290,6 +310,20 @@ model Rodeo {
   animals         Animal[]
 
   @@unique([idConfiguracion, tipoRodeo])
+}
+
+model MovimientoRodeo {
+  idMovRodeo      String                @id @default(uuid())
+  idConfiguracion String
+  configuracion   configuracion         @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  tipo            TipoMovimientoRodeo
+  motivo          MotivoMovimientoRodeo
+  rodeoOrigen     String?
+  rodeoDestino    String?
+  cantidad        Int
+  usuarioId       String?
+  observacion     String?
+  fechaCreacion   DateTime              @default(now())
 }
 
 model Animal {
