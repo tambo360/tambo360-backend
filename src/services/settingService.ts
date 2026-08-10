@@ -16,24 +16,29 @@ class SettingService {
 
         const transferencia = await prisma.$transaction(async (tx) => {
 
-            const [rodeoOrigen, rodeoDestino, configuracion] = await Promise.all([
+            const configuracion = await tx.configuracion.findFirst({
+                where: {
+                    idEstablecimiento: idEstablecimiento,
+                },
+            })
+
+            if (!configuracion) {
+                throw new AppError("Configuración no encontrada", 404);
+            }
+
+            const [rodeoOrigen, rodeoDestino] = await Promise.all([
                 tx.rodeo.findFirst({
                     where: {
                         idRodeo: body.rodeoOrigen,
-                        idEstablecimiento: idEstablecimiento,
+                        idConfiguracion: configuracion.idConfiguracion,
                     },
                 }),
                 tx.rodeo.findFirst({
                     where: {
                         idRodeo: body.rodeoDestino,
-                        idEstablecimiento: idEstablecimiento,
+                        idConfiguracion: configuracion.idConfiguracion,
                     },
-                }),
-                tx.configuracion.findFirst({
-                    where: {
-                        idEstablecimiento: idEstablecimiento,
-                    },
-                }),
+                })
             ])
 
             if (!rodeoOrigen) {
@@ -41,10 +46,6 @@ class SettingService {
             }
             if (!rodeoDestino) {
                 throw new AppError("Rodeo de destino no encontrado", 404);
-            }
-
-            if(!configuracion) {
-                throw new AppError("Configuración no encontrada", 404);
             }
 
             if (rodeoOrigen.cantVacas < body.cantidad) {
