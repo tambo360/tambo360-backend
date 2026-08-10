@@ -13,6 +13,7 @@ import RutasLanding from "./landing";
 import RutasPerfil from "./profile";
 import RutasAlertas from "./alertRoutes";
 import RutasCostoGeneral from "./costoGeneral";
+import RutasConf from "./settings";
 
 const router = express.Router();
 
@@ -30,5 +31,5 @@ router.use('/alertas', RutasAlertas);
 router.use('/dashboard', RutasDashboard)
 router.use('/landing', RutasLanding)
 router.use('/costos-generales', RutasCostoGeneral)
-
+router.use('/conf', RutasConf)
 export default router;
