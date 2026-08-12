@@ -344,13 +344,14 @@ class EstablishmentsService {
                 throw new AppError("La cantidad de vacas excede el límite para el seguimiento individual", 400);
             }
 
+            /*
             if (data.promLitros < this.LIMITE_PROM_LITROS && data.TipoSeguimiento === TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser mayor a ${this.LIMITE_PROM_LITROS} para el seguimiento por rodeo`, 400);
             }
 
             if (data.promLitros > this.LIMITE_PROM_LITROS && data.TipoSeguimiento !== TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser menor a ${this.LIMITE_PROM_LITROS} para el seguimiento individual o unico`, 400);
-            }
+            }*/
 
             const cant =
                 data.TipoSeguimiento === TipoSeguimiento.RODEO || data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO
