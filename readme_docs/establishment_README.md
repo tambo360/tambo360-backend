@@ -146,7 +146,48 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 ---
 
-### 4. Registrar Cuestionario
+### 4. Obtener opciones de seguimiento
+
+**Método:** `GET`  
+**Ruta:** `/establecimiento/opciones-seguimiento`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+Devuelve los recursos disponibles para crear lotes según la configuración del establecimiento.
+
+- `RODEO` o `RODEO_UNICO` → responde con `rodeos`
+- `INDIVIDUAL` → responde con `animales`
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Opciones de creación obtenidas correctamente",
+  "data": {
+    "tipoSeguimiento": "RODEO",
+    "rodeos": [
+      {
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "label": "Rodeo 1",
+        "value": "rodeo-1",
+        "costoRacion": 120,
+        "cantVacas": 15
+      }
+    ]
+  }
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 401 | Usuario no autenticado |
+
+---
+
+### 5. Registrar Cuestionario
 
 **Método:** `POST`  
 **Ruta:** `/establecimiento/cuestionario`  

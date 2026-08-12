@@ -18,6 +18,21 @@ class EstablishmentsService {
     private LIMITE_ANIMAL = 70
     private LIMITE_PROM_LITROS = 2000
 
+    async obtenerEstablecimiento(idEstablecimiento: string) {
+        const establecimiento = await prisma.establecimiento.findUnique({
+            where: { idEstablecimiento },
+            include: {
+                configuracions: true
+            }
+        })
+
+        if (!establecimiento) {
+            throw new AppError("El establecimiento no existe", 400);
+        }
+
+        return establecimiento;
+    }
+
     private async actualizarEstablecimiento(tx: Prisma.TransactionClient, data: QuestionnaireData) {
         await tx.establecimiento.update({
             where: { idEstablecimiento: data.idEstablecimiento },
@@ -304,7 +319,6 @@ class EstablishmentsService {
 
         return establishment;
     }
-
 
     async guardarCuestionario(data: QuestionnaireData) {
         return await prisma.$transaction(async (tx) => {
@@ -617,6 +631,35 @@ class EstablishmentsService {
             costoRacion: r.costoRacion,
             cantVacas: r.cantVacas,
         }));
+    }
+
+    async obtenerOpcionesSeguimiento(idEstablecimiento: string) {
+        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        switch (tipoSeguimiento) {
+            case TipoSeguimiento.RODEO:
+            case TipoSeguimiento.RODEO_UNICO: {
+                const rodeos = await this.listarRodeos(idEstablecimiento);
+                return {
+                    tipoSeguimiento,
+                    rodeos,
+                };
+            }
+
+            case TipoSeguimiento.INDIVIDUAL: {
+                const animales = await this.listarAnimales(idEstablecimiento);
+                return {
+                    tipoSeguimiento,
+                    animales,
+                };
+            }
+
+            default:
+                throw new AppError("Tipo de seguimiento no válido", 400);
+        }
+
+
     }
 }
 

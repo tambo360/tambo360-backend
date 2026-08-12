@@ -24,7 +24,7 @@
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
- *                     enum: [RODEO]
+ *                     enum: [RODEO, RODEO_UNICO]
  *                     example: RODEO
  *                   idLote:
  *                     type: string
@@ -171,15 +171,16 @@
 
 /**
  * @swagger
- * /lote/opciones-creacion:
+ * /establecimiento/opciones-seguimiento:
  *   get:
- *     summary: Obtener opciones de creación para un lote según la configuración del establecimiento
- *     tags: [Lotes]
+ *     summary: Obtener opciones de seguimiento para crear lotes según la configuración del establecimiento
+ *     description: La ruta quedó movida desde /lote a /establecimiento. Devuelve rodeos cuando el seguimiento es RODEO o RODEO_UNICO, y animales cuando es INDIVIDUAL.
+ *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Opciones de creación obtenidas correctamente
+ *         description: Opciones de seguimiento obtenidas correctamente
  *         content:
  *           application/json:
  *             schema:
@@ -194,7 +195,7 @@
  *                       properties:
  *                         tipoSeguimiento:
  *                           type: string
- *                           enum: [RODEO]
+ *                           enum: [RODEO, RODEO_UNICO]
  *                           example: RODEO
  *                         rodeos:
  *                           type: array
@@ -546,7 +547,7 @@
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
- *                     enum: [RODEO]
+ *                     enum: [RODEO, RODEO_UNICO]
  *                     example: RODEO
  *                   idProducto:
  *                     type: string

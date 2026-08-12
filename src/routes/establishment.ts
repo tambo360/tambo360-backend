@@ -1,5 +1,5 @@
 import express from "express";
-import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation, deleteInvitation, listarRodeos, getInvitation } from "../controllers/establishmentController";
+import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation, deleteInvitation, listarRodeos, getInvitation, obtenerOpcionesSeguimiento } from "../controllers/establishmentController";
 import { authenticate } from "../middleware/authMiddleware";
 import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
@@ -21,6 +21,7 @@ router.get('/invitacion', estContext, establecimientoRequireOrgAccess, getInvita
 router.delete('/invitacion/:idInvitacion', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN]}), deleteInvitation);
 router.get('/rodeos/get', estContext, establecimientoRequireOrgAccess, listarRodeos);
 
-router.get('/test/rolMiddle', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER], org: [RolOrganizacion.ORG_OWNER]}));
+router.get("/opciones-seguimiento", obtenerOpcionesSeguimiento);
+
 
 export default router;

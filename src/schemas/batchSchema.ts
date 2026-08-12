@@ -52,13 +52,12 @@ const baseLoteSchema = z.object({
         }),
 
     estado: z.boolean().optional(),
-
     unidad: z.enum(Unidad, "Unidad de medida inválida"),
 });
 
 // Estructura de un lote con seguimiento por rodeo + Estructura base
 const loteRodeoSchema = baseLoteSchema.extend({
-    tipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
+    tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO]),
     idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
     cantidad: z.coerce
         .number()
@@ -71,7 +70,6 @@ const loteRodeoSchema = baseLoteSchema.extend({
 //Estructura de objeto de un animal para seguimiento individual
 const produccionAnimalSchema = z.object({
     idAnimal: z.string().uuid("Animal inválido"),
-
     litros: z.coerce
         .number()
         .positive("Los litros deben ser mayores a 0"),
@@ -82,14 +80,12 @@ const produccionAnimalSchema = z.object({
 // Estructura de un lote con seguimiento individual + Estructura base
 const loteIndividualSchema = baseLoteSchema.extend({
     tipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
-
     cantidad: z.coerce
         .number()
         .refine((v) => v !== undefined && v !== null, {
             message: "La cantidad es obligatoria",
         })
         .positive("La cantidad debe ser mayor a 0"),
-
     animales: z
         .array(produccionAnimalSchema)
         .min(1, "Debe seleccionar al menos un animal")
@@ -132,7 +128,7 @@ const baseEditarLoteSchema = z.object({
 });
 
 const editarLoteRodeoSchema = baseEditarLoteSchema.extend({
-    tipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
+    tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
     idRodeo: z.string().uuid("Debe seleccionar un rodeo válido"),
 });
 

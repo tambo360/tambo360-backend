@@ -28,9 +28,10 @@ Esta API permite gestionar lotes de producción dentro de un establecimiento. Re
 **Ruta:** `/lote`  
 **Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
 
-El body del request acepta dos variantes según el tipo de seguimiento configurado en el establecimiento:
+El body del request acepta tres variantes según el tipo de seguimiento configurado en el establecimiento:
 
 - `tipoSeguimiento: "RODEO"` para lotes asociados a un rodeo existente.
+- `tipoSeguimiento: "RODEO_UNICO"` para lotes asociados a un rodeo único del establecimiento.
 - `tipoSeguimiento: "INDIVIDUAL"` para lotes creados a partir de animales individuales.
 
 #### Request Body
@@ -39,7 +40,7 @@ Campos comunes a ambas variantes:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `tipoSeguimiento` | enum | Sí | `RODEO` o `INDIVIDUAL` |
+| `tipoSeguimiento` | enum | Sí | `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
 | `idLote` | string (UUID) | Sí | ID único del lote |
 | `tempTanque` | number | Sí | Temperatura del tanque, debe ser mayor a 0 |
 | `destino` | enum | Sí | `TANQUE_FRIO`, `VENTA` o `FABRICA_QUESOS` |
@@ -49,7 +50,7 @@ Campos comunes a ambas variantes:
 | `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` entre hoy y 7 días anteriores |
 | `estado` | boolean | No | Estado del lote, si se omite queda en `false` |
 
-Campos adicionales si `tipoSeguimiento = RODEO`:
+Campos adicionales si `tipoSeguimiento = RODEO` o `RODEO_UNICO`:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
@@ -151,48 +152,7 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
 
 ---
 
-### 2. Obtener opciones de creación
-
-**Método:** `GET`  
-**Ruta:** `/lote/opciones-creacion`  
-**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
-
-Este endpoint devuelve los recursos disponibles para crear un lote según la configuración de seguimiento del establecimiento.
-
-- Si el establecimiento está configurado con `tipoSeguimiento: "RODEO"`, la respuesta incluye `rodeos`.
-- Si está configurado con `tipoSeguimiento: "INDIVIDUAL"`, la respuesta incluye `animales`.
-
-#### Response (200 - OK)
-
-```json
-{
-  "success": true,
-  "message": "Opciones de creación obtenidas correctamente",
-  "data": {
-    "tipoSeguimiento": "RODEO",
-    "rodeos": [
-      {
-        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
-        "label": "Rodeo 1",
-        "value": "rodeo-1",
-        "costoRacion": 120,
-        "cantVacas": 15
-      }
-    ]
-  }
-}
-```
-
-#### Posibles Errores
-
-| Código | Mensaje |
-|--------|---------|
-| 400 | No se pudo determinar el establecimiento |
-| 401 | Usuario no autenticado |
-
----
-
-### 3. Listar Lotes
+### 2. Listar Lotes
 
 **Método:** `GET`  
 **Ruta:** `/lote/listar`  
@@ -339,7 +299,7 @@ El body del request debe incluir el `tipoSeguimiento` configurado en el establec
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `tipoSeguimiento` | enum | Sí | `RODEO` o `INDIVIDUAL` |
+| `tipoSeguimiento` | enum | Sí | `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
 | `idProducto` | string (UUID) | No | ID del producto del lote (opcional) |
 | `cantidad` | number | Sí | Cantidad de producción, mayor a 0 |
 | `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
@@ -351,7 +311,7 @@ Campos adicionales según el `tipoSeguimiento`:
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `idRodeo` | string (UUID) | Sí si `tipoSeguimiento = RODEO` | ID del rodeo del establecimiento |
+| `idRodeo` | string (UUID) | Sí si `tipoSeguimiento = RODEO` o `RODEO_UNICO` | ID del rodeo del establecimiento |
 | `animales` | array | Sí si `tipoSeguimiento = INDIVIDUAL` | Lista de animales usados en el lote |
 | `animales[].idAnimal` | string (UUID) | Sí | ID del animal |
 | `animales[].litros` | number | Sí | Litros producidos por el animal |

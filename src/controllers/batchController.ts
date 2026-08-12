@@ -164,25 +164,7 @@ export const editarLote = async (req: Request, res: Response, next: NextFunction
     }
 };
 
-export const obtenerOpcionesCreacion = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const idEstablecimiento = req.estAccess?.idEstablecimiento;
 
-        if (!idEstablecimiento) {
-            throw new AppError("No se pudo determinar el establecimiento", 400);
-        }
-
-
-        const opcionesCreacion = await LoteService.obtenerOpcionesCreacion(idEstablecimiento);
-
-        return res.status(200).json(
-            ApiResponse.success(opcionesCreacion, "Opciones de creación obtenidas correctamente")
-        );
-
-    } catch (error) {
-        next(error);
-    }
-};
 
 //antes de aplicar la issue #29 estaba este listarLotes
 // export const listarLotes = async (req: Request, res: Response, next: NextFunction) => {

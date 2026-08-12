@@ -10,20 +10,7 @@ import { obtenerTurno } from "../utils";
 export class LoteService {
 
     // HELPER METHODS ------------------------------------------------------------------------------------
-    private async obtenerEstablecimiento(idEstablecimiento: string) {
-        const establecimiento = await prisma.establecimiento.findUnique({
-            where: { idEstablecimiento },
-            include: {
-                configuracions: true
-            }
-        })
 
-        if (!establecimiento) {
-            throw new AppError("El establecimiento no existe", 400);
-        }
-
-        return establecimiento;
-    }
 
     private async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
         const config = await tx.configuracion.update({
@@ -231,7 +218,7 @@ export class LoteService {
     // SERVICE METHODS ------------------------------------------------------------------------------------
 
     async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
-        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const establecimiento = await EstablishmentService.obtenerEstablecimiento(idEstablecimiento);
         const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
 
         if (tipoSeguimiento !== data.tipoSeguimiento) {
@@ -243,6 +230,7 @@ export class LoteService {
         const lote = await prisma.$transaction(async (tx) => {
             const numeroLote = await this.generateBatchNumber(tx, idEstablecimiento);
             switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
                 case TipoSeguimiento.RODEO:
                     return this.crearLoteRodeo(tx, data, establecimiento.idEstablecimiento, numeroLote, producto.idProducto);
 
@@ -343,7 +331,7 @@ export class LoteService {
     }
 
     async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
-        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
+        const establecimiento = await EstablishmentService.obtenerEstablecimiento(idEstablecimiento);
         const lote = await this.obtenerLoteEditable(idLote);
 
         if (establecimiento.configuracions[0].tipoSeguimiento !== data.tipoSeguimiento) {
@@ -352,6 +340,7 @@ export class LoteService {
 
         const result = await prisma.$transaction(async (tx) => {
             switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
                 case TipoSeguimiento.RODEO:
                     return this.editarLoteRodeo(tx, idLote, data, establecimiento.configuracions[0].idConfiguracion, idEstablecimiento);
 
@@ -363,26 +352,6 @@ export class LoteService {
         return result;
     }
 
-    async obtenerOpcionesCreacion(idEstablecimiento: string) {
-        const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
-        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
-
-        switch (tipoSeguimiento) {
-            case TipoSeguimiento.RODEO:
-                const rodeos = await EstablishmentService.listarRodeos(idEstablecimiento);
-                return {
-                    tipoSeguimiento,
-                    rodeos
-                };
-            case TipoSeguimiento.INDIVIDUAL:
-                const animales = await EstablishmentService.listarAnimales(idEstablecimiento);
-                return {
-                    tipoSeguimiento,
-                    animales
-                };
-        }
-
-    }
 
     // ====================================================================================
     // LISTAR LOTES
