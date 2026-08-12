@@ -156,21 +156,21 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
-| `TipoSeguimiento` | enum | Sí | Modo de seguimiento: `RODEO` o `INDIVIDUAL` |
+| `TipoSeguimiento` | enum | Sí | Modo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
 | `cantVacas` | number (int) | Sí | Cantidad total de vacas (entero positivo) |
 | `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (entero positivo) |
 | `tipoOrdenie` | enum | Sí | Tipo de ordeñe (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`) |
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
 | `ventaLeche` | enum | Sí | Tipo de venta de leche (`usina`, `fabrica_propia`, `cooperativa`, `varios`) |
 | `empleados` | boolean | Sí | Indica si tiene empleados |
-| `cantEmpleados` | number (int) | No | Cantidad de empleados |
+| `cantEmpleados` | number (int) | No | Cantidad de empleados cuando `empleados` es `true` |
 | `productos` | array | No | Productos asociados al establecimiento |
 | `productos[].tipo` | string | Sí | `existente` o `nuevo` |
 | `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
 | `productos[].nombre` | string | Sí | Nombre del producto |
 | `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
-| `rodeos` | array | Sí si `TipoSeguimiento = RODEO` | Rodeos por tipo de producción |
-| `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS` |
+| `rodeos` | array | Sí si `TipoSeguimiento = RODEO` o `RODEO_UNICO` | Rodeos por tipo de producción |
+| `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS` o `UNICO` |
 | `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en ese rodeo |
 | `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
 | `animales` | array | Sí si `TipoSeguimiento = INDIVIDUAL` | Lista de animales a registrar |
@@ -185,6 +185,7 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 > Nota: el field `idEstablecimiento` se inyecta automáticamente desde el contexto del establecimiento, no debe enviarse en el body.
 > **Reglas de negocio importantes:**
 > - Si `TipoSeguimiento = RODEO`, debe enviarse `rodeos` y el backend valida que exista al menos un rodeo de cada tipo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`).
+> - Si `TipoSeguimiento = RODEO_UNICO`, debe enviarse un único rodeo con `tipoRodeo: UNICO`.
 > - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
 > - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
 > - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.

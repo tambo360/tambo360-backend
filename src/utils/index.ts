@@ -62,6 +62,10 @@ export const TipoRodeoMetaData: Record<TipoRodeo, {label: string, value: string}
     [TipoRodeo.VACAS_SECAS]: {
         label: "Vacas Secas (Preparto)",
         value: TipoRodeo.VACAS_SECAS
+    },
+    [TipoRodeo.UNICO]: {
+        label: "Rodeo Único",
+        value: TipoRodeo.UNICO
     }
 };
 

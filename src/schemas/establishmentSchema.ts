@@ -53,33 +53,65 @@ const AnimalSchema = z.object({
     message: "Debe proporcionar al menos un código o un nombre para el animal",
 })
 
-
-
-
-export const questionnaireSchema = z.object({
+const questionnaireBaseSchema = z.object({
     idEstablecimiento: z.string().uuid("ID de establecimiento no válido"),
     productos: z.array(productSchema).optional(),
-    TipoSeguimiento: z.enum(TipoSeguimiento, "El tipo de seguimiento debe ser un valor válido"),
-    rodeos: z.array(RodeoSchema).refine((rodeos) => {
-        const tiposPresentes = new Set(rodeos.map(r => r.tipoRodeo));
-        const todosLosTipos = Object.values(TipoRodeo); 
-        return todosLosTipos.every(tipo => tiposPresentes.has(tipo));
-    }, {
-        message: "Debe existir al menos un rodeo de cada tipo",
-    }).optional(),
-    animales: z.array(AnimalSchema).optional(),
     cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
     cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),
-    tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
+    tipoOrdenie: z.enum(TipoOrdenie,"El tipo de ordeñe debe ser un valor válido"),
     promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),
-    ventaLeche: z.enum(VentaLeche, "El tipo de venta de leche debe ser un valor válido"),
+    ventaLeche: z.enum(VentaLeche,"El tipo de venta de leche debe ser un valor válido"),
     empleados: z.boolean("Debe indicar si tiene empleados o no"),
     cantEmpleados: z.number().int().positive("La cantidad de empleados debe ser un número entero positivo").optional(),
     ubicacion: z.object({
         provincia: requiredString("La provincia es obligatoria"),
         localidad: requiredString("La localidad es obligatoria"),
     }),
-})
+});
+
+const questionnaireRodeoSchema = questionnaireBaseSchema.extend({
+    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
+    rodeos: z.array(RodeoSchema)
+        .refine((rodeos) => {
+            const tiposPresentes = new Set(
+                rodeos.map(r => r.tipoRodeo)
+            );
+            const tiposRequeridos = [
+                TipoRodeo.ALTA_PRODUCCION,
+                TipoRodeo.BAJA_PRODUCCION,
+                TipoRodeo.VACAS_SECAS,
+            ];
+            return tiposRequeridos.every(tipo => tiposPresentes.has(tipo));
+        }, {
+            message: "Debe existir al menos un rodeo de cada tipo",
+        }),
+    animales: z.undefined(),
+});
+
+const questionnaireRodeoUnicoSchema = questionnaireBaseSchema.extend({
+    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO_UNICO),
+    rodeos: z.array(RodeoSchema).length(1, {message: "Debe existir un único rodeo",})
+        .refine((rodeos) => {
+            return rodeos[0]?.tipoRodeo === TipoRodeo.UNICO;
+        }, { message: "El rodeo debe ser de tipo único"}),
+    animales: z.undefined(),
+});
+
+const questionnaireIndividualSchema = questionnaireBaseSchema.extend({
+    TipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
+    animales: z.array(AnimalSchema).min(1, {message: "Debe existir al menos un animal",}),
+    rodeos: z.undefined(),
+});
+
+export const questionnaireSchema = z.discriminatedUnion(
+    "TipoSeguimiento",
+    [
+        questionnaireRodeoSchema,
+        questionnaireRodeoUnicoSchema,
+        questionnaireIndividualSchema,
+    ]
+);
+
 
 export const sendInvitationSchema = z.object({
     correo: z.string().email("Correo electrónico no válido"),

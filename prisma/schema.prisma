@@ -95,6 +95,7 @@ enum TipoRodeo {
   ALTA_PRODUCCION
   BAJA_PRODUCCION
   VACAS_SECAS
+  UNICO
 }
 
 enum TipoDestino {
@@ -116,6 +117,7 @@ enum TipoCostoGeneral {
 enum TipoSeguimiento {
   RODEO
   INDIVIDUAL
+  RODEO_UNICO
 }
 
 enum CategoriaAnimal {

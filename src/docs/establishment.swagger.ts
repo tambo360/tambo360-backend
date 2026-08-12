@@ -133,7 +133,7 @@
  *             properties:
  *               TipoSeguimiento:
  *                 type: string
- *                 enum: [RODEO, INDIVIDUAL]
+ *                 enum: [RODEO, RODEO_UNICO, INDIVIDUAL]
  *                 example: RODEO
  *               cantVacas:
  *                 type: integer
@@ -160,16 +160,79 @@
  *                 example: 3
  *               productos:
  *                 type: array
+ *                 description: Productos asociados al establecimiento. Puede incluir productos existentes o nuevos.
  *                 items:
- *                   type: object
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [tipo, idProducto, nombre]
+ *                       properties:
+ *                         tipo:
+ *                           type: string
+ *                           enum: [existente]
+ *                           example: existente
+ *                         idProducto:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440300"
+ *                         nombre:
+ *                           type: string
+ *                           example: Leche Fresca
+ *                     - type: object
+ *                       required: [tipo, nombre, categoria]
+ *                       properties:
+ *                         tipo:
+ *                           type: string
+ *                           enum: [nuevo]
+ *                           example: nuevo
+ *                         nombre:
+ *                           type: string
+ *                           example: Yogur Natural
+ *                         categoria:
+ *                           type: string
+ *                           enum: [leches, yogures, quesos, carnes, otros]
+ *                           example: yogures
  *               rodeos:
  *                 type: array
+ *                 description: Requerido para RODEO y RODEO_UNICO.
  *                 items:
  *                   type: object
+ *                   required: [tipoRodeo, cantVacas, costoRacion]
+ *                   properties:
+ *                     tipoRodeo:
+ *                       type: string
+ *                       enum: [ALTA_PRODUCCION, BAJA_PRODUCCION, VACAS_SECAS, UNICO]
+ *                       example: ALTA_PRODUCCION
+ *                     cantVacas:
+ *                       type: integer
+ *                       example: 80
+ *                     costoRacion:
+ *                       type: number
+ *                       example: 150.5
  *               animales:
  *                 type: array
+ *                 description: Requerido para INDIVIDUAL.
  *                 items:
  *                   type: object
+ *                   required: [categoria, estado]
+ *                   properties:
+ *                     codigo:
+ *                       type: string
+ *                       example: A-001
+ *                     nombre:
+ *                       type: string
+ *                       example: Animal 1
+ *                     categoria:
+ *                       type: string
+ *                       enum: [ORDENE, SECAS, PREPARTO]
+ *                       example: ORDENE
+ *                     estado:
+ *                       type: string
+ *                       enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
+ *                       example: PREPARTO
+ *                     fechaNacimiento:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-01T00:00:00.000Z"
  *               ubicacion:
  *                 type: object
  *                 required:
