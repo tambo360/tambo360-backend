@@ -1,4 +1,4 @@
-
+import { ZodError } from "zod";
 /**
  * // Error 400 Bad Request
  * if (!email) throw new AppError("El email es requerido", 400);
@@ -20,4 +20,30 @@ export class AppError extends Error {
 
         (Error as any).captureStackTrace(this, this.constructor);
     }
+}
+
+export class ErrorResponse extends Error {
+  public statusCode: number;
+  public isOperational: boolean;
+  public errors: Record<string, string>;
+
+  constructor(errors: Record<string, string>, statusCode: number = 400) {
+    super("Validation error"); // mensaje genérico
+    this.statusCode = statusCode;
+    this.isOperational = true;
+    this.errors = errors;
+
+    (Error as any).captureStackTrace(this, this.constructor);
+  }
+}
+
+
+export function zodError(err: ZodError) {
+  const errores: Record<string, string> = {};
+  err.issues.forEach(issue => {
+    const campo = issue.path.join(".");
+    errores[campo] = issue.message;
+  });
+
+  return new ErrorResponse(errores, 400);
 }

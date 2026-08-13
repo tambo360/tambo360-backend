@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import establishmentsService from "../services/establishmentsService";
 import { createEstablishmentSchema, deleteInvitationSchema, questionnaireSchema, sendInvitationSchema } from "../schemas/establishmentSchema";
 import { ApiResponse } from "../utils/ApiResponse";
-import { AppError } from "../utils/AppError";
+import { AppError, zodError } from "../utils/AppError";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { formatDate } from "../utils";
@@ -22,7 +22,7 @@ export const registrarEstablecimiento = async (req: Request, res: Response, next
         const parsed = createEstablishmentSchema.safeParse(req.body);
 
         if (!parsed.success) {
-            throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
+            throw zodError(parsed.error);
         }
 
         const nuevoEstablecimiento = await establishmentsService.create({ ...parsed.data, userId: orgAccess.idUsuario, idOrg: orgAccess.idOrganizacion, idOrganizacionUsuario: orgAccess.idOrganizacionUsuario });
@@ -105,9 +105,9 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
 
         const parsed = questionnaireSchema.safeParse({ ...req.body, idEstablecimiento: estAcess.idEstablecimiento });
 
+        
         if (!parsed.success) {
-            console.error("Error en registrarCuestionario - Validación fallida:", parsed.error);
-            throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
+            throw zodError(parsed.error);
         }
 
         const cuestionario = await establishmentsService.guardarCuestionario(parsed.data);
@@ -189,7 +189,7 @@ export const sendInvitation = async (req: Request, res: Response, next: NextFunc
         const result = sendInvitationSchema.safeParse({ correo, rol });
 
         if (!result.success) {
-            throw new AppError("Datos inválidos", 400);
+            throw zodError(result.error);
         }
 
         if (!orgAccess) {
@@ -271,7 +271,7 @@ export const deleteInvitation = async (req: Request, res: Response, next: NextFu
         const result = deleteInvitationSchema.safeParse({ idInvitacion });
 
         if (!result.success) {
-            throw new AppError("Datos inválidos", 400);
+            throw zodError(result.error);
         }
 
         if (!orgAccess) {
