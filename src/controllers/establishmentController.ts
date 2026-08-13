@@ -106,6 +106,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
         const parsed = questionnaireSchema.safeParse({ ...req.body, idEstablecimiento: estAcess.idEstablecimiento });
 
         if (!parsed.success) {
+            console.error("Error en registrarCuestionario - Validación fallida:", parsed.error);
             throw new AppError("Todos los campos son obligatorios y deben ser válidos", 400);
         }
 
@@ -120,7 +121,6 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
         res.status(response.statusCode).json(response);
 
     } catch (error) {
-        console.error("Error en registrarCuestionario:", error);
         next(error);
     }
 }

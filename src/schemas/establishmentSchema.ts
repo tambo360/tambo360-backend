@@ -70,7 +70,7 @@ const questionnaireBaseSchema = z.object({
 });
 
 const questionnaireRodeoSchema = questionnaireBaseSchema.extend({
-    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
+    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO, "El tipo de seguimiento debe ser un valor válido"),
     rodeos: z.array(RodeoSchema)
         .refine((rodeos) => {
             const tiposPresentes = new Set(
@@ -89,7 +89,7 @@ const questionnaireRodeoSchema = questionnaireBaseSchema.extend({
 });
 
 const questionnaireRodeoUnicoSchema = questionnaireBaseSchema.extend({
-    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO_UNICO),
+    TipoSeguimiento: z.literal(TipoSeguimiento.RODEO_UNICO, "El tipo de seguimiento debe ser un valor válido"),
     rodeos: z.array(RodeoSchema).length(1, {message: "Debe existir un único rodeo",})
         .refine((rodeos) => {
             return rodeos[0]?.tipoRodeo === TipoRodeo.UNICO;
@@ -98,7 +98,7 @@ const questionnaireRodeoUnicoSchema = questionnaireBaseSchema.extend({
 });
 
 const questionnaireIndividualSchema = questionnaireBaseSchema.extend({
-    TipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
+    TipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL, "El tipo de seguimiento debe ser un valor válido"),
     animales: z.array(AnimalSchema).min(1, {message: "Debe existir al menos un animal",}),
     rodeos: z.undefined(),
 });
