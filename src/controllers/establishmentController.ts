@@ -120,6 +120,7 @@ export const registrarCuestionario = async (req: Request, res: Response, next: N
         res.status(response.statusCode).json(response);
 
     } catch (error) {
+        console.error("Error en registrarCuestionario:", error);
         next(error);
     }
 }
