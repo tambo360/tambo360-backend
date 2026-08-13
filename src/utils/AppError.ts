@@ -10,16 +10,16 @@ import { ZodError } from "zod";
  * if (!isAdmin) throw new AppError("No tienes permisos", 403);
  */
 export class AppError extends Error {
-    public statusCode: number;
-    public isOperational: boolean;
+  public statusCode: number;
+  public isOperational: boolean;
 
-    constructor(message: string, statusCode: number) {
-        super(message);
-        this.statusCode = statusCode;
-        this.isOperational = true;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
 
-        (Error as any).captureStackTrace(this, this.constructor);
-    }
+    (Error as any).captureStackTrace(this, this.constructor);
+  }
 }
 
 export class ErrorResponse extends Error {
@@ -41,7 +41,8 @@ export class ErrorResponse extends Error {
 export function zodError(err: ZodError) {
   const errores: Record<string, string> = {};
   err.issues.forEach(issue => {
-    const campo = issue.path.join(".");
+    // Solo strings, ignoramos índices numéricos
+    const campo = issue.path.filter(p => typeof p === "string").join(".");
     errores[campo] = issue.message;
   });
 

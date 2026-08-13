@@ -18,13 +18,13 @@ export const updateEstablishmentNameSchema = z.object({
 
 
 const existingProductsSchema = z.object({
-    tipo: z.literal("existente"),
+    tipo: z.literal("existente", "El tipo de producto debe ser 'existente'"),
     idProducto: z.string().uuid("ID de producto no válido"),
     nombre: requiredString("El nombre del producto es obligatorio"),
 })
 
 const newProductsSchema = z.object({
-    tipo: z.literal("nuevo"),
+    tipo: z.literal("nuevo", "El tipo de producto debe ser 'nuevo'"),
     nombre: requiredString("El nombre del producto es obligatorio"),
     categoria: z.enum(Categoria, "La categoría del producto debe ser un valor válido"),
 })
