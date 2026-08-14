@@ -21,144 +21,214 @@ class CostoGeneralService {
         });
     }
 
-async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
+    async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
 
-    const establecimiento = await prisma.establecimiento.findUnique({
-        where: {
-            idEstablecimiento
-        },
-        include: {
-            configuracions: {
-                include: {
-                    rodeos: true
+        const establecimiento = await prisma.establecimiento.findUnique({
+            where: {
+                idEstablecimiento
+            },
+            include: {
+                configuracions: {
+                    include: {
+                        rodeos: true
+                    }
                 }
             }
+        });
+
+        if (!establecimiento) {
+            throw new AppError("Establecimiento no encontrado", 404);
         }
-    });
 
-    if (!establecimiento) {
-        throw new AppError("Establecimiento no encontrado", 404);
+        const configuracion = establecimiento.configuracions[0];
+
+        if (!configuracion) {
+            return 0;
+        }
+
+        const MS_POR_DIA = 1000 * 60 * 60 * 24;
+
+        const dias =
+            Math.floor(
+                (fechaHasta.getTime() - fechaDesde.getTime()) /
+                MS_POR_DIA
+            ) + 1;
+
+        let costoTotal = 0;
+
+        for (const rodeo of configuracion.rodeos) {
+            costoTotal +=
+                rodeo.cantVacas *
+                Number(rodeo.costoRacion) *
+                dias;
+        }
+
+        return costoTotal;
     }
+    /*
+        async listar(idEstablecimiento: string, filtros?: {
+            fechaDesde?: Date;
+            fechaHasta?: Date;
+        }) {
+            return prisma.costoGeneral.findMany({
+                where: {
+                    idEstablecimiento,
+                    ...(filtros?.fechaDesde || filtros?.fechaHasta ? {
+                        fecha: {
+                            ...(filtros.fechaDesde && { gte: filtros.fechaDesde }),
+                            ...(filtros.fechaHasta && { lte: filtros.fechaHasta }),
+                        }
+                    } : {})
+                },
+                orderBy: { fecha: "desc" }
+            });
+        }
+    */
 
-    const configuracion = establecimiento.configuracions[0];
-
-    if (!configuracion) {
-        return 0;
-    }
-
-    const MS_POR_DIA = 1000 * 60 * 60 * 24;
-
-    const dias =
-        Math.floor(
-            (fechaHasta.getTime() - fechaDesde.getTime()) /
-            MS_POR_DIA
-        ) + 1;
-
-    let costoTotal = 0;
-
-    for (const rodeo of configuracion.rodeos) {
-        costoTotal +=
-            rodeo.cantVacas *
-            Number(rodeo.costoRacion) *
-            dias;
-    }
-
-    return costoTotal;
-}
-/*
     async listar(idEstablecimiento: string, filtros?: {
         fechaDesde?: Date;
         fechaHasta?: Date;
     }) {
-        return prisma.costoGeneral.findMany({
+
+        // =====================================================
+        // Validar que se haya enviado un período de consulta.
+        // El cálculo del costo de alimentación depende de las
+        // fechas seleccionadas por el usuario.
+        // =====================================================
+        if (!filtros?.fechaDesde || !filtros?.fechaHasta) {
+            throw new AppError(
+                "Debe indicar un período de consulta",
+                400
+            );
+        }
+
+        const fechaDesde = filtros.fechaDesde;
+        const fechaHasta = filtros.fechaHasta;
+
+        // =====================================================
+        // Obtener costos generales manuales registrados
+        // =====================================================
+        const costosManuales = await prisma.costoGeneral.findMany({
             where: {
                 idEstablecimiento,
-                ...(filtros?.fechaDesde || filtros?.fechaHasta ? {
-                    fecha: {
-                        ...(filtros.fechaDesde && { gte: filtros.fechaDesde }),
-                        ...(filtros.fechaHasta && { lte: filtros.fechaHasta }),
-                    }
-                } : {})
+                fecha: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
             },
-            orderBy: { fecha: "desc" }
+            orderBy: {
+                fecha: "desc",
+            },
         });
-    }
-*/
 
-async listar(idEstablecimiento: string, filtros?: {
-    fechaDesde?: Date;
-    fechaHasta?: Date;
-}) {
+        // =====================================================
+        // Calcular automáticamente el costo de alimentación
+        // (no se encuentra almacenado en la base de datos)
+        // =====================================================
+        const costoAlimentacion =
+            await this.calcularCostoAlimentacion(
+                idEstablecimiento,
+                fechaDesde,
+                fechaHasta
+            );
 
-    // =====================================================
-    // Validar que se haya enviado un período de consulta.
-    // El cálculo del costo de alimentación depende de las
-    // fechas seleccionadas por el usuario.
-    // =====================================================
-    if (!filtros?.fechaDesde || !filtros?.fechaHasta) {
-        throw new AppError(
-            "Debe indicar un período de consulta",
-            400
+        // =====================================================
+        // Crear un registro virtual para que el frontend pueda
+        // mostrarlo junto a los costos manuales.
+        // =====================================================
+        const costoAutomatico = {
+            idCostoGeneral: "alimentacion",
+            tipoCosto: "ALIMENTACION",
+            descripcion: "Costo de alimentación (calculado automáticamente)",
+            monto: costoAlimentacion,
+            fecha: fechaHasta,
+
+            // El frontend podrá identificar este registro
+            // como un costo automático de solo lectura.
+            automatico: true,
+            soloLectura: true,
+        };
+
+        // =====================================================
+        // Devolver un único listado con costos manuales
+        // y el costo automático de alimentación.
+        // =====================================================
+        return [...costosManuales, costoAutomatico].sort(
+            (a, b) =>
+                new Date(b.fecha).getTime() -
+                new Date(a.fecha).getTime()
         );
     }
 
-    const fechaDesde = filtros.fechaDesde;
-    const fechaHasta = filtros.fechaHasta;
+    // =====================================================
+    // Resumen Económico del período (Épica: Costos Generales
+    // y Resumen Económico).
+    //
+    // Devuelve los indicadores agregados que pide la épica:
+    //   - gasto total en alimentación (automático)
+    //   - gasto total en costos generales (manuales)
+    //   - gasto total consolidado
+    //   - cantidad de lotes completos del período
+    //   - prorrateo promedio por lote
+    //
+    // No genera registros persistentes: los valores se
+    // calculan al vuelo en cada consulta.
+    // =====================================================
+    async resumenEconomico(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
 
-    // =====================================================
-    // Obtener costos generales manuales registrados
-    // =====================================================
-    const costosManuales = await prisma.costoGeneral.findMany({
-        where: {
-            idEstablecimiento,
-            fecha: {
-                gte: fechaDesde,
-                lte: fechaHasta,
-            },
-        },
-        orderBy: {
-            fecha: "desc",
-        },
-    });
+        if (!fechaDesde || !fechaHasta) {
+            throw new AppError(
+                "Debe indicar un período de consulta",
+                400
+            );
+        }
 
-    // =====================================================
-    // Calcular automáticamente el costo de alimentación
-    // (no se encuentra almacenado en la base de datos)
-    // =====================================================
-    const costoAlimentacion =
-        await this.calcularCostoAlimentacion(
+        // Costo de alimentación automático (reutiliza el cálculo existente)
+        const gastoAlimentacion = await this.calcularCostoAlimentacion(
             idEstablecimiento,
             fechaDesde,
             fechaHasta
         );
 
-    // =====================================================
-    // Crear un registro virtual para que el frontend pueda
-    // mostrarlo junto a los costos manuales.
-    // =====================================================
-    const costoAutomatico = {
-        idCostoGeneral: "alimentacion",
-        tipoCosto: "ALIMENTACION",
-        descripcion: "Costo de alimentación (calculado automáticamente)",
-        monto: costoAlimentacion,
-        fecha: fechaHasta,
+        // Suma de costos generales manuales del período
+        const costosManuales = await prisma.costoGeneral.aggregate({
+            where: {
+                idEstablecimiento,
+                fecha: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
+            },
+            _sum: { monto: true },
+        });
+        const gastoCostosGenerales = Number(costosManuales._sum.monto || 0);
 
-        // El frontend podrá identificar este registro
-        // como un costo automático de solo lectura.
-        automatico: true,
-        soloLectura: true,
-    };
+        // Cantidad de lotes COMPLETOS del período
+        // (solo participan los lotes con estado = true, según regla de negocio)
+        const lotesCompletos = await prisma.loteProduccion.count({
+            where: {
+                idEstablecimiento,
+                estado: true,
+                fechaProduccion: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
+            },
+        });
 
-    // =====================================================
-    // Devolver un único listado con costos manuales
-    // y el costo automático de alimentación.
-    // =====================================================
-    return [...costosManuales, costoAutomatico].sort(
-        (a, b) =>
-            new Date(b.fecha).getTime() -
-            new Date(a.fecha).getTime()
-    );
-}
+        const gastoTotal = gastoAlimentacion + gastoCostosGenerales;
+        const prorrateoPromedio = lotesCompletos > 0 ? gastoTotal / lotesCompletos : 0;
+
+        return {
+            periodo: { fechaDesde, fechaHasta },
+            gastoAlimentacion,
+            gastoCostosGenerales,
+            gastoTotal,
+            lotesCompletos,
+            prorrateoPromedio,
+        };
+    }
+
 
     async actualizar(idCostoGeneral: string, idEstablecimiento: string, data: {
         tipoCosto?: TipoCostoGeneral;
@@ -197,6 +267,8 @@ async listar(idEstablecimiento: string, filtros?: {
             where: { idCostoGeneral }
         });
     }
+
+
 }
 
 export default new CostoGeneralService();
