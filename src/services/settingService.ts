@@ -1,7 +1,7 @@
 import { prisma, } from "../lib/prisma";
 import { motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
-import { TipoMovimientoRodeo, TipoSeguimiento } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 
 
 class SettingService {
@@ -75,7 +75,7 @@ class SettingService {
                 },
             });
 
-            const transferencia = await tx.movimientoRodeo.create({
+            const transferencia = await tx.movimientoAnimal.create({
                 data: {
                     usuarioId: userId,
                     idConfiguracion: configuracion.idConfiguracion,
@@ -84,7 +84,7 @@ class SettingService {
                     cantidad: body.cantidad,
                     motivo: body.motivo,
                     observacion: body.observacion,
-                    tipo: TipoMovimientoRodeo.TRANSFERENCIA,
+                    tipo: TipoMovimientoAnimal.TRANSFERENCIA,
                 }
             });
 

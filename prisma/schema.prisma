@@ -133,13 +133,13 @@ enum EstadoAnimal {
   DESCARTE
 }
 
-enum TipoMovimientoRodeo {
+enum TipoMovimientoAnimal {
   INGRESO
   EGRESO
   TRANSFERENCIA
 }
 
-enum MotivoMovimientoRodeo {
+enum MotivoMovimientoAnimal {
   INGRESO_COMPRA
   INGRESO_NACIMIENTO
   EGRESO_VENTA
@@ -224,21 +224,21 @@ model Establecimiento_OrganizacionUsuario {
 }
 
 model configuracion {
-  idConfiguracion   String            @id @default(uuid())
-  idEstablecimiento String            @unique
-  establecimiento   Establecimiento   @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  ultimoNumeroLote  Int               @default(0)
+  idConfiguracion   String             @id @default(uuid())
+  idEstablecimiento String             @unique
+  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  ultimoNumeroLote  Int                @default(0)
   cantVacas         Int?
   cantOrdenies      Int?
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
-  tipoSeguimiento   TipoSeguimiento   @default(RODEO)
+  tipoSeguimiento   TipoSeguimiento    @default(RODEO)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
   rodeos            Rodeo[]
-  movimientoRodeos  MovimientoRodeo[]
+  movimientoAnimals MovimientoAnimal[]
 }
 
 model InvitacionOrganizacion {
@@ -314,33 +314,44 @@ model Rodeo {
   @@unique([idConfiguracion, tipoRodeo])
 }
 
-model MovimientoRodeo {
-  idMovRodeo      String                @id @default(uuid())
+model MovimientoAnimal {
+  idMovimiento    String                    @id @default(uuid())
   idConfiguracion String
-  configuracion   configuracion         @relation(fields: [idConfiguracion], references: [idConfiguracion])
-  tipo            TipoMovimientoRodeo
-  motivo          MotivoMovimientoRodeo
+  configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  tipo            TipoMovimientoAnimal
+  motivo          MotivoMovimientoAnimal
   rodeoOrigen     String?
   rodeoDestino    String?
   cantidad        Int
   usuarioId       String?
   observacion     String?
-  fechaCreacion   DateTime              @default(now())
+  fechaCreacion   DateTime                  @default(now())
+  detalles        MovimientoAnimalDetalle[]
+}
+
+model MovimientoAnimalDetalle {
+  idMovimientoDetalle String           @id @default(uuid())
+  idMovimiento        String
+  movimiento          MovimientoAnimal @relation(fields: [idMovimiento], references: [idMovimiento])
+  idAnimal            String
+  animal              Animal           @relation(fields: [idAnimal], references: [idAnimal])
+  fechaCreacion       DateTime         @default(now())
 }
 
 model Animal {
-  idAnimal          String             @id @default(uuid())
+  idAnimal          String                    @id @default(uuid())
   idEstablecimiento String
-  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  establecimiento   Establecimiento           @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   idRodeo           String?
-  rodeo             Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
+  rodeo             Rodeo?                    @relation(fields: [idRodeo], references: [idRodeo])
   codigo            String?
   nombre            String?
   categoria         CategoriaAnimal
   estado            EstadoAnimal
-  activo            Boolean            @default(true)
+  activo            Boolean                   @default(true)
   fechaNacimiento   DateTime?
   producciones      ProduccionAnimal[]
+  movimientoAnimal  MovimientoAnimalDetalle[]
 }
 
 model ProduccionAnimal {
