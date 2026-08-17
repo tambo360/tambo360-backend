@@ -91,6 +91,11 @@ enum VentaLeche {
   varios
 }
 
+enum GeneroAnimal {
+  HEMBRA
+  MACHO
+}
+
 enum TipoRodeo {
   ALTA_PRODUCCION
   BAJA_PRODUCCION
@@ -348,10 +353,12 @@ model Animal {
   nombre            String?
   categoria         CategoriaAnimal
   estado            EstadoAnimal
+  genero            GeneroAnimal              @default(HEMBRA)
   activo            Boolean                   @default(true)
   fechaNacimiento   DateTime?
   producciones      ProduccionAnimal[]
   movimientoAnimal  MovimientoAnimalDetalle[]
+  @@unique([idEstablecimiento, codigo])
 }
 
 model ProduccionAnimal {

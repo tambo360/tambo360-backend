@@ -41,7 +41,7 @@ const RodeoSchema = z.object({
     costoRacion: z.number().positive("El costo de la ración debe ser un número positivo"),
 })
 
-const AnimalSchema = z.object({
+export const AnimalSchema = z.object({
     codigo: z.string().optional(),
     nombre: z.string().optional(),
     categoria: z.enum(CategoriaAnimal, "La categoría del animal debe ser un valor válido"),

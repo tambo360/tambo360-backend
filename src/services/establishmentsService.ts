@@ -15,8 +15,8 @@ type CreateEstablishmentServiceData = CreateEstablishmentData & {
 
 class EstablishmentsService {
     //Limite de animales para el seguimiento individual
-    private LIMITE_ANIMAL = 70
-    private LIMITE_PROM_LITROS = 2000
+    public LIMITE_ANIMAL = 70
+    public LIMITE_PROM_LITROS = 2000
 
     async obtenerEstablecimiento(idEstablecimiento: string) {
         const establecimiento = await prisma.establecimiento.findUnique({
@@ -212,6 +212,17 @@ class EstablishmentsService {
 
         if (cant !== data.cantVacas) {
             throw new AppError("La cantidad de animales no coincide con la cantidad total de vacas", 400);
+        }
+
+        const animales = await tx.animal.count({
+            where: {
+                idEstablecimiento: data.idEstablecimiento,
+                activo: true,
+            }
+        });
+
+        if (animales + cant > this.LIMITE_ANIMAL) {
+            throw new AppError("No se puede superar el límite de animales para el establecimiento", 400);
         }
 
         await tx.animal.createMany({
