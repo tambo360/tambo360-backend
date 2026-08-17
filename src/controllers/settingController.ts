@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AppError } from "../utils/AppError";
+import { AppError, zodError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { transferenciaRodeoSchema } from "../schemas/settingSchema";
 import settingService from "../services/settingService";
@@ -13,7 +13,7 @@ class SettingController {
             const body = transferenciaRodeoSchema.safeParse(req.body);
 
             if(!body.success) {
-                throw new AppError("Datos de transferencia inválidos", 400);
+                throw zodError(body.error);
             }
 
             if (!userId) {

@@ -1,7 +1,7 @@
-import { prisma } from "../lib/prisma";
+import { prisma, } from "../lib/prisma";
 import { motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
-import { TipoMovimientoRodeo } from "@prisma/client";
+import { TipoMovimientoRodeo, TipoSeguimiento } from "@prisma/client";
 
 
 class SettingService {
@@ -24,6 +24,10 @@ class SettingService {
 
             if (!configuracion) {
                 throw new AppError("Configuración no encontrada", 404);
+            }
+
+            if(configuracion.tipoSeguimiento !== TipoSeguimiento.RODEO){
+                throw new AppError("El establecimiento no tiene habilitado el seguimiento por rodeo", 400);
             }
 
             const [rodeoOrigen, rodeoDestino] = await Promise.all([
