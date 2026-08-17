@@ -21,7 +21,7 @@ router.get('/invitacion', estContext, establecimientoRequireOrgAccess, getInvita
 router.delete('/invitacion/:idInvitacion', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN]}), deleteInvitation);
 router.get('/rodeos/get', estContext, establecimientoRequireOrgAccess, listarRodeos);
 
-router.get("/opciones-seguimiento", obtenerOpcionesSeguimiento);
+router.get("/info/opciones-seguimiento", obtenerOpcionesSeguimiento);
 
 
 export default router;
