@@ -1,5 +1,5 @@
 import { prisma, } from "../lib/prisma";
-import { AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
+import { AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
@@ -24,8 +24,7 @@ class SettingService {
                 idRodeo: body.rodeoDestino,
             },
             data: {
-                cantVacas: rodeoDestino.cantVacas + body.cantidad,
-                costoRacion: body.costoRacion ? body.costoRacion : rodeoDestino.costoRacion,
+                cantVacas: rodeoDestino.cantVacas + body.cantidad
             },
         });
 
@@ -45,6 +44,11 @@ class SettingService {
     }
 
     private async altaAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: AltaAnimalIndividual, idEstablecimiento: string) {
+
+        if (body.cantidad !== body.animales.length) {
+            throw new AppError("La cantidad de animles ingresada no coincide", 400)
+        }
+
         const animales = await tx.animal.count({
             where: {
                 idEstablecimiento: idEstablecimiento,
@@ -98,10 +102,106 @@ class SettingService {
             })),
         });
 
-        return {...altaAnimal, animales: animalesCreados};
+        return { ...altaAnimal, animales: animalesCreados };
 
 
     }
+
+    private async bajaAnimalRodeo(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: BajaAnimalRodeo) {
+        const rodeoOrigen = await tx.rodeo.findFirst({
+            where: {
+                idRodeo: body.rodeoOrigen,
+                idConfiguracion: idConfiguracion,
+            },
+        })
+
+        if (!rodeoOrigen) {
+            throw new AppError("Rodeo de origen no encontrado", 404);
+        }
+
+        if (rodeoOrigen.cantVacas < body.cantidad) {
+            throw new AppError("Cantidad a dar de baja mayor a la cantidad disponible en el rodeo de origen", 400);
+        }
+
+        const nuevoRodeoOrigen = await tx.rodeo.update({
+            where: {
+                idRodeo: body.rodeoOrigen,
+            },
+            data: {
+                cantVacas: rodeoOrigen.cantVacas - body.cantidad,
+            },
+        });
+
+        const bajaAnimal = await tx.movimientoAnimal.create({
+            data: {
+                usuarioId: userId,
+                idConfiguracion: idConfiguracion,
+                rodeoOrigen: body.rodeoOrigen,
+                cantidad: body.cantidad,
+                motivo: body.motivo,
+                observacion: body.observacion,
+                tipo: TipoMovimientoAnimal.EGRESO,
+            }
+        })
+
+        return bajaAnimal
+    }
+
+    private async bajaAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: BajaAnimalIndividual, idEstablecimiento: string) {
+        if (body.cantidad !== body.animales.length) {
+            throw new AppError("La cantidad de animles ingresada no coincide", 400)
+        }
+        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, body.animales)
+
+        if (animales.length < body.cantidad) {
+            throw new AppError("Cantidad a dar de baja mayor a la cantidad disponible", 400)
+        }
+
+
+        const bajaAnimal = await tx.movimientoAnimal.create({
+            data: {
+                usuarioId: userId,
+                idConfiguracion: idConfiguracion,
+                cantidad: body.animales.length,
+                motivo: body.motivo,
+                observacion: body.observacion,
+                tipo: TipoMovimientoAnimal.EGRESO,
+            }
+        });
+
+
+        const animalesDescartados = await Promise.all(
+            body.animales.map(animal =>
+                tx.animal.update({
+                    where: {
+                        idAnimal: animal
+                    },
+                    data: {
+                        activo: false
+                    },
+                    select: {
+                        idAnimal: true,
+                        categoria: true,
+                        estado: true,
+                        codigo: true,
+                        nombre: true,
+                        fechaNacimiento: true,
+                    },
+                })
+            )
+        );
+
+        await tx.movimientoAnimalDetalle.createMany({
+            data: animalesDescartados.map(animal => ({
+                idMovimiento: bajaAnimal.idMovimiento,
+                idAnimal: animal.idAnimal,
+            })),
+        });
+
+        return { ...bajaAnimal, animales: animalesDescartados };
+
+    }
+
 
     async transferirRodeo(userId: string, idEstablecimiento: string, body: TransferenciaRodeo) {
         if (body.rodeoOrigen === body.rodeoDestino) {
@@ -223,6 +323,36 @@ class SettingService {
         })
 
         return altaAnimal;
+    }
+
+    async eliminarAnimal(userId: string, idEstablecimiento: string, body: BajaAnimal) {
+        const bajaAnimal = await prisma.$transaction(async (tx) => {
+            const configuracion = await tx.configuracion.findFirst({
+                where: {
+                    idEstablecimiento: idEstablecimiento,
+                },
+            })
+
+            if (!configuracion) {
+                throw new AppError("Configuración no encontrada", 404);
+            }
+
+            if (configuracion.tipoSeguimiento !== body.tipoSeguimiento) {
+                throw new AppError("El tipo de seguimiento no es válido para este establecimiento", 400);
+            }
+
+            switch (body.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    return await this.bajaAnimalRodeo(tx, userId, configuracion.idConfiguracion, body);
+                case TipoSeguimiento.INDIVIDUAL:
+                    return await this.bajaAnimalIndividual(tx, userId, configuracion.idConfiguracion, body, idEstablecimiento);
+                default:
+                    throw new AppError("Tipo de seguimiento invalido", 400);
+            }
+        })
+
+        return bajaAnimal;
     }
 }
 

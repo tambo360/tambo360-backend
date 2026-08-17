@@ -14,6 +14,6 @@ router.use(estContext);
 
 router.post("/animal", SettingController.crearAnimal);
 router.post("/rodeo/transferir", SettingController.transferirRodeo);
-router.delete("/rodeo", );
+router.delete("/animal", SettingController.eliminarAnimal);
 
 export default router;

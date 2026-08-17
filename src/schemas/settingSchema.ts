@@ -45,8 +45,7 @@ const altaAnimalBaseSchema = z.object({
 
 const altaAnimalRodeoSchema = altaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
-    rodeoDestino: z.string().uuid("Id de rodeo destino inválido"),
-    costoRacion: z.number().positive("El costo de ración debe ser un número positivo").optional(),
+    rodeoDestino: z.string().uuid("Id de rodeo destino inválido")
 })
 
 
@@ -64,7 +63,37 @@ export const altaAnimalSchema = z.discriminatedUnion(
     ]
 );
 
+
+const bajaAnimalBaseSchema = z.object({
+    cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
+    observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
+    tipo: z.enum([TipoMovimientoAnimal.EGRESO], "Tipo de movimiento inválido"),
+    motivo: z.enum(motivosPorTipo.EGRESO, "Motivo de egreso inválido"),
+})
+
+const bajaAnimalRodeoSchema = bajaAnimalBaseSchema.extend({
+    tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
+    rodeoOrigen: z.string().uuid("Id de rodeo origen inválido"),
+})
+
+const bajaAnimalIndividualSchema = bajaAnimalBaseSchema.extend({
+    tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
+    animales: z.array(z.uuid("Id de animal inválido")).min(1, {message: "Debe existir al menos un animal",}),
+})
+
+export const bajaAnimalSchema = z.discriminatedUnion(
+    "tipoSeguimiento",
+    [
+        bajaAnimalRodeoSchema,
+        bajaAnimalIndividualSchema
+    ]
+);
+
 export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
+
+export type BajaAnimal = z.infer<typeof bajaAnimalSchema>;
+export type BajaAnimalRodeo = z.infer<typeof bajaAnimalRodeoSchema>;
+export type BajaAnimalIndividual = z.infer<typeof bajaAnimalIndividualSchema>;
 
 export type AltaAnimal = z.infer<typeof altaAnimalSchema>;
 export type AltaAnimalRodeo = z.infer<typeof altaAnimalRodeoSchema>;
