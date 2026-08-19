@@ -402,7 +402,7 @@ class EstablishmentsService {
             throw new AppError("Cuestionario no encontrado para este establecimiento", 404);
         }
 
-        const [rodeos, establecimiento, productos] = await Promise.all([
+        const [rodeos, establecimiento, productos, animales] = await Promise.all([
             prisma.rodeo.findMany({
                 where: {
                     idConfiguracion: cuestionario.idConfiguracion,
@@ -416,6 +416,7 @@ class EstablishmentsService {
                 select: {
                     localidad: true,
                     provincia: true,
+                    nombre: true
                 }
             }),
             prisma.establecimientoProducto.findMany({
@@ -425,10 +426,26 @@ class EstablishmentsService {
                 include: {
                     producto: true,
                 }
+            }),
+            prisma.animal.findMany({
+                where:{
+                    idEstablecimiento: cuestionario.idEstablecimiento
+                },
+                select:{
+                    idAnimal: true,
+                    idRodeo: true,
+                    codigo: true,
+                    nombre: true,
+                    categoria: true,
+                    estado: true,
+                    genero: true,
+                    activo: true,
+                    fechaNacimiento: true
+                }
             })
         ])
 
-        return { cuestionario, rodeos, establecimiento, productos };
+        return { cuestionario, rodeos, establecimiento, productos, animales };
     }
 
     async sendInvitation(orgId: string, estId: string, userId: string, correo: string, rol: RolEstablecimiento) {
