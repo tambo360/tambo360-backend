@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Definición de enums -------------------------------------------------------------------------------------------------------------
+//ENUMS-------------------------------------------------------
 
 enum Unidad {
   kg
@@ -125,23 +125,20 @@ enum TipoSeguimiento {
   RODEO_UNICO
 }
 
-// CATEGORIA PRODUCTIVA
-enum CategoriaAnimal { 
+enum CategoriaAnimal {
   ORDENE
   SECAS
 }
 
-//ESTADO SANITARIO
 enum EstadoSanitarioAnimal {
   MASTITIS
   TRATAMIENTO
   NORMAL
 }
 
-//DESTINO DE LECHE
 enum DestinoProduccion {
-    TANQUE
-    DESCARTE
+  TANQUE
+  DESCARTE
 }
 
 enum TipoMovimientoAnimal {
@@ -163,7 +160,13 @@ enum MotivoMovimientoAnimal {
   TRANSFERENCIA_OTRO
 }
 
-// Definición de modelos -------------------------------------------------------------------------------------------------------------
+enum NivelAlerta {
+  bajo
+  medio
+  alto
+}
+
+// TABLAS ------------------------------------------------------------
 
 model Usuario {
   idUsuario                   String                      @id @default(uuid())
@@ -173,32 +176,32 @@ model Usuario {
   verificado                  Boolean                     @default(false)
   fechaCreacion               DateTime                    @default(now())
   activo                      Boolean                     @default(true)
-  tokens                      VerificarToken[]
-  organizaciones              OrganizacionUsuario[]
-  invitacionesOrganizacion    InvitacionOrganizacion[]
   invitacionesEstablecimiento InvitacionEstablecimiento[]
+  invitacionesOrganizacion    InvitacionOrganizacion[]
+  organizaciones              OrganizacionUsuario[]
+  tokens                      VerificarToken[]
 }
 
 model Organizacion {
   idOrganizacion   String                   @id @default(uuid())
   nombre           String
   fechaCreacion    DateTime                 @default(now())
-  usuarios         OrganizacionUsuario[]
   establecimientos Establecimiento[]
   invitaciones     InvitacionOrganizacion[]
+  usuarios         OrganizacionUsuario[]
   productos        Producto[]
 }
 
 model OrganizacionUsuario {
   idOrganizacionUsuario               String                                @id @default(uuid())
   idOrganizacion                      String
-  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
   idUsuario                           String
-  usuario                             Usuario                               @relation(fields: [idUsuario], references: [idUsuario])
   rol                                 RolOrganizacion
   estado                              Boolean                               @default(true)
   fechaCreacion                       DateTime                              @default(now())
   establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  usuario                             Usuario                               @relation(fields: [idUsuario], references: [idUsuario])
 
   @@unique([idOrganizacion, idUsuario])
 }
@@ -211,25 +214,25 @@ model Establecimiento {
   fechaCreacion                       DateTime                              @default(now())
   idOrganizacion                      String
   cuestionarioCompletado              Boolean                               @default(false)
-  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  loteProducciones                    LoteProduccion[]
-  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
-  configuracions                      configuracion[]
-  invitaciones                        InvitacionEstablecimiento[]
-  establecimientoProductos            EstablecimientoProducto[]
-  costoGenerals                       CostoGeneral[]
   animals                             Animal[]
+  costoGenerals                       CostoGeneral[]
+  organizacion                        Organizacion                          @relation(fields: [idOrganizacion], references: [idOrganizacion])
+  establecimientoProductos            EstablecimientoProducto[]
+  establecimientoOrganizacionUsuarios Establecimiento_OrganizacionUsuario[]
+  invitaciones                        InvitacionEstablecimiento[]
+  loteProducciones                    LoteProduccion[]
+  configuracions                      configuracion[]
 }
 
 model Establecimiento_OrganizacionUsuario {
   idEstablecimientoOrganizacionUsuario String              @id @default(uuid())
   idEstablecimiento                    String
-  establecimiento                      Establecimiento     @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   idOrganizacionUsuario                String
-  organizacionUsuario                  OrganizacionUsuario @relation(fields: [idOrganizacionUsuario], references: [idOrganizacionUsuario])
   rol                                  RolEstablecimiento
   estado                               Boolean             @default(true)
   fechaCreacion                        DateTime            @default(now())
+  establecimiento                      Establecimiento     @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  organizacionUsuario                  OrganizacionUsuario @relation(fields: [idOrganizacionUsuario], references: [idOrganizacionUsuario])
 
   @@unique([idEstablecimiento, idOrganizacionUsuario])
 }
@@ -237,19 +240,19 @@ model Establecimiento_OrganizacionUsuario {
 model configuracion {
   idConfiguracion   String             @id @default(uuid())
   idEstablecimiento String             @unique
-  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  ultimoNumeroLote  Int                @default(0)
   cantVacas         Int?
   cantOrdenies      Int?
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
-  tipoSeguimiento   TipoSeguimiento    @default(RODEO)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
-  rodeos            Rodeo[]
+  ultimoNumeroLote  Int                @default(0)
+  tipoSeguimiento   TipoSeguimiento    @default(RODEO)
   movimientoAnimals MovimientoAnimal[]
+  rodeos            Rodeo[]
+  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
 }
 
 model InvitacionOrganizacion {
@@ -260,13 +263,11 @@ model InvitacionOrganizacion {
   codigo         String
   estado         EstadoInvitacion @default(pendiente)
   expiraEn       DateTime
-  respondidaEn   DateTime?
   rol            RolOrganizacion
-
-  organizacion Organizacion @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  invitador    Usuario      @relation(fields: [idInvitador], references: [idUsuario])
-
-  creadoEn DateTime @default(now())
+  creadoEn       DateTime         @default(now())
+  respondidaEn   DateTime?
+  invitador      Usuario          @relation(fields: [idInvitador], references: [idUsuario])
+  organizacion   Organizacion     @relation(fields: [idOrganizacion], references: [idOrganizacion])
 }
 
 model InvitacionEstablecimiento {
@@ -277,37 +278,33 @@ model InvitacionEstablecimiento {
   codigo            String
   estado            EstadoInvitacion   @default(pendiente)
   expiraEn          DateTime
-  respondidaEn      DateTime?
   rol               RolEstablecimiento
-
-  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  invitador       Usuario         @relation(fields: [idInvitador], references: [idUsuario])
-
-  creadoEn DateTime @default(now())
+  creadoEn          DateTime           @default(now())
+  respondidaEn      DateTime?
+  establecimiento   Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  invitador         Usuario            @relation(fields: [idInvitador], references: [idUsuario])
 }
 
 model Producto {
   idProducto               String                    @id @default(uuid())
   nombre                   String
-  nombreNormalizado        String
+  categoria                Categoria
   esSistema                Boolean                   @default(false)
   idOrganizacion           String?
-  organizacion             Organizacion?             @relation(fields: [idOrganizacion], references: [idOrganizacion])
-  categoria                Categoria
+  nombreNormalizado        String
   establecimientoProductos EstablecimientoProducto[]
   loteProduccions          LoteProduccion[]
+  organizacion             Organizacion?             @relation(fields: [idOrganizacion], references: [idOrganizacion])
 
   @@unique([nombreNormalizado, idOrganizacion])
 }
 
 model EstablecimientoProducto {
-  id String @id @default(uuid())
-
+  id                String          @id @default(uuid())
   idEstablecimiento String
   idProducto        String
-
-  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  producto        Producto        @relation(fields: [idProducto], references: [idProducto])
+  establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  producto          Producto        @relation(fields: [idProducto], references: [idProducto])
 
   @@unique([idEstablecimiento, idProducto])
 }
@@ -315,12 +312,12 @@ model EstablecimientoProducto {
 model Rodeo {
   idRodeo         String           @id @default(uuid())
   idConfiguracion String
-  configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
   tipoRodeo       TipoRodeo
   cantVacas       Int
   costoRacion     Decimal          @db.Decimal(13, 2)
-  loteProduccions LoteProduccion[]
   animals         Animal[]
+  loteProduccions LoteProduccion[]
+  configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
 
   @@unique([idConfiguracion, tipoRodeo])
 }
@@ -328,7 +325,6 @@ model Rodeo {
 model MovimientoAnimal {
   idMovimiento    String                    @id @default(uuid())
   idConfiguracion String
-  configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
   tipo            TipoMovimientoAnimal
   motivo          MotivoMovimientoAnimal
   rodeoOrigen     String?
@@ -337,67 +333,69 @@ model MovimientoAnimal {
   usuarioId       String?
   observacion     String?
   fechaCreacion   DateTime                  @default(now())
+  configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
   detalles        MovimientoAnimalDetalle[]
 }
 
 model MovimientoAnimalDetalle {
   idMovimientoDetalle String           @id @default(uuid())
   idMovimiento        String
-  movimiento          MovimientoAnimal @relation(fields: [idMovimiento], references: [idMovimiento])
   idAnimal            String
-  animal              Animal           @relation(fields: [idAnimal], references: [idAnimal])
   fechaCreacion       DateTime         @default(now())
+  animal              Animal           @relation(fields: [idAnimal], references: [idAnimal])
+  movimiento          MovimientoAnimal @relation(fields: [idMovimiento], references: [idMovimiento])
 }
 
 model Animal {
   idAnimal          String                    @id @default(uuid())
   idEstablecimiento String
-  establecimiento   Establecimiento           @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   idRodeo           String?
-  rodeo             Rodeo?                    @relation(fields: [idRodeo], references: [idRodeo])
   codigo            String?
   nombre            String?
   categoria         CategoriaAnimal
   estado            EstadoSanitarioAnimal
-  genero            GeneroAnimal              @default(HEMBRA)
   activo            Boolean                   @default(true)
-  observacion       String?
   fechaNacimiento   DateTime?
+  genero            GeneroAnimal              @default(HEMBRA)
   fechaUltimoParto  DateTime?
-  producciones      ProduccionAnimal[]
+  observacion       String?
+  establecimiento   Establecimiento           @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  rodeo             Rodeo?                    @relation(fields: [idRodeo], references: [idRodeo])
   movimientoAnimal  MovimientoAnimalDetalle[]
+  producciones      ProduccionAnimal[]
 
   @@unique([idEstablecimiento, codigo])
 }
 
 model ProduccionAnimal {
-  idProduccionAnimal String         @id @default(uuid())
+  idProduccionAnimal String                @id @default(uuid())
   idAnimal           String
-  animal             Animal         @relation(fields: [idAnimal], references: [idAnimal])
   idLote             String
-  lote               LoteProduccion @relation(fields: [idLote], references: [idLote])
-  estado             DestinoProduccion
+  destino            DestinoProduccion
+  estado             EstadoSanitarioAnimal
   litros             Decimal
+  animal             Animal                @relation(fields: [idAnimal], references: [idAnimal])
+  lote               LoteProduccion        @relation(fields: [idLote], references: [idLote])
 }
 
 model LoteProduccion {
   idLote                   String             @id
   numeroLote               Int
   fechaProduccion          DateTime           @default(now())
+  idProducto               String
   cantidad                 Decimal
   unidad                   Unidad
-  estado                   Boolean            @default(false)
-  tempTanque               Decimal            @db.Decimal(13, 2)
-  destino                  TipoDestino
-  cantAnimales             Int
-  idRodeo                  String?
-  rodeo                    Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
-  idProducto               String
-  producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
   idEstablecimiento        String
-  establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  mermas                   Merma[]
+  estado                   Boolean            @default(false)
+  idRodeo                  String?
+  destino                  TipoDestino
+  tempTanque               Decimal            @db.Decimal(13, 2)
+  cantAnimales             Int
   costosDirectos           CostosDirecto[]
+  establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
+  rodeo                    Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
+  mermas                   Merma[]
   produccionesIndividuales ProduccionAnimal[]
 
   @@unique([idEstablecimiento, numeroLote])
@@ -415,12 +413,12 @@ model Merma {
 
 model CostosDirecto {
   idCostoDirecto String         @id @default(uuid())
-  tipoCosto      TipoCosto
-  moneda         Moneda         @default(ARS)
   monto          Decimal        @db.Decimal(13, 2)
   observaciones  String?        @default("")
   fechaCreacion  DateTime       @default(now())
   idLote         String
+  moneda         Moneda         @default(ARS)
+  tipoCosto      TipoCosto
   lote           LoteProduccion @relation(fields: [idLote], references: [idLote])
 
   @@index([idLote])
@@ -428,34 +426,26 @@ model CostosDirecto {
 
 model CostoGeneral {
   idCostoGeneral    String           @id @default(uuid())
-  establecimiento   Establecimiento  @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   idEstablecimiento String
   tipoCosto         TipoCostoGeneral
   descripcion       String?          @default("")
   monto             Decimal          @db.Decimal(13, 2)
   fecha             DateTime         @default(now())
   creadoEn          DateTime         @default(now())
+  establecimiento   Establecimiento  @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
 }
 
 model VerificarToken {
   tokenid   String    @id @default(uuid())
   idUsuario String
-  usuario   Usuario   @relation(fields: [idUsuario], references: [idUsuario])
   tipo      TipoToken
   tokenHash String
   expiraEn  DateTime
   usadoEn   DateTime?
   creadoEn  DateTime  @default(now())
+  usuario   Usuario   @relation(fields: [idUsuario], references: [idUsuario])
 
   @@index([idUsuario, tipo])
-}
-
-//Modelos del back de IA -------------------------------------------------------------------------------------------------------------------------
-
-enum NivelAlerta {
-  bajo
-  medio
-  alto
 }
 
 model Alerta {
@@ -465,7 +455,7 @@ model Alerta {
   producto          String
   categoria         Categoria
   nivel             NivelAlerta
-  descripcion       String      @db.Text
+  descripcion       String
   creadoEn          DateTime    @default(now())
   visto             Boolean     @default(false)
 
@@ -473,14 +463,13 @@ model Alerta {
 }
 
 model PromedioCategoria {
-  id                String    @id @default(uuid())
-  idEstablecimiento String
-  categoria         Categoria
-
-  produccionAcumulada Float @default(0)
-  mermaAcumulada      Float @default(0)
-  pctMermaPromedio    Float @default(0)
-  cantidadLotes       Int   @default(0)
+  id                  String    @id @default(uuid())
+  idEstablecimiento   String
+  categoria           Categoria
+  produccionAcumulada Float     @default(0)
+  mermaAcumulada      Float     @default(0)
+  pctMermaPromedio    Float     @default(0)
+  cantidadLotes       Int       @default(0)
 
   @@unique([idEstablecimiento, categoria])
 }

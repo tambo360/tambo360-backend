@@ -21,7 +21,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, rodeoDestino, motivo, cantidad]
+ *                 required: [tipoSeguimiento, rodeoDestino, tipo, motivo, cantidad]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -31,6 +31,10 @@
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440010"
+ *                   tipo:
+ *                     type: string
+ *                     enum: [INGRESO]
+ *                     example: "INGRESO"
  *                   motivo:
  *                     type: string
  *                     enum: [INGRESO_COMPRA, INGRESO_NACIMIENTO]
@@ -44,7 +48,7 @@
  *                     maxLength: 255
  *                     example: "Compra de vacas de lechería"
  *               - type: object
- *                 required: [tipoSeguimiento, animales, motivo, cantidad]
+ *                 required: [tipoSeguimiento, animales, tipo, motivo, cantidad]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -54,6 +58,10 @@
  *                     type: string
  *                     enum: [INGRESO_COMPRA, INGRESO_NACIMIENTO]
  *                     example: "INGRESO_NACIMIENTO"
+ *                   tipo:
+ *                     type: string
+ *                     enum: [INGRESO]
+ *                     example: "INGRESO"
  *                   cantidad:
  *                     type: integer
  *                     minimum: 1
@@ -146,6 +154,187 @@
 
 /**
  * @swagger
+ * /conf/animal/listar:
+ *   get:
+ *     summary: Listar animales activos del establecimiento
+ *     description: Devuelve animales activos del establecimiento autenticado, con filtros opcionales, paginación y producción registrada durante el día actual.
+ *     tags: [Configuración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: codigo
+ *         schema:
+ *           type: string
+ *         description: Filtra por coincidencia parcial del código, sin distinguir mayúsculas y minúsculas.
+ *         example: "A-00"
+ *       - in: query
+ *         name: nombre
+ *         schema:
+ *           type: string
+ *         description: Filtra por coincidencia parcial del nombre, sin distinguir mayúsculas y minúsculas.
+ *         example: "Rosa"
+ *       - in: query
+ *         name: estado
+ *         schema:
+ *           type: string
+ *           enum: [MASTITIS, TRATAMIENTO, NORMAL]
+ *         description: Estado sanitario del animal.
+ *       - in: query
+ *         name: orden
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Orden alfabético por nombre.
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Número de página.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Cantidad máxima de animales por página.
+ *     responses:
+ *       200:
+ *         description: Animales obtenidos correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Animales obtenidos correctamente"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idAnimal:
+ *                         type: string
+ *                         format: uuid
+ *                       idRodeo:
+ *                         type: string
+ *                         format: uuid
+ *                         nullable: true
+ *                       nombre:
+ *                         type: string
+ *                         nullable: true
+ *                       codigo:
+ *                         type: string
+ *                         nullable: true
+ *                       categoria:
+ *                         type: string
+ *                       estado:
+ *                         type: string
+ *                       genero:
+ *                         type: string
+ *                         nullable: true
+ *                       observacion:
+ *                         type: string
+ *                         nullable: true
+ *                       fechaNacimiento:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                       DEL:
+ *                         type: integer
+ *                         description: Días transcurridos desde el último parto. 0 si no existe fecha de último parto.
+ *                       produccion:
+ *                         type: object
+ *                         properties:
+ *                           litros_hoy:
+ *                             type: object
+ *                             additionalProperties:
+ *                               type: string
+ *                             description: Litros agrupados por destino para el día actual.
+ *                           litros_totales:
+ *                             type: string
+ *                             description: Total de litros producidos durante el día actual.
+ *       400:
+ *         description: Filtros inválidos o establecimiento no determinado
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Establecimiento no autorizado
+ */
+
+/**
+ * @swagger
+ * /conf/establecimiento:
+ *   patch:
+ *     summary: Actualizar información del establecimiento
+ *     description: Actualiza el nombre, ubicación y parámetros de ordeñe del establecimiento autenticado.
+ *     tags: [Configuración]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idEst, nombre, tipo_ordenie, ordenie_dia, promLitros, ubicacion]
+ *             properties:
+ *               idEst:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID del establecimiento a actualizar. Debe corresponder al establecimiento del contexto.
+ *               nombre:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: "Tambo La Esperanza"
+ *               tipo_ordenie:
+ *                 type: string
+ *                 enum: [balde, linea, espina_de_pescado, rotativo, manual, otro]
+ *                 example: "linea"
+ *               ordenie_dia:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 3
+ *                 example: 2
+ *               promLitros:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 example: 24.5
+ *               ubicacion:
+ *                 type: object
+ *                 required: [provincia, localidad]
+ *                 properties:
+ *                   provincia:
+ *                     type: string
+ *                     minLength: 2
+ *                     maxLength: 100
+ *                     example: "Buenos Aires"
+ *                   localidad:
+ *                     type: string
+ *                     minLength: 2
+ *                     maxLength: 100
+ *                     example: "Chivilcoy"
+ *     responses:
+ *       200:
+ *         description: Información del establecimiento actualizada correctamente
+ *       400:
+ *         description: Datos inválidos o establecimiento inexistente
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Establecimiento no autorizado
+ */
+
+/**
+ * @swagger
  * /conf/animal:
  *   delete:
  *     summary: Dar de baja animales del establecimiento
@@ -160,7 +349,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, rodeoOrigen, motivo, cantidad]
+ *                 required: [tipoSeguimiento, rodeoOrigen, tipo, motivo, cantidad]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -170,6 +359,10 @@
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440010"
+ *                   tipo:
+ *                     type: string
+ *                     enum: [EGRESO]
+ *                     example: "EGRESO"
  *                   motivo:
  *                     type: string
  *                     enum: [EGRESO_VENTA, EGRESO_DESCARTE, EGRESO_MUERTE]
@@ -183,7 +376,7 @@
  *                     maxLength: 255
  *                     example: "Venta a feria de ganado"
  *               - type: object
- *                 required: [tipoSeguimiento, animales, motivo, cantidad]
+ *                 required: [tipoSeguimiento, animales, tipo, motivo, cantidad]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -193,6 +386,10 @@
  *                     type: string
  *                     enum: [EGRESO_VENTA, EGRESO_DESCARTE, EGRESO_MUERTE]
  *                     example: "EGRESO_DESCARTE"
+ *                   tipo:
+ *                     type: string
+ *                     enum: [EGRESO]
+ *                     example: "EGRESO"
  *                   cantidad:
  *                     type: integer
  *                     minimum: 1

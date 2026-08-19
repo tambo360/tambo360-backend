@@ -13,6 +13,7 @@ router.use(establecimientoRequireOrgAccess);
 router.use(estContext);
 
 router.post("/animal", SettingController.crearAnimal);
+router.get("/animal/listar", SettingController.listarAnimales)
 router.post("/rodeo/transferir", SettingController.transferirRodeo);
 router.delete("/animal", SettingController.eliminarAnimal);
 

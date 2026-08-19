@@ -1,4 +1,4 @@
-import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoAnimal } from "@prisma/client";
+import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoSanitarioAnimal } from "@prisma/client";
 import { z } from "zod";
 
 const requiredString = (message: string) =>
@@ -45,7 +45,7 @@ export const AnimalSchema = z.object({
     codigo: z.string().optional(),
     nombre: z.string().optional(),
     categoria: z.enum(CategoriaAnimal, "La categoría del animal debe ser un valor válido"),
-    estado: z.enum(EstadoAnimal, "El estado del animal debe ser un valor válido"),
+    estado: z.enum(EstadoSanitarioAnimal, "El estado del animal debe ser un valor válido"),
     fechaNacimiento: z.date().optional(),
 }).refine((data) => {
     return !!data.codigo || !!data.nombre;

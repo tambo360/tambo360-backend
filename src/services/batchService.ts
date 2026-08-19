@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, EditarLoteIndividualDTO, EditarLoteRodeoDTO, ProduccionAnimalDTO } from "../schemas/batchSchema"
+import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, EditarLoteIndividualDTO, EditarLoteRodeoDTO, ProduccionAnimalDTO, ProduccionAnimalEditarDTO } from "../schemas/batchSchema"
 import EstablishmentService from "./establishmentsService";
 import { Prisma, TipoSeguimiento } from "@prisma/client";
 import { TamboEngineService } from "./tamboEngineService";
@@ -83,13 +83,22 @@ export class LoteService {
         })
 
         await tx.produccionAnimal.createMany({
-            data: data.animales.map(animal => ({
-                idAnimal: animal.idAnimal,
-                idLote: lote.idLote,
-                litros: animal.litros,
-                estado: animal.estado
-            }))
-        })
+            data: data.animales.map(animalDTO => {
+                const animalDB = animales.find(a => a.idAnimal === animalDTO.idAnimal);
+
+                if (!animalDB) {
+                    throw new AppError(`Animal ${animalDTO.idAnimal} no válido`, 400);
+                }
+
+                return {
+                    idAnimal: animalDB.idAnimal,
+                    idLote: lote.idLote,
+                    litros: animalDTO.litros,
+                    estado: animalDB.estado,
+                    destino: animalDTO.destino
+                };
+            })
+        });
 
         return lote
 
@@ -140,15 +149,24 @@ export class LoteService {
         });
     }
 
-    private async sincronizarProduccionesAnimales(tx: Prisma.TransactionClient, idLote: string, animales: ProduccionAnimalDTO[]) {
-        const produccionesActuales = await tx.produccionAnimal.findMany({ where: { idLote }, });
+    private async sincronizarProduccionesAnimales(tx: Prisma.TransactionClient, idLote: string, animales: ProduccionAnimalEditarDTO[]) {
+        const produccionesActuales = await tx.produccionAnimal.findMany({ where: { idLote }, include: { animal: true } });
 
         //diccionarios para buscar por idAnimal ------
         const actuales = new Map(produccionesActuales.map(p => [p.idAnimal, p]));
         const nuevas = new Map(animales.map(a => [a.idAnimal, a]));
 
         // Determinar qué producciones crear, eliminar o actualizar --------
-        const crear = animales.filter(a => !actuales.has(a.idAnimal));
+        const crear = animales.filter(a => !actuales.has(a.idAnimal)).map(a => {
+            const infoActual = actuales.get(a.idAnimal)
+            return {
+                idAnimal: a.idAnimal,
+                litros: a.litros,
+                destino: a.destino,
+                estado: infoActual ? infoActual.estado : a.estado,
+            };
+        });
+        
         const eliminar = produccionesActuales.filter(p => !nuevas.has(p.idAnimal));
         const actualizar = animales.filter(a => actuales.has(a.idAnimal));
 
@@ -161,6 +179,7 @@ export class LoteService {
                     idLote,
                     litros: a.litros,
                     estado: a.estado,
+                    destino: a.destino
                 })),
             });
         }
@@ -185,6 +204,7 @@ export class LoteService {
                     data: {
                         estado: animal.estado,
                         litros: animal.litros,
+                        destino: animal.destino
                     },
                 });
             })

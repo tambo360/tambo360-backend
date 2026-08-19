@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc.js";
 import timezone from "dayjs/plugin/timezone.js";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import { Unidad, TipoDestino, TipoSeguimiento, EstadoAnimal } from "@prisma/client";
+import { Unidad, TipoDestino, TipoSeguimiento, DestinoProduccion, EstadoSanitarioAnimal } from "@prisma/client";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -73,8 +73,11 @@ const produccionAnimalSchema = z.object({
     litros: z.coerce
         .number()
         .positive("Los litros deben ser mayores a 0"),
+    destino: z.enum(DestinoProduccion, "El destino de producción debe ser uno válido")
+});
 
-    estado: z.enum(EstadoAnimal, "Estado inválido"),
+const produccionAnimalActualizarSchema = produccionAnimalSchema.extend({
+    estado: z.enum(EstadoSanitarioAnimal)
 });
 
 // Estructura de un lote con seguimiento individual + Estructura base
@@ -135,7 +138,7 @@ const editarLoteRodeoSchema = baseEditarLoteSchema.extend({
 const editarLoteIndividualSchema = baseEditarLoteSchema.extend({
     tipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
     animales: z
-        .array(produccionAnimalSchema)
+        .array(produccionAnimalActualizarSchema)
         .min(1, "Debe seleccionar al menos un animal")
         .refine(
             (animales) =>
@@ -258,6 +261,7 @@ export const idLoteParamSchema = z.object({
 export type CrearLoteDTO = z.infer<typeof crearLoteSchema>;
 export type CrearLoteRodeoDTO = z.infer<typeof loteRodeoSchema>;
 export type ProduccionAnimalDTO = z.infer<typeof produccionAnimalSchema>;
+export type ProduccionAnimalEditarDTO = z.infer<typeof produccionAnimalActualizarSchema>
 export type CrearLoteIndividualDTO = z.infer<typeof loteIndividualSchema>;
 export type EditarLoteDTO = z.infer<typeof editarLoteSchema>;
 export type EditarLoteRodeoDTO = z.infer<typeof editarLoteRodeoSchema>;

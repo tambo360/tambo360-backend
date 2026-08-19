@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
 export const motivosPorTipo = {
     INGRESO: [
@@ -89,6 +89,32 @@ export const bajaAnimalSchema = z.discriminatedUnion(
     ]
 );
 
+
+export const listarAnimalesFiltrosSchema = z.object({
+    codigo: z.string().optional(),
+    nombre: z.string().optional(),
+    estado: z.enum(EstadoSanitarioAnimal, "El formato del estado no es válido").optional(),
+    orden: z
+        .enum(["asc", "desc"], "El orden debe ser 'asc' o 'desc'")
+        .optional(),
+    page: z
+        .string()
+        .regex(/^\d+$/, "Página inválida")
+        .transform((val) => Number(val))
+        .refine((val) => val > 0, "La página debe ser mayor a 0")
+        .optional()
+        .default(1),
+    limit: z
+        .string()
+        .regex(/^\d+$/, "Límite inválido")
+        .transform((val) => Number(val))
+        .refine((val) => val > 0, "El límite debe ser mayor a 0")
+        .refine((val) => val <= 100, "El límite máximo permitido es 100")
+        .optional()
+        .default(10),
+});
+
+
 export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
 
 export type BajaAnimal = z.infer<typeof bajaAnimalSchema>;
@@ -98,6 +124,8 @@ export type BajaAnimalIndividual = z.infer<typeof bajaAnimalIndividualSchema>;
 export type AltaAnimal = z.infer<typeof altaAnimalSchema>;
 export type AltaAnimalRodeo = z.infer<typeof altaAnimalRodeoSchema>;
 export type AltaAnimalIndividual = z.infer<typeof altaAnimalIndividualSchema>;
+
+export type ListarAnimalesFiltros = z.infer<typeof listarAnimalesFiltrosSchema>
 
 //Establecimiento -------------------------------------------------
 

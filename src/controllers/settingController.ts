@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, zodError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
-import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema } from "../schemas/settingSchema";
+import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema, listarAnimalesFiltrosSchema } from "../schemas/settingSchema";
 import settingService from "../services/settingService";
 
 
@@ -112,6 +112,28 @@ class SettingController {
             next(error)
         }
     }
+
+    async listarAnimales(req: Request, res: Response, next: NextFunction){
+        try {
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+            const parsed = listarAnimalesFiltrosSchema.safeParse(req.query);
+
+            if (!parsed.success) {
+                throw zodError(parsed.error);
+            }
+
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento",400);
+            }
+
+
+            const animales = await settingService.listarAnimales(idEstablecimiento, parsed.data);
+
+            return res.status(200).json(ApiResponse.success(animales,"Animales obtenidos correctamente"));
+        } catch (error) {
+            next(error);
+        }
+    };
 }
 
 export default new SettingController();

@@ -18,7 +18,151 @@ Esta sección documenta los endpoints de configuración del backend, orientados 
 
 ---
 
-## 1. Dar de Alta Animales
+## 1. Listar Animales
+
+**Método:** `GET`  
+**Ruta:** `/conf/animal/listar`
+
+Devuelve únicamente animales activos del establecimiento autenticado. Permite filtrar por código, nombre y estado sanitario. También incluye el `DEL` (días desde el último parto) y la producción registrada durante el día actual.
+
+### Query Parameters
+
+| Parámetro | Tipo | Obligatorio | Default | Descripción |
+|---|---|---:|---:|---|
+| `codigo` | string | No | - | Coincidencia parcial, sin distinguir mayúsculas y minúsculas |
+| `nombre` | string | No | - | Coincidencia parcial, sin distinguir mayúsculas y minúsculas |
+| `estado` | enum | No | - | Estado sanitario: `MASTITIS`, `TRATAMIENTO` o `NORMAL` |
+| `orden` | `asc \| desc` | No | `asc` | Orden por nombre |
+| `page` | integer | No | `1` | Página, mayor que 0 |
+| `limit` | integer | No | `10` | Resultados por página, entre 1 y 100 |
+
+### Ejemplo de Request
+
+```bash
+GET /api/conf/animal/listar?estado=PREPARTO&page=1&limit=10&orden=asc
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
+```
+
+### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Animales obtenidos correctamente",
+  "data": [
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
+      "idRodeo": "550e8400-e29b-41d4-a716-446655440010",
+      "nombre": "Vaca Rosa",
+      "codigo": "A-001",
+      "categoria": "ORDENE",
+      "estado": "PREPARTO",
+      "genero": "HEMBRA",
+      "observacion": null,
+      "fechaNacimiento": "2024-01-15T00:00:00.000Z",
+      "DEL": 42,
+      "produccion": {
+        "litros_hoy": {
+          "VENTA": "24.50"
+        },
+        "litros_totales": "24.50"
+      }
+    }
+  ]
+}
+```
+
+### Posibles Errores
+
+| Código | Mensaje |
+|---|---|
+| 400 | Filtros inválidos o no se pudo determinar el establecimiento |
+| 401 | Usuario no autenticado |
+| 403 | Establecimiento no autorizado |
+
+---
+
+## 2. Actualizar Establecimiento
+
+**Método:** `PATCH`  
+**Ruta:** `/conf/establecimiento`
+
+Actualiza el nombre, la ubicación y los parámetros de ordeñe del establecimiento autenticado.
+
+### Body
+
+| Campo | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| `idEst` | string (UUID) | Sí | ID del establecimiento a actualizar |
+| `nombre` | string | Sí | Nombre, máximo 50 caracteres |
+| `tipo_ordenie` | enum | Sí | `balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual` u `otro` |
+| `ordenie_dia` | integer | Sí | Cantidad de ordeñes por día, entre 1 y 3 |
+| `promLitros` | number | Sí | Promedio de litros, mayor que 0 |
+| `ubicacion.provincia` | string | Sí | Provincia, entre 2 y 100 caracteres |
+| `ubicacion.localidad` | string | Sí | Localidad, entre 2 y 100 caracteres |
+
+### Ejemplo de Request
+
+```bash
+PATCH /api/conf/establecimiento
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
+Content-Type: application/json
+```
+
+```json
+{
+  "idEst": "550e8400-e29b-41d4-a716-446655440002",
+  "nombre": "Tambo La Esperanza",
+  "tipo_ordenie": "linea",
+  "ordenie_dia": 2,
+  "promLitros": 24.5,
+  "ubicacion": {
+    "provincia": "Buenos Aires",
+    "localidad": "Chivilcoy"
+  }
+}
+```
+
+### Response (200 - OK)
+
+La respuesta contiene el objeto `conf` actualizado y el objeto `establecimiento` actualizado dentro de `data`.
+
+```json
+{
+  "success": true,
+  "message": "Información del establecimiento actualizada correctamente",
+  "data": {
+    "conf": {
+      "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
+      "tipoOrdenie": "MECANICO",
+      "promLitros": "24.50",
+      "cantOrdenies": 2
+    },
+    "establecimiento": {
+      "idEstablecimiento": "550e8400-e29b-41d4-a716-446655440002",
+      "nombre": "Tambo La Esperanza",
+      "provincia": "Buenos Aires",
+      "localidad": "Chivilcoy"
+    }
+  }
+}
+```
+
+### Posibles Errores
+
+| Código | Mensaje |
+|---|---|
+| 400 | Datos inválidos o el establecimiento no existe |
+| 401 | Usuario no autenticado |
+| 403 | Establecimiento no autorizado |
+
+---
+
+## 3. Dar de Alta Animales
 
 **Método:** `POST`  
 **Ruta:** `/conf/animal`
@@ -34,6 +178,7 @@ Permite registrar la incorporación de animales al establecimiento. Soporta dos 
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
 | `tipoSeguimiento` | enum | Sí | Tipo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
+| `tipo` | enum | Sí | Tipo de movimiento: `INGRESO` |
 | `motivo` | enum | Sí | Motivo del ingreso: `INGRESO_COMPRA` o `INGRESO_NACIMIENTO` |
 | `cantidad` | integer | Sí | Cantidad de animales a ingresar (debe ser > 0) |
 | `observacion` | string | No | Observación opcional de hasta 255 caracteres |
@@ -171,7 +316,7 @@ Content-Type: application/json
 
 ---
 
-## 2. Dar de Baja Animales
+## 4. Dar de Baja Animales
 
 **Método:** `DELETE`  
 **Ruta:** `/conf/animal`
@@ -187,6 +332,7 @@ Permite registrar la salida de animales del establecimiento. Soporta dos modos s
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
 | `tipoSeguimiento` | enum | Sí | Tipo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
+| `tipo` | enum | Sí | Tipo de movimiento: `EGRESO` |
 | `motivo` | enum | Sí | Motivo de egreso: `EGRESO_VENTA`, `EGRESO_DESCARTE` o `EGRESO_MUERTE` |
 | `cantidad` | integer | Sí | Cantidad de animales a dar de baja (debe ser > 0) |
 | `observacion` | string | No | Observación opcional de hasta 255 caracteres |
@@ -298,12 +444,12 @@ Content-Type: application/json
 
 ---
 
-## 3. Transferir Animales entre Rodeos
+## 5. Transferir Animales entre Rodeos
 
 **Método:** `POST`  
 **Ruta:** `/conf/rodeo/transferir`
 
-Permite transferir animales de un rodeo a otro. Solo disponible para establecimientos con seguimiento por `RODEO` o `RODEO_UNICO`.
+Permite transferir animales de un rodeo a otro. Solo está disponible para establecimientos con seguimiento por `RODEO`; el servicio rechaza configuraciones `RODEO_UNICO` e `INDIVIDUAL`.
 
 ### Request Body
 

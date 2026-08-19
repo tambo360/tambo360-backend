@@ -1,8 +1,9 @@
 import { prisma, } from "../lib/prisma";
-import { ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
+import { ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
+import { Decimal } from "@prisma/client/runtime/library";
 
 
 class SettingService {
@@ -355,12 +356,12 @@ class SettingService {
         return bajaAnimal;
     }
 
-    async actualizarEst(userId: string, idEstablecimiento: string, body: ActualizarEst){
+    async actualizarEst(userId: string, idEstablecimiento: string, body: ActualizarEst) {
         const est = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
 
         const res = await prisma.$transaction(async (tx) => {
             const conf = await tx.configuracion.update({
-                where:{
+                where: {
                     idConfiguracion: est.configuracions[0].idConfiguracion,
                     idEstablecimiento: est.idEstablecimiento
                 },
@@ -382,10 +383,86 @@ class SettingService {
                 }
             })
 
-            return {conf, establecimiento}
+            return { conf, establecimiento }
         })
 
         return res
+    }
+
+    async listarAnimales(idEstablecimiento: string, params: ListarAnimalesFiltros) {
+        const where: any = {};
+        const fecha = new Date();
+        const inicioDia = new Date(fecha.setHours(0, 0, 0, 0));
+        const finDia = new Date(fecha.setHours(23, 59, 59, 999))
+        const hoy = fecha.getTime()
+            ;
+        if (params.codigo) {
+            where.codigo = { contains: params.codigo, mode: "insensitive" };
+        }
+
+        if (params.nombre) {
+            where.nombre = { contains: params.nombre, mode: "insensitive" };
+        }
+
+        if (params.estado) {
+            where.estado = params.estado;
+        }
+        const animales = await prisma.animal.findMany({
+            where: {
+                ...where,
+                activo: true
+            },
+            orderBy: {
+                nombre: params.orden ?? "asc",
+            },
+            skip: (params.page - 1) * params.limit,
+            take: params.limit,
+            include: {
+                producciones: {
+                    where: {
+                        lote: {
+                            fechaProduccion: {
+                                gte: inicioDia,
+                                lte: finDia,
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        const parsedAnimales = animales.map(a => {
+            let diffDias = 0
+            if (a.fechaUltimoParto) {
+                const diffMs = hoy - a.fechaUltimoParto.getTime();
+                diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            }
+
+            const litrosAgrupados = a.producciones.reduce((acc, prod) => {
+                const litros = prod.litros as Decimal;
+                acc[prod.destino] = (acc[prod.destino] ?? new Decimal(0)).add(litros);
+                return acc;
+            }, {} as Record<string, Decimal>);
+
+            return {
+                idAnimal: a.idAnimal,
+                idRodeo: a.idRodeo,
+                nombre: a.nombre,
+                codigo: a.codigo,
+                categoria: a.categoria,
+                estado: a.estado,
+                genero: a.genero,
+                observacion: a.observacion,
+                fechaNacimiento: a.fechaNacimiento,
+                DEL: diffDias,
+                produccion: {
+                    litros_hoy: litrosAgrupados,
+                    litros_totales: Object.values(litrosAgrupados).reduce((sum, v) => sum.add(v), new Decimal(0)),
+                }
+            }
+        })
+        
+        return parsedAnimales
     }
 }
 
