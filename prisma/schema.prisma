@@ -125,17 +125,23 @@ enum TipoSeguimiento {
   RODEO_UNICO
 }
 
-enum CategoriaAnimal {
+// CATEGORIA PRODUCTIVA
+enum CategoriaAnimal { 
   ORDENE
   SECAS
-  PREPARTO
 }
 
-enum EstadoAnimal {
+//ESTADO SANITARIO
+enum EstadoSanitarioAnimal {
   MASTITIS
   TRATAMIENTO
-  PREPARTO
-  DESCARTE
+  NORMAL
+}
+
+//DESTINO DE LECHE
+enum DestinoProduccion {
+    TANQUE
+    DESCARTE
 }
 
 enum TipoMovimientoAnimal {
@@ -352,12 +358,15 @@ model Animal {
   codigo            String?
   nombre            String?
   categoria         CategoriaAnimal
-  estado            EstadoAnimal
+  estado            EstadoSanitarioAnimal
   genero            GeneroAnimal              @default(HEMBRA)
   activo            Boolean                   @default(true)
+  observacion       String?
   fechaNacimiento   DateTime?
+  fechaUltimoParto  DateTime?
   producciones      ProduccionAnimal[]
   movimientoAnimal  MovimientoAnimalDetalle[]
+
   @@unique([idEstablecimiento, codigo])
 }
 
@@ -367,7 +376,7 @@ model ProduccionAnimal {
   animal             Animal         @relation(fields: [idAnimal], references: [idAnimal])
   idLote             String
   lote               LoteProduccion @relation(fields: [idLote], references: [idLote])
-  estado             EstadoAnimal
+  estado             DestinoProduccion
   litros             Decimal
 }
 
