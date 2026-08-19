@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, zodError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
-import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema } from "../schemas/settingSchema";
+import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema } from "../schemas/settingSchema";
 import settingService from "../services/settingService";
 
 
@@ -83,6 +83,33 @@ class SettingController {
 
         } catch (error) {
             next(error);
+        }
+    }
+
+    async actualizarEstablecimiento(req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+            const body = actualizarEstSchema.safeParse(req.body);
+
+            if (!body.success) {
+                throw zodError(body.error);
+            }
+
+            if (!userId) {
+                throw new AppError("Usuario no autenticado", 401);
+            }
+
+            if (!idEstablecimiento) {
+                throw new AppError("Establecimiento no autorizado", 403);
+            }
+
+            const result = await settingService.actualizarEst(userId, idEstablecimiento, body.data);
+
+            return res.status(200).json(ApiResponse.success(result, "Información del establecimiento actualizada correctamente"));
+
+        } catch (error) {
+            next(error)
         }
     }
 }

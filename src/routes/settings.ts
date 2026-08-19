@@ -16,4 +16,7 @@ router.post("/animal", SettingController.crearAnimal);
 router.post("/rodeo/transferir", SettingController.transferirRodeo);
 router.delete("/animal", SettingController.eliminarAnimal);
 
+
+router.patch("/establecimiento", SettingController.actualizarEstablecimiento);
+
 export default router;

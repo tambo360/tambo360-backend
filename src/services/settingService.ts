@@ -1,5 +1,5 @@
 import { prisma, } from "../lib/prisma";
-import { AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
+import { ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
@@ -353,6 +353,39 @@ class SettingService {
         })
 
         return bajaAnimal;
+    }
+
+    async actualizarEst(userId: string, idEstablecimiento: string, body: ActualizarEst){
+        const est = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+
+        const res = await prisma.$transaction(async (tx) => {
+            const conf = await tx.configuracion.update({
+                where:{
+                    idConfiguracion: est.configuracions[0].idConfiguracion,
+                    idEstablecimiento: est.idEstablecimiento
+                },
+                data: {
+                    tipoOrdenie: body.tipo_ordenie,
+                    promLitros: body.promLitros,
+                    cantOrdenies: body.ordenie_dia,
+                    modificadoEn: new Date()
+                }
+            })
+            const establecimiento = await tx.establecimiento.update({
+                where: {
+                    idEstablecimiento: est.idEstablecimiento
+                },
+                data: {
+                    provincia: body.ubicacion.provincia,
+                    localidad: body.ubicacion.localidad,
+                    nombre: body.nombre
+                }
+            })
+
+            return {conf, establecimiento}
+        })
+
+        return res
     }
 }
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
 export const motivosPorTipo = {
     INGRESO: [
@@ -51,7 +51,7 @@ const altaAnimalRodeoSchema = altaAnimalBaseSchema.extend({
 
 const altaAnimalIndividualSchema = altaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
-    animales: z.array(AnimalSchema).min(1, {message: "Debe existir al menos un animal",}),
+    animales: z.array(AnimalSchema).min(1, { message: "Debe existir al menos un animal", }),
 })
 
 
@@ -78,7 +78,7 @@ const bajaAnimalRodeoSchema = bajaAnimalBaseSchema.extend({
 
 const bajaAnimalIndividualSchema = bajaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
-    animales: z.array(z.uuid("Id de animal inválido")).min(1, {message: "Debe existir al menos un animal",}),
+    animales: z.array(z.uuid("Id de animal inválido")).min(1, { message: "Debe existir al menos un animal", }),
 })
 
 export const bajaAnimalSchema = z.discriminatedUnion(
@@ -98,3 +98,27 @@ export type BajaAnimalIndividual = z.infer<typeof bajaAnimalIndividualSchema>;
 export type AltaAnimal = z.infer<typeof altaAnimalSchema>;
 export type AltaAnimalRodeo = z.infer<typeof altaAnimalRodeoSchema>;
 export type AltaAnimalIndividual = z.infer<typeof altaAnimalIndividualSchema>;
+
+//Establecimiento -------------------------------------------------
+
+
+const requiredString = (message: string) =>
+    z
+        .string()
+        .trim()
+        .min(2, { message })
+        .max(100, { message: "No puede superar los 100 caracteres" });
+
+export const actualizarEstSchema = z.object({
+    idEst: z.string().uuid("ID de establecimiento inválido"),
+    nombre: z.string().max(50, "El nombre del establecimiento no puede superar los 50 caracteres"),
+    tipo_ordenie: z.enum(TipoOrdenie, "Formato de ordeñe inválido"),
+    ordenie_dia: z.number("La cantidad debe ser un número").int("La cantidad deber ser un entero").positive("La cantidad debe ser positiva").max(3, "La cantidad de ordeñes por dia no puede ser mayor a 3"),
+    promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),
+    ubicacion: z.object({
+        provincia: requiredString("La provincia es obligatoria"),
+        localidad: requiredString("La localidad es obligatoria"),
+    }),
+})
+
+export type ActualizarEst = z.infer<typeof actualizarEstSchema>
