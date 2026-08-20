@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, zodError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
-import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema, listarAnimalesFiltrosSchema, actualizarAnimalSchema } from "../schemas/settingSchema";
+import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema, listarAnimalesFiltrosSchema, actualizarAnimalSchema, listaMovimientosSchema } from "../schemas/settingSchema";
 import settingService from "../services/settingService";
 
 
@@ -152,6 +152,28 @@ class SettingController {
 
             return res.status(200).json(ApiResponse.success(animal, "Animal actualizado correctamente"));
 
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    async obtenerMovimientos(req: Request, res: Response, next: NextFunction) {
+        try {
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+            
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+            const parsed = listaMovimientosSchema.safeParse(idEstablecimiento);
+
+            if (!parsed.success) {
+                throw zodError(parsed.error);
+            }
+
+            const animal = await settingService.obtenerMovimientos(idEstablecimiento);
+
+            return res.status(200).json(ApiResponse.success(animal, "Animal actualizado correctamente"));
         } catch (error) {
             next(error)
         }

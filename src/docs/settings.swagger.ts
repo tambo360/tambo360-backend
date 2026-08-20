@@ -276,6 +276,100 @@
 
 /**
  * @swagger
+ * /conf/movimiento:
+ *   get:
+ *     summary: Obtener movimientos de animales
+ *     description: Devuelve todos los movimientos de animales asociados a la configuración del establecimiento autenticado, incluyendo información del usuario y el detalle de los animales involucrados.
+ *     tags: [Configuración]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Movimientos obtenidos correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Animal actualizado correctamente"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       idMovimiento:
+ *                         type: string
+ *                         format: uuid
+ *                       tipo:
+ *                         type: string
+ *                         enum: [INGRESO, EGRESO, TRANSFERENCIA]
+ *                       motivo:
+ *                         type: string
+ *                         description: Motivo normalizado del movimiento.
+ *                       rodeoOrigen:
+ *                         type: string
+ *                         format: uuid
+ *                         nullable: true
+ *                       rodeoDestino:
+ *                         type: string
+ *                         format: uuid
+ *                         nullable: true
+ *                       cantidad:
+ *                         type: integer
+ *                       observacion:
+ *                         type: string
+ *                         nullable: true
+ *                       usuarioId:
+ *                         type: string
+ *                         format: uuid
+ *                       fechaCreacion:
+ *                         type: string
+ *                         description: Fecha formateada por formatDate.
+ *                       usuario:
+ *                         type: object
+ *                         properties:
+ *                           nombre:
+ *                             type: string
+ *                       detalles:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             animal:
+ *                               type: object
+ *                               properties:
+ *                                 idAnimal:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 codigo:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 nombre:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 idRodeo:
+ *                                   type: string
+ *                                   format: uuid
+ *                                   nullable: true
+ *                                 categoria:
+ *                                   type: string
+ *                                 estado:
+ *                                   type: string
+ *       400:
+ *         description: ID de establecimiento inválido o establecimiento no encontrado
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Establecimiento no autorizado
+ */
+
+/**
+ * @swagger
  * /conf/animal/listar:
  *   get:
  *     summary: Listar animales activos del establecimiento

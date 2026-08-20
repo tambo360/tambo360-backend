@@ -79,7 +79,78 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
 
 ---
 
-## 2. Listar Animales
+## 2. Obtener Movimientos de Animales
+
+**Método:** `GET`  
+**Ruta:** `/conf/movimiento`
+
+Devuelve todos los movimientos de animales asociados a la configuración del establecimiento autenticado. Incluye movimientos de ingreso, egreso y transferencia, junto con el usuario que los registró y el detalle de los animales involucrados.
+
+### Query Parameters
+
+No requiere parámetros de consulta. El establecimiento se obtiene desde el header `x-establecimiento-id` y el contexto autenticado.
+
+### Ejemplo de Request
+
+```bash
+GET /api/conf/movimiento
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
+```
+
+### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Animal actualizado correctamente",
+  "data": [
+    {
+      "idMovimiento": "550e8400-e29b-41d4-a716-446655440120",
+      "tipo": "TRANSFERENCIA",
+      "motivo": "Transferencia por baja producción",
+      "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010",
+      "rodeoDestino": "550e8400-e29b-41d4-a716-446655440011",
+      "cantidad": 3,
+      "observacion": "Transferencia por baja producción",
+      "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
+      "fechaCreacion": "2026-08-20T12:00:00.000Z",
+      "usuario": {
+        "nombre": "Administrador"
+      },
+      "detalles": [
+        {
+          "animal": {
+            "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
+            "codigo": "A-001",
+            "nombre": "Vaca Rosa",
+            "idRodeo": "550e8400-e29b-41d4-a716-446655440010",
+            "categoria": "ORDENE",
+            "estado": "NORMAL"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+`rodeoOrigen` y `rodeoDestino` pueden ser `null` según el tipo de movimiento. `detalles` puede estar vacío para movimientos por rodeo que no tienen animales individuales asociados.
+
+### Posibles Errores
+
+| Código | Mensaje |
+|---|---|
+| 400 | ID de establecimiento inválido o establecimiento no encontrado |
+| 401 | Usuario no autenticado |
+| 403 | Establecimiento no autorizado |
+
+> Nota: actualmente el controlador responde con el mensaje `Animal actualizado correctamente` aunque este endpoint obtiene movimientos. Conviene cambiarlo por `Movimientos obtenidos correctamente` en el controlador.
+
+---
+
+## 3. Listar Animales
 
 **Método:** `GET`  
 **Ruta:** `/conf/animal/listar`
@@ -145,7 +216,7 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
 
 ---
 
-## 3. Actualizar Establecimiento
+## 4. Actualizar Establecimiento
 
 **Método:** `PATCH`  
 **Ruta:** `/conf/establecimiento`
@@ -223,7 +294,7 @@ La respuesta contiene el objeto `conf` actualizado y el objeto `establecimiento`
 
 ---
 
-## 4. Dar de Alta Animales
+## 5. Dar de Alta Animales
 
 **Método:** `POST`  
 **Ruta:** `/conf/animal`
@@ -377,7 +448,7 @@ Content-Type: application/json
 
 ---
 
-## 5. Dar de Baja Animales
+## 6. Dar de Baja Animales
 
 **Método:** `DELETE`  
 **Ruta:** `/conf/animal`
@@ -505,7 +576,7 @@ Content-Type: application/json
 
 ---
 
-## 6. Transferir Animales entre Rodeos
+## 7. Transferir Animales entre Rodeos
 
 **Método:** `POST`  
 **Ruta:** `/conf/rodeo/transferir`

@@ -4,6 +4,7 @@ import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
 import { Decimal } from "@prisma/client/runtime/library";
+import { formatDate, normalizarMotivo } from "../utils";
 
 
 class SettingService {
@@ -495,6 +496,53 @@ class SettingService {
             })
         })
 
+        return res
+    }
+
+    async obtenerMovimientos(idEstablecimiento: string){
+        const est = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+
+        const movimientos = await prisma.movimientoAnimal.findMany({
+            where: {
+                idConfiguracion: est.configuracions[0].idConfiguracion
+            },
+            select:{
+                idMovimiento: true,
+                tipo: true,
+                motivo: true,
+                rodeoOrigen: true,
+                rodeoDestino: true,
+                cantidad: true,
+                observacion: true,
+                usuarioId: true,
+                fechaCreacion: true,
+                detalles: {
+                    select: {
+                        animal: {
+                            select: {
+                                idAnimal: true,
+                                codigo: true,
+                                nombre: true,
+                                idRodeo: true,
+                                categoria: true,
+                                estado: true
+                            }
+                        }
+                    }
+                },
+                usuario: {
+                    select: {
+                        nombre: true
+                    }
+                }
+            }
+        })
+
+        const res = movimientos.map(m => ({
+            ...m,
+            motivo: normalizarMotivo(m.motivo),
+            fechaCreacion: formatDate(m.fechaCreacion)
+        }))
         return res
     }
 }

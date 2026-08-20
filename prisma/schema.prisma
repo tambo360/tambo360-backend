@@ -180,6 +180,7 @@ model Usuario {
   invitacionesOrganizacion    InvitacionOrganizacion[]
   organizaciones              OrganizacionUsuario[]
   tokens                      VerificarToken[]
+  movimientoAnimals           MovimientoAnimal[]
 }
 
 model Organizacion {
@@ -322,6 +323,7 @@ model Rodeo {
   @@unique([idConfiguracion, tipoRodeo])
 }
 
+//Solo guarda altas, bajas y transferencias (impactan en stock).
 model MovimientoAnimal {
   idMovimiento    String                    @id @default(uuid())
   idConfiguracion String
@@ -334,6 +336,7 @@ model MovimientoAnimal {
   observacion     String?
   fechaCreacion   DateTime                  @default(now())
   configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  usuario         Usuario?                  @relation(fields: [usuarioId], references: [idUsuario])
   detalles        MovimientoAnimalDetalle[]
 }
 

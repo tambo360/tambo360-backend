@@ -1,4 +1,4 @@
-import { TipoMerma, TipoRodeo } from "@prisma/client";
+import { MotivoMovimientoAnimal, TipoMerma, TipoRodeo } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -6,8 +6,6 @@ export const formatDate = (date: Date): string => {
 
     return soloFecha;
 }
-
-
 
 
 export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
@@ -80,4 +78,11 @@ export const obtenerTurno = (fechaProduccion: Date): "mañana" | "tarde" => {
   const hora = fechaProduccion.getHours();
   // Definimos mañana hasta las 12:59, tarde desde las 13:00
   return hora < 13 ? "mañana" : "tarde";
+}
+
+export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string  => {
+  const sinPrefijo = motivo.split("_").slice(1).join(" ");
+  return sinPrefijo
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }

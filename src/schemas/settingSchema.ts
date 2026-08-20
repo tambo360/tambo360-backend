@@ -129,6 +129,10 @@ export const actualizarAnimalSchema = z.object({
     message: "Debe proporcionar al menos un código o un nombre para el animal",
 })
 
+export const listaMovimientosSchema = z.object({
+    idEst: z.string().uuid("Formato de ID inválido")
+})
+
 export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
 
 export type BajaAnimal = z.infer<typeof bajaAnimalSchema>;
