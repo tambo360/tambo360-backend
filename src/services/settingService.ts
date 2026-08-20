@@ -486,7 +486,7 @@ class SettingService {
                 data: {
                     codigo: data.codigo,
                     nombre: data.nombre,
-                    Categoria: data.Categoria,
+                    categoria: data.Categoria,
                     estado: data.estado,
                     observacion: data.observacion,
                     fechaNacimiento: data.fechaNacimiento,
