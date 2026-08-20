@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError, zodError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
-import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema, listarAnimalesFiltrosSchema } from "../schemas/settingSchema";
+import { transferenciaRodeoSchema, altaAnimalSchema, bajaAnimalSchema, actualizarEstSchema, listarAnimalesFiltrosSchema, actualizarAnimalSchema } from "../schemas/settingSchema";
 import settingService from "../services/settingService";
 
 
@@ -113,7 +113,7 @@ class SettingController {
         }
     }
 
-    async listarAnimales(req: Request, res: Response, next: NextFunction){
+    async listarAnimales(req: Request, res: Response, next: NextFunction) {
         try {
             const idEstablecimiento = req.estAccess?.idEstablecimiento;
             const parsed = listarAnimalesFiltrosSchema.safeParse(req.query);
@@ -123,17 +123,39 @@ class SettingController {
             }
 
             if (!idEstablecimiento) {
-                throw new AppError("No se pudo determinar el establecimiento",400);
+                throw new AppError("No se pudo determinar el establecimiento", 400);
             }
 
 
             const animales = await settingService.listarAnimales(idEstablecimiento, parsed.data);
 
-            return res.status(200).json(ApiResponse.success(animales,"Animales obtenidos correctamente"));
+            return res.status(200).json(ApiResponse.success(animales, "Animales obtenidos correctamente"));
         } catch (error) {
             next(error);
         }
     };
+
+    async actualizarAnimal(req: Request, res: Response, next: NextFunction) {
+        try {
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+            const parsed = actualizarAnimalSchema.safeParse(req.query);
+
+            if (!parsed.success) {
+                throw zodError(parsed.error);
+            }
+
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+            const animal = await settingService.actualizarAnimal(idEstablecimiento, parsed.data);
+
+            return res.status(200).json(ApiResponse.success(animal, "Animal actualizado correctamente"));
+
+        } catch (error) {
+            next(error)
+        }
+    }
 }
 
 export default new SettingController();

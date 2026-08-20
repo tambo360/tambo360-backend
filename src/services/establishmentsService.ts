@@ -232,7 +232,9 @@ class EstablishmentsService {
                 nombre: a.nombre,
                 categoria: a.categoria,
                 estado: a.estado,
-                fechaNacimiento: a.fechaNacimiento
+                fechaNacimiento: a.fechaNacimiento,
+                fechaUltimoParto: a.fechaParto,
+                observacion: a.observacion
             }))
         })
     }

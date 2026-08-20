@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, Categoria, CategoriaAnimal } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
 export const motivosPorTipo = {
     INGRESO: [
@@ -114,6 +114,20 @@ export const listarAnimalesFiltrosSchema = z.object({
         .default(10),
 });
 
+export const actualizarAnimalSchema = z.object({
+    id: z.string().uuid("Formato de ID inválido"),
+    codigo: z.string(),
+    nombre: z.string(),
+    Categoria: z.enum(CategoriaAnimal, "Formato de categoria inválido"),
+    estado: z.enum(EstadoSanitarioAnimal, "Formato de estado inválido"),
+    observacion: z.string().optional(),
+    fechaNacimiento: z.date().optional(),
+    fechaParto: z.date().optional()
+}).refine((data) => {
+    return !!data.codigo || !!data.nombre;
+}, {
+    message: "Debe proporcionar al menos un código o un nombre para el animal",
+})
 
 export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
 
@@ -126,7 +140,7 @@ export type AltaAnimalRodeo = z.infer<typeof altaAnimalRodeoSchema>;
 export type AltaAnimalIndividual = z.infer<typeof altaAnimalIndividualSchema>;
 
 export type ListarAnimalesFiltros = z.infer<typeof listarAnimalesFiltrosSchema>
-
+export type ActualizarAnimal = z.infer<typeof actualizarAnimalSchema>
 //Establecimiento -------------------------------------------------
 
 

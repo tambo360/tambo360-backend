@@ -154,6 +154,128 @@
 
 /**
  * @swagger
+ * /conf/animal:
+ *   patch:
+ *     summary: Actualizar un animal
+ *     description: Actualiza los datos identificatorios, sanitarios y de fechas de un animal perteneciente al establecimiento autenticado. Actualmente los datos se reciben como parámetros de consulta.
+ *     tags: [Configuración]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del animal a actualizar.
+ *       - in: query
+ *         name: codigo
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Código del animal. El schema también exige código o nombre.
+ *         example: "A-001"
+ *       - in: query
+ *         name: nombre
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre del animal. El schema también exige código o nombre.
+ *         example: "Vaca Rosa"
+ *       - in: query
+ *         name: Categoria
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [ORDENE, SECAS]
+ *         description: Categoría del animal. El nombre del parámetro respeta la mayúscula definida por el schema.
+ *         example: "ORDENE"
+ *       - in: query
+ *         name: estado
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [MASTITIS, TRATAMIENTO, NORMAL]
+ *         description: Estado sanitario del animal.
+ *         example: "NORMAL"
+ *       - in: query
+ *         name: observacion
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Observación del animal.
+ *         example: "Animal en seguimiento"
+ *       - in: query
+ *         name: fechaNacimiento
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha de nacimiento. El schema la define como fecha.
+ *         example: "2024-01-15"
+ *       - in: query
+ *         name: fechaParto
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha del último parto. El schema la define como fecha.
+ *         example: "2026-07-20"
+ *     responses:
+ *       200:
+ *         description: Animal actualizado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Animal actualizado correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idAnimal:
+ *                       type: string
+ *                       format: uuid
+ *                     idEstablecimiento:
+ *                       type: string
+ *                       format: uuid
+ *                     codigo:
+ *                       type: string
+ *                     nombre:
+ *                       type: string
+ *                     Categoria:
+ *                       type: string
+ *                       enum: [ORDENE, SECAS]
+ *                     estado:
+ *                       type: string
+ *                       enum: [MASTITIS, TRATAMIENTO, NORMAL]
+ *                     observacion:
+ *                       type: string
+ *                       nullable: true
+ *                     fechaNacimiento:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     fechaUltimoParto:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *       400:
+ *         description: Parámetros inválidos o el animal no existe en el establecimiento
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Establecimiento no autorizado
+ */
+
+/**
+ * @swagger
  * /conf/animal/listar:
  *   get:
  *     summary: Listar animales activos del establecimiento

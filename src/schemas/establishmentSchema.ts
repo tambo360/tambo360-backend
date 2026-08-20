@@ -47,6 +47,8 @@ export const AnimalSchema = z.object({
     categoria: z.enum(CategoriaAnimal, "La categoría del animal debe ser un valor válido"),
     estado: z.enum(EstadoSanitarioAnimal, "El estado del animal debe ser un valor válido"),
     fechaNacimiento: z.date().optional(),
+    observacion: z.string().optional(),
+    fechaParto: z.date().optional()
 }).refine((data) => {
     return !!data.codigo || !!data.nombre;
 }, {

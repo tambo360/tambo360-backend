@@ -1,5 +1,5 @@
 import { prisma, } from "../lib/prisma";
-import { ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
+import { ActualizarAnimal, ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
@@ -461,8 +461,41 @@ class SettingService {
                 }
             }
         })
-        
+
         return parsedAnimales
+    }
+
+    async actualizarAnimal(idEstablecimiento: string, data: ActualizarAnimal) {
+        const res = await prisma.$transaction(async tx => {
+            const animal = await tx.animal.findUnique({
+                where: {
+                    idAnimal: data.id,
+                    idEstablecimiento: idEstablecimiento
+                }
+            })
+
+            if (!animal) {
+                throw new AppError("El animal no existe", 400);
+            }
+
+            return await tx.animal.update({
+                where: {
+                    idAnimal: data.id,
+                    idEstablecimiento: idEstablecimiento
+                },
+                data: {
+                    codigo: data.codigo,
+                    nombre: data.nombre,
+                    Categoria: data.Categoria,
+                    estado: data.estado,
+                    observacion: data.observacion,
+                    fechaNacimiento: data.fechaNacimiento,
+                    fechaUltimoParto: data.fechaParto
+                }
+            })
+        })
+
+        return res
     }
 }
 

@@ -18,7 +18,68 @@ Esta sección documenta los endpoints de configuración del backend, orientados 
 
 ---
 
-## 1. Listar Animales
+## 1. Actualizar un Animal
+
+**Método:** `PATCH`  
+**Ruta:** `/conf/animal`
+
+Actualiza un animal perteneciente al establecimiento autenticado. La implementación actual recibe los datos mediante parámetros de consulta, no mediante JSON en el body.
+
+### Query Parameters
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---:|---|
+| `id` | string (UUID) | Sí | ID del animal a actualizar |
+| `codigo` | string | Sí | Código del animal. Debe existir `codigo` o `nombre` |
+| `nombre` | string | Sí | Nombre del animal. Debe existir `codigo` o `nombre` |
+| `Categoria` | enum | Sí | Categoría: `ORDENE` o `SECAS` |
+| `estado` | enum | Sí | Estado sanitario: `MASTITIS`, `TRATAMIENTO` o `NORMAL` |
+| `observacion` | string | No | Observación del animal |
+| `fechaNacimiento` | date | No | Fecha de nacimiento |
+| `fechaParto` | date | No | Fecha del último parto |
+
+### Ejemplo de Request
+
+```bash
+PATCH "/api/conf/animal?id=550e8400-e29b-41d4-a716-446655440401&codigo=A-001&nombre=Vaca%20Rosa&Categoria=ORDENE&estado=NORMAL&observacion=Animal%20en%20seguimiento&fechaNacimiento=2024-01-15&fechaParto=2026-07-20"
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
+```
+
+### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Animal actualizado correctamente",
+  "data": {
+    "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
+    "idEstablecimiento": "550e8400-e29b-41d4-a716-446655440002",
+    "codigo": "A-001",
+    "nombre": "Vaca Rosa",
+    "Categoria": "ORDENE",
+    "estado": "NORMAL",
+    "observacion": "Animal en seguimiento",
+    "fechaNacimiento": "2024-01-15T00:00:00.000Z",
+    "fechaUltimoParto": "2026-07-20T00:00:00.000Z"
+  }
+}
+```
+
+### Posibles Errores
+
+| Código | Mensaje |
+|---|---|
+| 400 | Parámetros inválidos |
+| 400 | Debe proporcionar al menos un código o un nombre para el animal |
+| 400 | El animal no existe |
+| 401 | Usuario no autenticado |
+| 403 | Establecimiento no autorizado |
+
+---
+
+## 2. Listar Animales
 
 **Método:** `GET`  
 **Ruta:** `/conf/animal/listar`
@@ -84,7 +145,7 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
 
 ---
 
-## 2. Actualizar Establecimiento
+## 3. Actualizar Establecimiento
 
 **Método:** `PATCH`  
 **Ruta:** `/conf/establecimiento`
@@ -162,7 +223,7 @@ La respuesta contiene el objeto `conf` actualizado y el objeto `establecimiento`
 
 ---
 
-## 3. Dar de Alta Animales
+## 4. Dar de Alta Animales
 
 **Método:** `POST`  
 **Ruta:** `/conf/animal`
@@ -316,7 +377,7 @@ Content-Type: application/json
 
 ---
 
-## 4. Dar de Baja Animales
+## 5. Dar de Baja Animales
 
 **Método:** `DELETE`  
 **Ruta:** `/conf/animal`
@@ -444,7 +505,7 @@ Content-Type: application/json
 
 ---
 
-## 5. Transferir Animales entre Rodeos
+## 6. Transferir Animales entre Rodeos
 
 **Método:** `POST`  
 **Ruta:** `/conf/rodeo/transferir`
