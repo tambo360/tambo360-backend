@@ -374,6 +374,7 @@ model ProduccionAnimal {
   idProduccionAnimal String                @id @default(uuid())
   idAnimal           String
   idLote             String
+  categoria          CategoriaAnimal       @default(ORDENE)
   destino            DestinoProduccion
   estado             EstadoSanitarioAnimal
   litros             Decimal

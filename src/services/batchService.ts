@@ -95,7 +95,8 @@ export class LoteService {
                     idLote: lote.idLote,
                     litros: animalDTO.litros,
                     estado: animalDB.estado,
-                    destino: animalDTO.destino
+                    destino: animalDTO.destino,
+                    categoria: animalDB.categoria
                 };
             })
         });
@@ -164,9 +165,10 @@ export class LoteService {
                 litros: a.litros,
                 destino: a.destino,
                 estado: infoActual ? infoActual.estado : a.estado,
+                ...(infoActual?.categoria && { categoria: infoActual.categoria }),
             };
         });
-        
+
         const eliminar = produccionesActuales.filter(p => !nuevas.has(p.idAnimal));
         const actualizar = animales.filter(a => actuales.has(a.idAnimal));
 
