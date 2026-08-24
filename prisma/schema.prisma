@@ -169,7 +169,7 @@ enum NivelAlerta {
 // TABLAS ------------------------------------------------------------
 
 model Usuario {
-  idUsuario                   String                      @id @default(uuid())
+  idUsuario                   String                      @id @default(uuid(7))
   correo                      String                      @unique
   contrasena                  String
   nombre                      String                      @db.VarChar(50)
@@ -184,7 +184,7 @@ model Usuario {
 }
 
 model Organizacion {
-  idOrganizacion   String                   @id @default(uuid())
+  idOrganizacion   String                   @id @default(uuid(7))
   nombre           String
   fechaCreacion    DateTime                 @default(now())
   establecimientos Establecimiento[]
@@ -194,7 +194,7 @@ model Organizacion {
 }
 
 model OrganizacionUsuario {
-  idOrganizacionUsuario               String                                @id @default(uuid())
+  idOrganizacionUsuario               String                                @id @default(uuid(7))
   idOrganizacion                      String
   idUsuario                           String
   rol                                 RolOrganizacion
@@ -208,7 +208,7 @@ model OrganizacionUsuario {
 }
 
 model Establecimiento {
-  idEstablecimiento                   String                                @id @default(uuid())
+  idEstablecimiento                   String                                @id @default(uuid(7))
   nombre                              String
   localidad                           String?
   provincia                           String?
@@ -226,7 +226,7 @@ model Establecimiento {
 }
 
 model Establecimiento_OrganizacionUsuario {
-  idEstablecimientoOrganizacionUsuario String              @id @default(uuid())
+  idEstablecimientoOrganizacionUsuario String              @id @default(uuid(7))
   idEstablecimiento                    String
   idOrganizacionUsuario                String
   rol                                  RolEstablecimiento
@@ -239,7 +239,7 @@ model Establecimiento_OrganizacionUsuario {
 }
 
 model configuracion {
-  idConfiguracion   String             @id @default(uuid())
+  idConfiguracion   String             @id @default(uuid(7))
   idEstablecimiento String             @unique
   cantVacas         Int?
   cantOrdenies      Int?
@@ -257,7 +257,7 @@ model configuracion {
 }
 
 model InvitacionOrganizacion {
-  idInvitacion   String           @id @default(uuid())
+  idInvitacion   String           @id @default(uuid(7))
   idOrganizacion String
   idInvitador    String
   correo         String
@@ -272,7 +272,7 @@ model InvitacionOrganizacion {
 }
 
 model InvitacionEstablecimiento {
-  idInvitacion      String             @id @default(uuid())
+  idInvitacion      String             @id @default(uuid(7))
   idEstablecimiento String
   idInvitador       String
   correo            String
@@ -287,7 +287,7 @@ model InvitacionEstablecimiento {
 }
 
 model Producto {
-  idProducto               String                    @id @default(uuid())
+  idProducto               String                    @id @default(uuid(7))
   nombre                   String
   categoria                Categoria
   esSistema                Boolean                   @default(false)
@@ -301,7 +301,7 @@ model Producto {
 }
 
 model EstablecimientoProducto {
-  id                String          @id @default(uuid())
+  id                String          @id @default(uuid(7))
   idEstablecimiento String
   idProducto        String
   establecimiento   Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
@@ -311,7 +311,7 @@ model EstablecimientoProducto {
 }
 
 model Rodeo {
-  idRodeo         String           @id @default(uuid())
+  idRodeo         String           @id @default(uuid(7))
   idConfiguracion String
   tipoRodeo       TipoRodeo
   cantVacas       Int
@@ -325,7 +325,7 @@ model Rodeo {
 
 //Solo guarda altas, bajas y transferencias (impactan en stock).
 model MovimientoAnimal {
-  idMovimiento    String                    @id @default(uuid())
+  idMovimiento    String                    @id @default(uuid(7))
   idConfiguracion String
   tipo            TipoMovimientoAnimal
   motivo          MotivoMovimientoAnimal
@@ -341,7 +341,7 @@ model MovimientoAnimal {
 }
 
 model MovimientoAnimalDetalle {
-  idMovimientoDetalle String           @id @default(uuid())
+  idMovimientoDetalle String           @id @default(uuid(7))
   idMovimiento        String
   idAnimal            String
   fechaCreacion       DateTime         @default(now())
@@ -350,7 +350,7 @@ model MovimientoAnimalDetalle {
 }
 
 model Animal {
-  idAnimal          String                    @id @default(uuid())
+  idAnimal          String                    @id @default(uuid(7))
   idEstablecimiento String
   idRodeo           String?
   codigo            String?
@@ -371,7 +371,7 @@ model Animal {
 }
 
 model ProduccionAnimal {
-  idProduccionAnimal String                @id @default(uuid())
+  idProduccionAnimal String                @id @default(uuid(7))
   idAnimal           String
   idLote             String
   categoria          CategoriaAnimal       @default(ORDENE)
@@ -383,7 +383,7 @@ model ProduccionAnimal {
 }
 
 model LoteProduccion {
-  idLote                   String             @id
+  idLote                   String             @id @default(uuid(7))
   numeroLote               Int
   fechaProduccion          DateTime           @default(now())
   idProducto               String
@@ -406,7 +406,7 @@ model LoteProduccion {
 }
 
 model Merma {
-  idMerma       String         @id @default(uuid())
+  idMerma       String         @id @default(uuid(7))
   tipo          TipoMerma
   observacion   String?
   cantidad      Decimal
@@ -416,7 +416,7 @@ model Merma {
 }
 
 model CostosDirecto {
-  idCostoDirecto String         @id @default(uuid())
+  idCostoDirecto String         @id @default(uuid(7))
   monto          Decimal        @db.Decimal(13, 2)
   observaciones  String?        @default("")
   fechaCreacion  DateTime       @default(now())
@@ -429,7 +429,7 @@ model CostosDirecto {
 }
 
 model CostoGeneral {
-  idCostoGeneral    String           @id @default(uuid())
+  idCostoGeneral    String           @id @default(uuid(7))
   idEstablecimiento String
   tipoCosto         TipoCostoGeneral
   descripcion       String?          @default("")
@@ -453,7 +453,7 @@ model VerificarToken {
 }
 
 model Alerta {
-  id                String      @id @default(uuid())
+  id                String      @id @default(uuid(7))
   idEstablecimiento String
   idLote            String
   producto          String
@@ -467,7 +467,7 @@ model Alerta {
 }
 
 model PromedioCategoria {
-  id                  String    @id @default(uuid())
+  id                  String    @id @default(uuid(7))
   idEstablecimiento   String
   categoria           Categoria
   produccionAcumulada Float     @default(0)
