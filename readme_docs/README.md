@@ -19,6 +19,7 @@ Esta carpeta contiene la documentación completa de todos los endpoints de la AP
 | [dashboard_README.md](dashboard_README.md) | Endpoints de dashboard | `/dashboard/*` |
 | [health_README.md](health_README.md) | Endpoint de health check | `/health` |
 | [settings_README.md](settings_README.md) | Endpoints de configuración, animales y establecimiento | `/conf/*` |
+| [costos-generales_README.md](costos-generales_README.md) | Endpoints de costos generales y resumen económico | `/costos-generales/*` |
 
 ## Autenticación General
 
