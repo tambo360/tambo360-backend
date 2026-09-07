@@ -149,8 +149,15 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 ### 4. Obtener opciones de seguimiento
 
 **Método:** `GET`  
-**Ruta:** `/establecimiento/opciones-seguimiento`  
-**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+**Ruta:** `/establecimiento/info/opciones-seguimiento`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `requireRoles`
+
+#### Permisos
+
+Requiere simultáneamente:
+
+- Rol `OWNER` o `ADMIN` en el establecimiento.
+- Rol `ORG_OWNER` en la organización.
 
 Devuelve los recursos disponibles para crear lotes según la configuración del establecimiento.
 
@@ -211,22 +218,24 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 | `productos[].nombre` | string | Sí | Nombre del producto |
 | `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
 | `rodeos` | array | Sí si `TipoSeguimiento = RODEO` o `RODEO_UNICO` | Rodeos por tipo de producción |
-| `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS` o `UNICO` |
+| `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`, `UNICO_ORDENIE` o `UNICO_SECA` |
 | `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en ese rodeo |
 | `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
 | `animales` | array | Sí si `TipoSeguimiento = INDIVIDUAL` | Lista de animales a registrar |
 | `animales[].codigo` | string | No | Código del animal |
 | `animales[].nombre` | string | No | Nombre del animal |
-| `animales[].categoria` | enum | Sí | Categoría del animal (`ORDENE`, `SECAS`, `PREPARTO`) |
-| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
-| `animales[].fechaNacimiento` | string (ISO) | No | Fecha de nacimiento del animal |
+| `animales[].categoria` | enum | Sí | Categoría del animal (`ORDENE`, `SECAS`) |
+| `animales[].estado` | enum | Sí | Estado del animal (`MASTITIS`, `TRATAMIENTO`, `NORMAL`) |
+| `animales[].fechaNacimiento` | Date | No | Fecha de nacimiento del animal |
+| `animales[].observacion` | string | No | Observación opcional del animal |
+| `animales[].fechaParto` | Date | No | Fecha del último parto del animal |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
 
 > Nota: el field `idEstablecimiento` se inyecta automáticamente desde el contexto del establecimiento, no debe enviarse en el body.
 > **Reglas de negocio importantes:**
 > - Si `TipoSeguimiento = RODEO`, debe enviarse `rodeos` y el backend valida que exista al menos un rodeo de cada tipo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`).
-> - Si `TipoSeguimiento = RODEO_UNICO`, debe enviarse un único rodeo con `tipoRodeo: UNICO`.
+> - Si `TipoSeguimiento = RODEO_UNICO`, deben enviarse rodeos que incluyan al menos un `UNICO_ORDENIE` y un `UNICO_SECA`.
 > - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
 > - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
 > - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
@@ -296,7 +305,7 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
       "codigo": "A-001",
       "nombre": "Animal 1",
       "categoria": "ORDENE",
-      "estado": "PREPARTO",
+      "estado": "NORMAL",
       "fechaNacimiento": "2024-01-01T00:00:00.000Z"
     },
     {
@@ -326,7 +335,7 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 ```
 
 #### Permisos
-Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento pueden registrar el cuestionario.
+Solo usuarios con rol `OWNER` o `ADMIN` del establecimiento y `ORG_OWNER` de la organización pueden registrar el cuestionario.
 
 #### Posibles Errores
 

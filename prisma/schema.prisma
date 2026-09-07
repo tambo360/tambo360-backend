@@ -100,7 +100,8 @@ enum TipoRodeo {
   ALTA_PRODUCCION
   BAJA_PRODUCCION
   VACAS_SECAS
-  UNICO
+  UNICO_ORDENIE
+  UNICO_SECA
 }
 
 enum TipoDestino {

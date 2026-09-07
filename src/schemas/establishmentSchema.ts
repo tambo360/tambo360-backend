@@ -60,9 +60,9 @@ const questionnaireBaseSchema = z.object({
     productos: z.array(productSchema).optional(),
     cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
     cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),
-    tipoOrdenie: z.enum(TipoOrdenie,"El tipo de ordeñe debe ser un valor válido"),
+    tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
     promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),
-    ventaLeche: z.enum(VentaLeche,"El tipo de venta de leche debe ser un valor válido"),
+    ventaLeche: z.enum(VentaLeche, "El tipo de venta de leche debe ser un valor válido"),
     empleados: z.boolean("Debe indicar si tiene empleados o no"),
     cantEmpleados: z.number().int().positive("La cantidad de empleados debe ser un número entero positivo").optional(),
     ubicacion: z.object({
@@ -92,16 +92,25 @@ const questionnaireRodeoSchema = questionnaireBaseSchema.extend({
 
 const questionnaireRodeoUnicoSchema = questionnaireBaseSchema.extend({
     TipoSeguimiento: z.literal(TipoSeguimiento.RODEO_UNICO, "El tipo de seguimiento debe ser un valor válido"),
-    rodeos: z.array(RodeoSchema).length(1, {message: "Debe existir un único rodeo",})
+    rodeos: z.array(RodeoSchema)
         .refine((rodeos) => {
-            return rodeos[0]?.tipoRodeo === TipoRodeo.UNICO;
-        }, { message: "El rodeo debe ser de tipo único"}),
+            const tiposPresentes = new Set(
+                rodeos.map(r => r.tipoRodeo)
+            );
+            const tiposRequeridos = [
+                TipoRodeo.UNICO_ORDENIE,
+                TipoRodeo.UNICO_SECA
+            ];
+            return tiposRequeridos.every(tipo => tiposPresentes.has(tipo));
+        }, {
+            message: "Debe existir al menos un rodeo de cada tipo",
+        }),
     animales: z.undefined(),
 });
 
 const questionnaireIndividualSchema = questionnaireBaseSchema.extend({
     TipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL, "El tipo de seguimiento debe ser un valor válido"),
-    animales: z.array(AnimalSchema).min(1, {message: "Debe existir al menos un animal",}),
+    animales: z.array(AnimalSchema).min(1, { message: "Debe existir al menos un animal", }),
     rodeos: z.undefined(),
 });
 

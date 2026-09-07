@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
-import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento } from "@prisma/client";
+import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento, TipoRodeo } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
@@ -631,7 +631,7 @@ class EstablishmentsService {
     }
 
 
-    async listarRodeos(idEstablecimiento: string) {
+    async listarRodeos(idEstablecimiento: string, filtroTipoRodeo?: TipoRodeo[]) {
         const est = await prisma.establecimiento.findUnique({
             where: {
                 idEstablecimiento
@@ -651,7 +651,8 @@ class EstablishmentsService {
 
         const rodeos = await prisma.rodeo.findMany({
             where: {
-                idConfiguracion: est.configuracions[0].idConfiguracion
+                idConfiguracion: est.configuracions[0].idConfiguracion,
+                ...(filtroTipoRodeo ? { tipoRodeo: { in: filtroTipoRodeo } } : {})
             }
         })
 
@@ -668,10 +669,11 @@ class EstablishmentsService {
         const establecimiento = await this.obtenerEstablecimiento(idEstablecimiento);
         const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
 
+        const filtrosRodeo = [TipoRodeo.ALTA_PRODUCCION, TipoRodeo.BAJA_PRODUCCION, TipoRodeo.UNICO_ORDENIE]
         switch (tipoSeguimiento) {
             case TipoSeguimiento.RODEO:
             case TipoSeguimiento.RODEO_UNICO: {
-                const rodeos = await this.listarRodeos(idEstablecimiento);
+                const rodeos = await this.listarRodeos(idEstablecimiento, filtrosRodeo);
                 return {
                     tipoSeguimiento,
                     rodeos,

@@ -61,10 +61,14 @@ export const TipoRodeoMetaData: Record<TipoRodeo, {label: string, value: string}
         label: "Vacas Secas (Preparto)",
         value: TipoRodeo.VACAS_SECAS
     },
-    [TipoRodeo.UNICO]: {
-        label: "Rodeo Único",
-        value: TipoRodeo.UNICO
-    }
+    [TipoRodeo.UNICO_ORDENIE]: {
+        label: "Rodeo Único de Ordeñe",
+        value: TipoRodeo.UNICO_ORDENIE
+    },
+    [TipoRodeo.UNICO_SECA]: {
+        label: "Rodeo Único Seco",
+        value: TipoRodeo.UNICO_SECA
+    },
 };
 
 export const UUIDS = {

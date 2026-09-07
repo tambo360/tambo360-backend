@@ -111,7 +111,7 @@
  * /establecimiento/cuestionario:
  *   post:
  *     summary: Registrar cuestionario del establecimiento
- *     description: Registra la configuración del establecimiento y, según el tipo de seguimiento, sincroniza rodeos o animales.
+ *     description: Registra la configuración del establecimiento y, según el tipo de seguimiento, sincroniza rodeos o animales. El establecimiento se toma del contexto y no se envía en el body.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []
@@ -193,14 +193,14 @@
  *                           example: yogures
  *               rodeos:
  *                 type: array
- *                 description: Requerido para RODEO y RODEO_UNICO.
+ *                 description: Requerido para RODEO y RODEO_UNICO. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
  *                 items:
  *                   type: object
  *                   required: [tipoRodeo, cantVacas, costoRacion]
  *                   properties:
  *                     tipoRodeo:
  *                       type: string
- *                       enum: [ALTA_PRODUCCION, BAJA_PRODUCCION, VACAS_SECAS, UNICO]
+ *                       enum: [ALTA_PRODUCCION, BAJA_PRODUCCION, VACAS_SECAS, UNICO_ORDENIE, UNICO_SECA]
  *                       example: ALTA_PRODUCCION
  *                     cantVacas:
  *                       type: integer
@@ -210,7 +210,7 @@
  *                       example: 150.5
  *               animales:
  *                 type: array
- *                 description: Requerido para INDIVIDUAL.
+ *                 description: Requerido para INDIVIDUAL; su cantidad debe coincidir con cantVacas.
  *                 items:
  *                   type: object
  *                   required: [categoria, estado]
@@ -223,16 +223,23 @@
  *                       example: Animal 1
  *                     categoria:
  *                       type: string
- *                       enum: [ORDENE, SECAS, PREPARTO]
+ *                       enum: [ORDENE, SECAS]
  *                       example: ORDENE
  *                     estado:
  *                       type: string
- *                       enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
- *                       example: PREPARTO
+ *                       enum: [MASTITIS, TRATAMIENTO, NORMAL]
+ *                       example: NORMAL
  *                     fechaNacimiento:
  *                       type: string
  *                       format: date-time
  *                       example: "2024-01-01T00:00:00.000Z"
+ *                     observacion:
+ *                       type: string
+ *                       example: "Animal en seguimiento"
+ *                     fechaParto:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2026-07-20T00:00:00.000Z"
  *               ubicacion:
  *                 type: object
  *                 required:
@@ -270,7 +277,7 @@
  *       401:
  *         description: Usuario no autenticado
  *       403:
- *         description: Permisos insuficientes
+ *         description: Requiere rol OWNER o ADMIN del establecimiento y ORG_OWNER de la organización
  *       404:
  *         description: Establecimiento no encontrado
  */
