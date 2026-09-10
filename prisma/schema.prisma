@@ -336,6 +336,7 @@ model MovimientoAnimal {
   usuarioId       String?
   observacion     String?
   fechaCreacion   DateTime                  @default(now())
+  retorno         DateTime?
   configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
   usuario         Usuario?                  @relation(fields: [usuarioId], references: [idUsuario])
   detalles        MovimientoAnimalDetalle[]

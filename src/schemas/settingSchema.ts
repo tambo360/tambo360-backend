@@ -33,6 +33,7 @@ export const transferenciaRodeoSchema = z.object({
     rodeoDestino: z.string().uuid("Id de rodeo destino inválido"),
     motivo: z.enum(motivosPorTipo.TRANSFERENCIA, "Motivo de transferencia inválido"),
     cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
+    retorno: z.date().optional(),
     observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
 })
 

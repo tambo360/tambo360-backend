@@ -22,9 +22,9 @@ export class LoteService {
         return config.ultimoNumeroLote;
     }
 
-    private async crearLoteRodeo(tx: Prisma.TransactionClient, data: CrearLoteRodeoDTO, idEstablecimiento: string, numeroLote: number, idProducto: string) {
+    private async crearLoteRodeo(tx: Prisma.TransactionClient, data: CrearLoteRodeoDTO, idEstablecimiento: string, numeroLote: number, idProducto: string, idConf: string) {
 
-        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idEstablecimiento)
+        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idConf)
 
         const lote = await tx.loteProduccion.create({
             data: {
@@ -254,7 +254,7 @@ export class LoteService {
             switch (data.tipoSeguimiento) {
                 case TipoSeguimiento.RODEO_UNICO:
                 case TipoSeguimiento.RODEO:
-                    return this.crearLoteRodeo(tx, data, establecimiento.idEstablecimiento, numeroLote, producto.idProducto);
+                    return this.crearLoteRodeo(tx, data, establecimiento.idEstablecimiento, numeroLote, producto.idProducto, establecimiento.configuracions[0].idConfiguracion);
 
                 case TipoSeguimiento.INDIVIDUAL:
                     return this.crearLoteIndividual(tx, data, establecimiento, numeroLote);
