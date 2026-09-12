@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate } from "../middleware/authMiddleware";
 import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento } from "@prisma/client";
-import { DashboardController} from "../controllers/dashboardController";
+import { DashboardController } from "../controllers/dashboardController";
 
 
 const router = express.Router();
@@ -15,9 +15,9 @@ router.use(estContext);
 router.use(establecimientoRequireOrgAccess);
 
 router.get("/costos", requireRoles({ est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER] }), DashboardController.costosPorCategoria)
-/*
-router.get("/mes-actual", authenticate, listarPorMes)
-router.get("/grafico", authenticate, loteGrafico)
 
-*/
+router.get("/mes-actual", DashboardController.mesActual)
+router.get("/grafico", DashboardController.grafico)
+
+
 export default router;

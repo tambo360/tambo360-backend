@@ -39,8 +39,13 @@ export class DashboardService {
 
     }
 
-    /*
-    static async listarPorMes(userId: string) {
+    // =====================================================
+    // GET /dashboard/mes-actual
+    // Actualizado al patrón multi-tenant actual: se filtra por
+    // idEstablecimiento (via req.estAccess) en vez de idUsuario,
+    // que ya no existe como relación directa de Establecimiento.
+    // =====================================================
+    static async listarPorMes(idEstablecimiento: string) {
         // Fechas del mes actual
         const hoy = new Date()
         const anio = hoy.getFullYear()
@@ -61,14 +66,14 @@ export class DashboardService {
         const [resultActual, resultPrev] = await Promise.all([
             prisma.loteProduccion.findMany({
                 where: {
-                    establecimiento: { idUsuario: userId },
+                    idEstablecimiento,
                     fechaProduccion: { gte: fechaInicio, lte: fechaFin }
                 },
                 include: { mermas: true, costosDirectos: true, producto: true }
             }),
             prisma.loteProduccion.findMany({
                 where: {
-                    establecimiento: { idUsuario: userId },
+                    idEstablecimiento,
                     fechaProduccion: { gte: fechaInicioMesAnterior, lte: fechaFinMesAnterior }
                 },
                 include: { mermas: true, costosDirectos: true, producto: true }
@@ -120,7 +125,12 @@ export class DashboardService {
         return { actual, variaciones, mesPrevio: meses[mesAnterior - 1] }
     }
 
-    static async graficoProduccion(userId: string, producto: Categoria, metrica: Metrica) {
+    // =====================================================
+    // GET /dashboard/grafico?producto=leches&metrica=cantidad
+    // Actualizado al patrón multi-tenant actual: idEstablecimiento
+    // en vez de idUsuario.
+    // =====================================================
+    static async graficoProduccion(idEstablecimiento: string, producto: Categoria, metrica: Metrica) {
         const hoy = new Date()
         const anio = hoy.getFullYear()
         const mes = hoy.getMonth()
@@ -130,7 +140,7 @@ export class DashboardService {
 
         const lotes = await prisma.loteProduccion.findMany({
             where: {
-                establecimiento: { idUsuario: userId },
+                idEstablecimiento,
                 fechaProduccion: {
                     gte: inicioPeriodo,
                     lte: finPeriodo
@@ -143,10 +153,9 @@ export class DashboardService {
             }
         })
 
-        if(!lotes.length){
-            return {resultado: [], Lote: false}
+        if (!lotes.length) {
+            return { resultado: [], Lote: false }
         }
-        console.log("lotes", lotes)
 
         const mesesMap: Record<string, number> = {}
 
@@ -200,14 +209,8 @@ export class DashboardService {
 
         })
 
-        return {resultado, Lote: true}
+        return { resultado, Lote: true }
 
     }
-        */
 
 }
-
-
-
-
-
