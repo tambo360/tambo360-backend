@@ -11,7 +11,7 @@ Todos los endpoints requieren JWT y los headers `x-organizacion-id` y `x-estable
 
 ## Tipos de costo
 
-`PERSONAL`, `SERVICIOS`, `LOGISTICA`, `MANTENIMIENTO`, `VETERINARIO`, `INMUEBLE`, `OTRO`.
+`PERSONAL`, `ALIMENTACION`, `SERVICIOS`, `LOGISTICA`, `MANTENIMIENTO`, `VETERINARIO`, `INMUEBLE`, `OTRO`.
 
 ## 1. Registrar un costo general
 

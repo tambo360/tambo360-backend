@@ -24,7 +24,7 @@
  *             properties:
  *               tipoCosto:
  *                 type: string
- *                 enum: [PERSONAL, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO]
+ *                 enum: [PERSONAL, ALIMENTACION, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO]
  *                 example: PERSONAL
  *               descripcion:
  *                 type: string
@@ -95,7 +95,7 @@
  *                         properties:
  *                           idCostoGeneral: { type: string, format: uuid }
  *                           idEstablecimiento: { type: string, format: uuid }
- *                           tipoCosto: { type: string, enum: [PERSONAL, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO] }
+ *                           tipoCosto: { type: string, enum: [PERSONAL, ALIMENTACION, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO] }
  *                           descripcion: { type: string, nullable: true }
  *                           monto: { type: number }
  *                           fecha: { type: string, format: date-time }
@@ -195,7 +195,7 @@
  *             properties:
  *               tipoCosto:
  *                 type: string
- *                 enum: [PERSONAL, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO]
+ *                 enum: [PERSONAL, ALIMENTACION, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO]
  *               descripcion: { type: string, maxLength: 500 }
  *               monto: { type: number, exclusiveMinimum: 0 }
  *               fecha: { type: string, format: date-time }

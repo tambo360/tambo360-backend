@@ -112,6 +112,7 @@ enum TipoDestino {
 
 enum TipoCostoGeneral {
   PERSONAL
+  ALIMENTACION
   SERVICIOS
   LOGISTICA
   MANTENIMIENTO

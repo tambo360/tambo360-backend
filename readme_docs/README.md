@@ -20,6 +20,7 @@ Esta carpeta contiene la documentación completa de todos los endpoints de la AP
 | [health_README.md](health_README.md) | Endpoint de health check | `/health` |
 | [settings_README.md](settings_README.md) | Endpoints de configuración, animales y establecimiento | `/conf/*` |
 | [costos-generales_README.md](costos-generales_README.md) | Endpoints de costos generales y resumen económico | `/costos-generales/*` |
+| [enums_README.md](enums_README.md) | Catálogo y explicación de enums de la API | Modelos y validaciones |
 
 ## Autenticación General
 
