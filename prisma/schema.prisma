@@ -329,15 +329,16 @@ model EstablecimientoProducto {
 }
 
 model Rodeo {
-  idRodeo         String           @id @default(uuid(7))
-  idConfiguracion String
-  tipoRodeo       TipoRodeo
-  cantVacas       Int
-  costoRacion     Decimal          @db.Decimal(13, 2)
-  animals         Animal[]
-  loteProduccions LoteProduccion[]
-  configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
-  razas           Raza[]
+  idRodeo          String            @id @default(uuid(7))
+  idConfiguracion  String
+  tipoRodeo        TipoRodeo
+  cantVacas        Int
+  costoRacion      Decimal           @db.Decimal(13, 2)
+  animals          Animal[]
+  loteProduccions  LoteProduccion[]
+  configuracion    configuracion     @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  razas            Raza[]
+  produccionRodeos ProduccionRodeo[]
 
   @@unique([idConfiguracion, tipoRodeo])
 }
@@ -411,6 +412,16 @@ model ProduccionAnimal {
   lote               LoteProduccion        @relation(fields: [idLote], references: [idLote])
 }
 
+model ProduccionRodeo {
+  idProduccionRodeo String         @id @default(uuid(7))
+  idRodeo           String
+  idLote            String
+  raza              Razas
+  cantVacas         Int
+  rodeo             Rodeo          @relation(fields: [idRodeo], references: [idRodeo])
+  lote              LoteProduccion @relation(fields: [idLote], references: [idLote])
+}
+
 model LoteProduccion {
   idLote                   String             @id @default(uuid(7))
   numeroLote               Int
@@ -420,17 +431,18 @@ model LoteProduccion {
   unidad                   Unidad
   idEstablecimiento        String
   estado                   Boolean            @default(false)
-  idRodeo                  String?
   destino                  TipoDestino
   cantBajadas              Int
-  tempTanque               Decimal?            @db.Decimal(13, 2)
+  tempTanque               Decimal?           @db.Decimal(13, 2)
   cantAnimales             Int
   costosDirectos           CostosDirecto[]
   establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
-  rodeo                    Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
   mermas                   Merma[]
   produccionesIndividuales ProduccionAnimal[]
+  produccionRodeos         ProduccionRodeo[]
+  rodeo                    Rodeo?             @relation(fields: [rodeoIdRodeo], references: [idRodeo])
+  rodeoIdRodeo             String?
 
   @@unique([idEstablecimiento, numeroLote])
 }

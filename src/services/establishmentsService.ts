@@ -612,6 +612,9 @@ class EstablishmentsService {
         const rodeo = await prisma.rodeo.findUnique({
             where: {
                 idRodeo: idRodeo,
+            },
+            include: {
+                razas: true
             }
         })
 

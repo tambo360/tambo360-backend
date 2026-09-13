@@ -127,6 +127,7 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
     "unidad": "kg",
     "tempTanque": 4.5,
     "destino": "TANQUE_FRIO",
+    "cantBajadas": 2,
     "estado": false,
     "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
@@ -135,10 +136,21 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
       "idProducto": "550e8400-e29b-41d4-a716-446655440001",
       "nombre": "Leche Fresca",
       "categoria": "leches"
-    }
+    },
+    "produccionRodeos": [
+      {
+        "idProduccionRodeo": "uuid-produccion-rodeo",
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "idLote": "550e8400-e29b-41d4-a716-446655440000",
+        "raza": "HOLANDO_ARGENTINO",
+        "cantVacas": 40
+      }
+    ]
   }
 }
 ```
+
+En lotes con seguimiento `RODEO` o `RODEO_UNICO`, `produccionRodeos` conserva la distribución de razas del rodeo utilizada al crear el lote. En seguimiento `INDIVIDUAL`, esta colección no se genera.
 
 #### Posibles Errores
 
@@ -383,6 +395,7 @@ Campos adicionales según el `tipoSeguimiento`:
     "unidad": "litros",
     "tempTanque": 4.5,
     "destino": "VENTA",
+    "cantBajadas": 2,
     "estado": false,
     "idProducto": "550e8400-e29b-41d4-a716-446655440001",
     "idEstablecimiento": "uuid-establecimiento",
@@ -390,7 +403,16 @@ Campos adicionales según el `tipoSeguimiento`:
       "idProducto": "550e8400-e29b-41d4-a716-446655440001",
       "nombre": "Leche Fresca",
       "categoria": "leches"
-    }
+    },
+    "produccionRodeos": [
+      {
+        "idProduccionRodeo": "uuid-produccion-rodeo",
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "idLote": "550e8400-e29b-41d4-a716-446655440000",
+        "raza": "HOLANDO_ARGENTINO",
+        "cantVacas": 40
+      }
+    ]
   }
 }
 ```

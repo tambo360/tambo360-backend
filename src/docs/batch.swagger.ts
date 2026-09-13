@@ -145,7 +145,11 @@
  *                     cantidad: { type: number, example: 100 }
  *                     unidad: { type: string, example: "kg" }
  *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-15T12:00:00.000Z" }
+ *                     destino: { type: string, enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS], example: "TANQUE_FRIO" }
+ *                     tempTanque: { type: number, nullable: true, example: 4.5 }
+ *                     cantBajadas: { type: integer, example: 2 }
  *                     estado: { type: boolean, example: false }
+ *                     idRodeo: { type: string, format: uuid, nullable: true }
  *                     numeroLote: { type: integer, example: 1 }
  *                     producto:
  *                       type: object
@@ -153,6 +157,19 @@
  *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
  *                         nombre: { type: string, example: "Leche Fresca" }
  *                         categoria: { type: string, example: "leches" }
+ *                     produccionRodeos:
+ *                       type: array
+ *                       description: Distribución de razas del rodeo copiada al lote al momento de la creación. Solo se devuelve para lotes por RODEO o RODEO_UNICO.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idProduccionRodeo: { type: string, format: uuid }
+ *                           idRodeo: { type: string, format: uuid }
+ *                           idLote: { type: string, format: uuid }
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                           cantVacas: { type: integer, minimum: 1 }
  *       400:
  *         description: Datos inválidos, seguimiento incompatible con la configuración del establecimiento o cuerpo inválido
  *         content:
@@ -676,7 +693,9 @@
  *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-16T00:00:00.000Z" }
  *                     tempTanque: { type: number, example: 4.5 }
  *                     destino: { type: string, example: "VENTA" }
+ *                     cantBajadas: { type: integer, example: 2 }
  *                     estado: { type: boolean, example: false }
+ *                     idRodeo: { type: string, format: uuid, nullable: true }
  *                     numeroLote: { type: integer, example: 123 }
  *                     producto:
  *                       type: object
@@ -684,6 +703,19 @@
  *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
  *                         nombre: { type: string, example: "Leche Fresca" }
  *                         categoria: { type: string, example: "leches" }
+ *                     produccionRodeos:
+ *                       type: array
+ *                       description: Nueva distribución de razas del rodeo asociada al lote editado.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idProduccionRodeo: { type: string, format: uuid }
+ *                           idRodeo: { type: string, format: uuid }
+ *                           idLote: { type: string, format: uuid }
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                           cantVacas: { type: integer, minimum: 1 }
  *       400:
  *         description: Datos inválidos o el lote no puede editarse
  *         content:
