@@ -20,7 +20,7 @@ Esta API permite gestionar establecimientos dentro de una organización. Requier
 
 ## Endpoints
 
-### 1. Crear Establecimiento
+### 1. Crear Establecimiento (DESACTIVO POR AHORA)
 
 **Método:** `POST`  
 **Ruta:** `/establecimiento`  
@@ -47,24 +47,28 @@ Esta API permite gestionar establecimientos dentro de una organización. Requier
   "success": true,
   "message": "Establecimiento creado correctamente",
   "data": {
-    "id": "uuid",
+    "idEstablecimiento": "uuid",
     "nombre": "Establecimiento La Esperanza",
     "idOrganizacion": "uuid",
+    "localidad": null,
+    "provincia": null,
     "cuestionarioCompletado": false,
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "fechaCreacion": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
 
 #### Permisos
-Solo usuarios con rol `duenio` o `cooperativa` pueden crear establecimientos.
+Solo usuarios con rol `ORG_OWNER` o `ORG_ADMIN` de la organización pueden crear establecimientos.
+El usuario que realiza la operación queda asociado al establecimiento con rol `OWNER`, y el backend crea una configuración inicial.
 
 #### Posibles Errores
 
 | Código | Mensaje |
 |--------|---------|
 | 400 | Acceso a organización no válido |
-| 400 | Todos los campos son obligatorios y deben ser válidos |
+| 400 | El nombre es obligatorio y debe tener entre 2 y 100 caracteres |
+| 400 | Ya existe un establecimiento con ese nombre en la organización |
 | 403 | Permisos insuficientes para crear un establecimiento |
 
 ---

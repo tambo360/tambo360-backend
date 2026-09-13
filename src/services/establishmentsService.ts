@@ -66,7 +66,7 @@ class EstablishmentsService {
         if (!data.rodeos) {
             throw new AppError("Debe proporcionar los rodeos", 400);
         }
-        
+
         await Promise.all(
             data.rodeos.map(r =>
                 tx.rodeo.create({
@@ -249,7 +249,7 @@ class EstablishmentsService {
         })
     }
 
-    async create(data: CreateEstablishmentServiceData) {
+    async create(data: CreateEstablishmentServiceData, tx?: Prisma.TransactionClient) {
 
         const existente = await prisma.organizacion.findFirst({
             where: {
@@ -266,16 +266,15 @@ class EstablishmentsService {
             throw new AppError("Ya existe un establecimiento con ese nombre en la organización", 400);
         }
 
-        const result = await prisma.$transaction(async (prisma) => {
-
-            const establecimiento = await prisma.establecimiento.create({
+        if (tx) {
+            const establecimiento = await tx.establecimiento.create({
                 data: {
                     nombre: data.nombre,
                     idOrganizacion: data.idOrg,
                 },
             });
 
-            await prisma.establecimiento_OrganizacionUsuario.create({
+            await tx.establecimiento_OrganizacionUsuario.create({
                 data: {
                     idEstablecimiento: establecimiento.idEstablecimiento,
                     idOrganizacionUsuario: data.idOrganizacionUsuario,
@@ -283,17 +282,41 @@ class EstablishmentsService {
                 }
             })
 
-            await prisma.configuracion.create({
+            await tx.configuracion.create({
                 data: {
                     idEstablecimiento: establecimiento.idEstablecimiento
                 }
             })
 
             return establecimiento;
-        })
+        } else {
+            const result = await prisma.$transaction(async (prisma) => {
+                const establecimiento = await prisma.establecimiento.create({
+                    data: {
+                        nombre: data.nombre,
+                        idOrganizacion: data.idOrg,
+                    },
+                });
 
+                await prisma.establecimiento_OrganizacionUsuario.create({
+                    data: {
+                        idEstablecimiento: establecimiento.idEstablecimiento,
+                        idOrganizacionUsuario: data.idOrganizacionUsuario,
+                        rol: RolEstablecimiento.OWNER,
+                    }
+                })
 
-        return result;
+                await prisma.configuracion.create({
+                    data: {
+                        idEstablecimiento: establecimiento.idEstablecimiento
+                    }
+                })
+
+                return establecimiento;
+            })
+
+            return result;
+        }
     }
 
     async listarPorUsuario(idOrganizacionUsuario: string) {

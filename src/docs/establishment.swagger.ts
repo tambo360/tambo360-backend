@@ -7,10 +7,10 @@
 
 /**
  * @swagger
- * /establecimiento/registrar:
+ * /establecimiento/:
  *   post:
- *     summary: Crear un nuevo establecimiento
- *     description: Permite registrar un establecimiento para un usuario autenticado. Cada usuario solo puede tener un establecimiento.
+ *     summary: Crear un establecimiento en la organización actual
+ *     description: Crea un establecimiento dentro de la organización indicada por x-organizacion-id. El usuario que realiza la operación queda asociado como OWNER y se crea una configuración inicial.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []   # Si usas JWT
@@ -20,23 +20,14 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - nombre
- *               - localidad
- *               - provincia
+ *             required: [nombre]
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: Nombre del establecimiento
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: Nombre del establecimiento, único dentro de la organización
  *                 example: Establecimiento Norte
- *               localidad:
- *                 type: string
- *                 description: Localidad del establecimiento
- *                 example: Rafaela
- *               provincia:
- *                 type: string
- *                 description: Provincia del establecimiento
- *                 example: Santa Fe
  *     responses:
  *       201:
  *         description: Establecimiento creado correctamente
@@ -63,19 +54,21 @@
  *                       example: Establecimiento Norte
  *                     localidad:
  *                       type: string
- *                       example: Rafaela
+ *                       nullable: true
  *                     provincia:
  *                       type: string
- *                       example: Santa Fe
- *                     idUsuario:
+ *                       nullable: true
+ *                     fechaCreacion:
+ *                       type: string
+ *                       format: date-time
+ *                     idOrganizacion:
  *                       type: string
  *                       format: uuid
- *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
  *                     cuestionarioCompletado:
  *                       type: boolean
  *                       example: false
  *       400:
- *         description: Datos inválidos o usuario ya tiene establecimiento
+ *         description: Datos inválidos, acceso a organización no válido o nombre duplicado dentro de la organización
  *         content:
  *           application/json:
  *             schema:
@@ -86,7 +79,7 @@
  *                   example: 400
  *                 message:
  *                   type: string
- *                   example: "Todos los campos son obligatorios o el usuario ya tiene un establecimiento"
+ *                   example: "Ya existe un establecimiento con ese nombre en la organización"
  *                 data:
  *                   type: null
  *       401:
