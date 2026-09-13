@@ -42,13 +42,14 @@ Campos comunes a ambas variantes:
 |-------|------|-------------|-------------|
 | `tipoSeguimiento` | enum | Sí | `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
 | `idLote` | string (UUID) | Sí | ID único del lote |
-| `tempTanque` | number | Sí | Temperatura del tanque, debe ser mayor a 0 |
+| `tempTanque` | number | Condicional | Temperatura mayor a 0; obligatoria únicamente si `destino = TANQUE_FRIO` |
 | `destino` | enum | Sí | `TANQUE_FRIO`, `VENTA` o `FABRICA_QUESOS` |
 | `idProducto` | string (UUID) | Sí | ID del producto a producir |
 | `cantidad` | number | Sí | Cantidad de producción, debe ser mayor a 0 |
 | `unidad` | enum | Sí | `kg` o `litros` |
-| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` entre hoy y 7 días anteriores |
+| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/aaaa`, entre hoy y 7 días anteriores |
 | `estado` | boolean | No | Estado del lote, si se omite queda en `false` |
+| `cantBajadas` | integer | Sí | Cantidad de bajadas, entre 1 y 100 |
 
 Campos adicionales si `tipoSeguimiento = RODEO` o `RODEO_UNICO`:
 
@@ -63,7 +64,7 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
 | `animales` | array | Sí | Lista de animales participantes en la producción |
 | `animales[].idAnimal` | string (UUID) | Sí | ID del animal |
 | `animales[].litros` | number | Sí | Litros producidos por el animal, debe ser mayor a 0 |
-| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
+| `animales[].destino` | enum | Sí | Destino de la producción: `TANQUE` o `DESCARTE` |
 
 > El backend valida que el `tipoSeguimiento` enviado coincida con la configuración del establecimiento. Además, en modo `RODEO` el rodeo debe pertenecer al establecimiento y, en modo `INDIVIDUAL`, la suma de `litros` debe coincidir exactamente con `cantidad` y los animales deben pertenecer al establecimiento.
 
@@ -79,6 +80,7 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
   "cantidad": 100,
   "unidad": "kg",
   "fechaProduccion": "15/05/2026",
+  "cantBajadas": 2,
   "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
 }
 ```
@@ -95,16 +97,17 @@ Campos adicionales si `tipoSeguimiento = INDIVIDUAL`:
   "cantidad": 80,
   "unidad": "litros",
   "fechaProduccion": "15/05/2026",
+  "cantBajadas": 2,
   "animales": [
     {
       "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
       "litros": 40,
-      "estado": "PREPARTO"
+      "destino": "TANQUE"
     },
     {
       "idAnimal": "550e8400-e29b-41d4-a716-446655440021",
       "litros": 40,
-      "estado": "TRATAMIENTO"
+      "destino": "TANQUE"
     }
   ]
 }
@@ -302,10 +305,11 @@ El body del request debe incluir el `tipoSeguimiento` configurado en el establec
 | `tipoSeguimiento` | enum | Sí | `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
 | `idProducto` | string (UUID) | No | ID del producto del lote (opcional) |
 | `cantidad` | number | Sí | Cantidad de producción, mayor a 0 |
-| `unidad` | enum | Sí | Unidad de medida (`kg`, `litros`) |
-| `fechaProduccion` | string | Sí | Fecha en formato `dd/mm/yyyy` |
-| `tempTanque` | number | Sí | Temperatura del tanque, mayor a 0 |
+| `unidad` | enum | No | Unidad de medida (`kg`, `litros`) |
+| `fechaProduccion` | string | No | Fecha en formato `dd/mm/aaaa` |
+| `tempTanque` | number | Condicional | Temperatura mayor a 0; obligatoria únicamente si `destino = TANQUE_FRIO` |
 | `destino` | enum | Sí | `TANQUE_FRIO`, `VENTA` o `FABRICA_QUESOS` |
+| `cantBajadas` | integer | Sí | Cantidad de bajadas, entre 1 y 100 |
 
 Campos adicionales según el `tipoSeguimiento`:
 
@@ -315,7 +319,8 @@ Campos adicionales según el `tipoSeguimiento`:
 | `animales` | array | Sí si `tipoSeguimiento = INDIVIDUAL` | Lista de animales usados en el lote |
 | `animales[].idAnimal` | string (UUID) | Sí | ID del animal |
 | `animales[].litros` | number | Sí | Litros producidos por el animal |
-| `animales[].estado` | enum | Sí | Estado del animal (`MATITIS`, `TRATAMIENTO`, `PREPARTO`, `DESCARTE`) |
+| `animales[].destino` | enum | Sí | Destino de la producción: `TANQUE` o `DESCARTE` |
+| `animales[].estado` | enum | Sí | Estado sanitario: `MASTITIS`, `TRATAMIENTO`, `PREPARTO` o `SANO` |
 
 > El backend valida que el `tipoSeguimiento` enviado coincida con la configuración del establecimiento. El lote debe estar en estado `false` para poder editarlo.
 
@@ -330,6 +335,7 @@ Campos adicionales según el `tipoSeguimiento`:
   "fechaProduccion": "16/05/2026",
   "tempTanque": 4.5,
   "destino": "VENTA",
+  "cantBajadas": 2,
   "idRodeo": "550e8400-e29b-41d4-a716-446655440003"
 }
 ```
@@ -345,15 +351,18 @@ Campos adicionales según el `tipoSeguimiento`:
   "fechaProduccion": "16/05/2026",
   "tempTanque": 3.5,
   "destino": "TANQUE_FRIO",
+  "cantBajadas": 2,
   "animales": [
     {
       "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
       "litros": 40,
-      "estado": "PREPARTO"
+      "destino": "TANQUE",
+      "estado": "SANO"
     },
     {
       "idAnimal": "550e8400-e29b-41d4-a716-446655440021",
       "litros": 40,
+      "destino": "TANQUE",
       "estado": "TRATAMIENTO"
     }
   ]

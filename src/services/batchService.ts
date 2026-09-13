@@ -39,7 +39,8 @@ export class LoteService {
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
                 numeroLote: numeroLote,
-                idRodeo: rodeo.idRodeo
+                idRodeo: rodeo.idRodeo,
+                cantBajadas: data.cantBajadas
             },
             include: {
                 producto: {
@@ -78,7 +79,8 @@ export class LoteService {
                 destino: data.destino,
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
-                numeroLote: numeroLote
+                numeroLote: numeroLote,
+                cantBajadas: data.cantBajadas
             }
         })
 
@@ -137,6 +139,7 @@ export class LoteService {
                 fechaProduccion: data.fechaProduccion,
                 tempTanque: data.tempTanque,
                 destino: data.destino,
+                cantBajadas: data.cantBajadas,
             },
             include: {
                 producto: {
@@ -229,6 +232,7 @@ export class LoteService {
                 tempTanque: data.tempTanque,
                 destino: data.destino,
                 cantAnimales: data.animales.length,
+                cantBajadas: data.cantBajadas
             }
         });
 

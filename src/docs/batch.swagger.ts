@@ -20,7 +20,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, idRodeo]
+ *                 required: [tipoSeguimiento, idLote, destino, idProducto, cantidad, unidad, fechaProduccion, cantBajadas, idRodeo]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -32,6 +32,8 @@
  *                     example: "550e8400-e29b-41d4-a716-446655440000"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 4.5
  *                   destino:
  *                     type: string
@@ -50,16 +52,22 @@
  *                     example: kg
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "15/05/2026"
  *                   estado:
  *                     type: boolean
  *                     example: false
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   idRodeo:
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440003"
  *               - type: object
- *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, animales]
+ *                 required: [tipoSeguimiento, idLote, destino, idProducto, cantidad, unidad, fechaProduccion, cantBajadas, animales]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -71,6 +79,8 @@
  *                     example: "550e8400-e29b-41d4-a716-446655440010"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 3.2
  *                   destino:
  *                     type: string
@@ -89,16 +99,22 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "15/05/2026"
  *                   estado:
  *                     type: boolean
  *                     example: false
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   animales:
  *                     type: array
  *                     minItems: 1
  *                     items:
  *                       type: object
- *                       required: [idAnimal, litros, estado]
+ *                       required: [idAnimal, litros, destino]
  *                       properties:
  *                         idAnimal:
  *                           type: string
@@ -107,10 +123,10 @@
  *                         litros:
  *                           type: number
  *                           example: 40
- *                         estado:
+ *                         destino:
  *                           type: string
- *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
- *                           example: PREPARTO
+ *                           enum: [TANQUE, DESCARTE]
+ *                           example: TANQUE
  *     responses:
  *       201:
  *         description: Lote creado correctamente
@@ -543,7 +559,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, idRodeo]
+ *                 required: [tipoSeguimiento, cantidad, destino, cantBajadas, idRodeo]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -562,9 +578,12 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "16/05/2026"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 4.5
  *                   destino:
  *                     type: string
@@ -574,8 +593,13 @@
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440003"
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *               - type: object
- *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, animales]
+ *                 required: [tipoSeguimiento, cantidad, destino, cantBajadas, animales]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -594,20 +618,28 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "16/05/2026"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 3.5
  *                   destino:
  *                     type: string
  *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
  *                     example: TANQUE_FRIO
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   animales:
  *                     type: array
  *                     minItems: 1
  *                     items:
  *                       type: object
- *                       required: [idAnimal, litros, estado]
+ *                       required: [idAnimal, litros, destino, estado]
  *                       properties:
  *                         idAnimal:
  *                           type: string
@@ -616,10 +648,14 @@
  *                         litros:
  *                           type: number
  *                           example: 40
+ *                         destino:
+ *                           type: string
+ *                           enum: [TANQUE, DESCARTE]
+ *                           example: TANQUE
  *                         estado:
  *                           type: string
- *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
- *                           example: PREPARTO
+ *                           enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
+ *                           example: SANO
  *     responses:
  *       200:
  *         description: Lote actualizado correctamente

@@ -19,8 +19,7 @@ const baseLoteSchema = z.object({
         .refine((v) => v !== undefined && v !== null, {
             message: "La temperatura del tanque es obligatoria",
         })
-        .positive("La temperatura del tanque debe ser mayor a 0"),
-
+        .positive("La temperatura del tanque debe ser mayor a 0").optional(),
     destino: z.enum(TipoDestino, "Destino inválido"),
     idProducto: z
         .string()
@@ -50,10 +49,21 @@ const baseLoteSchema = z.object({
                 .second(ahoraArgentina.second())
                 .toDate();
         }),
-
     estado: z.boolean().optional(),
     unidad: z.enum(Unidad, "Unidad de medida inválida"),
-});
+    cantBajadas: z.number().int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100")
+}).refine(
+  (data) => {
+    if (data.destino === "TANQUE_FRIO") {
+      return data.tempTanque !== undefined && data.tempTanque !== null;
+    }
+    return true;
+  },
+  {
+    message: "La temperatura del tanque es obligatoria cuando el destino es tanque de frio",
+    path: ["tempTanque"]
+  }
+);
 
 // Estructura de un lote con seguimiento por rodeo + Estructura base
 const loteRodeoSchema = baseLoteSchema.extend({
@@ -126,9 +136,21 @@ const baseEditarLoteSchema = z.object({
         }),
     tempTanque: z.coerce
         .number()
-        .positive("La temperatura del tanque debe ser mayor a 0"),
+        .positive("La temperatura del tanque debe ser mayor a 0").optional(),
     destino: z.enum(TipoDestino, "Destino inválido"),
-});
+    cantBajadas: z.number().int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100"),
+}).refine(
+  (data) => {
+    if (data.destino === "TANQUE_FRIO") {
+      return data.tempTanque !== undefined && data.tempTanque !== null;
+    }
+    return true;
+  },
+  {
+    message: "La temperatura del tanque es obligatoria cuando el destino es tanque de frio",
+    path: ["tempTanque"]
+  }
+);
 
 const editarLoteRodeoSchema = baseEditarLoteSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),

@@ -423,7 +423,7 @@ model LoteProduccion {
   idRodeo                  String?
   destino                  TipoDestino
   cantBajadas              Int
-  tempTanque               Decimal            @db.Decimal(13, 2)
+  tempTanque               Decimal?            @db.Decimal(13, 2)
   cantAnimales             Int
   costosDirectos           CostosDirecto[]
   establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
