@@ -42,7 +42,7 @@ const RodeoSchema = z.object({
     razas: z.array(z.object({
         raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
         cantVacas: z.number().int().positive("La cantidad de animales debe ser un número entero positivo")
-    }))
+    })).min(1, { message: "Debe existir al menos una raza" })
 })
 
 export const AnimalSchema = z.object({
