@@ -41,7 +41,6 @@ export class LoteService {
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
                 numeroLote: numeroLote,
-                idRodeo: rodeo.idRodeo,
                 cantBajadas: data.cantBajadas,
                 produccionRodeos: {
                     create: rodeo.razas.map(raza => ({
@@ -144,7 +143,6 @@ export class LoteService {
             where: { idLote, idEstablecimiento: idEstablecimiento },
             data: {
                 ...(producto && { idProducto: producto.idProducto }),
-                idRodeo: rodeo.idRodeo,
                 cantAnimales: rodeo.cantVacas,
                 cantidad: data.cantidad,
                 unidad: data.unidad,
