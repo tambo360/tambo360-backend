@@ -1,4 +1,4 @@
-import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoSanitarioAnimal } from "@prisma/client";
+import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoSanitarioAnimal, Razas } from "@prisma/client";
 import { z } from "zod";
 
 const requiredString = (message: string) =>
@@ -39,6 +39,10 @@ const RodeoSchema = z.object({
     tipoRodeo: z.enum(TipoRodeo, "El tipo de rodeo debe ser un valor válido"),
     cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
     costoRacion: z.number().positive("El costo de la ración debe ser un número positivo"),
+    razas: z.array(z.object({
+        raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
+        cantVacas: z.number().int().positive("La cantidad de animales debe ser un número entero positivo")
+    }))
 })
 
 export const AnimalSchema = z.object({
@@ -48,7 +52,8 @@ export const AnimalSchema = z.object({
     estado: z.enum(EstadoSanitarioAnimal, "El estado del animal debe ser un valor válido"),
     fechaNacimiento: z.date().optional(),
     observacion: z.string().optional(),
-    fechaParto: z.date().optional()
+    fechaParto: z.date().optional(),
+    raza: z.enum(Razas, "La raza del animal debe ser un valor válido")
 }).refine((data) => {
     return !!data.codigo || !!data.nombre;
 }, {
@@ -63,8 +68,7 @@ const questionnaireBaseSchema = z.object({
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
     promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),
     ventaLeche: z.enum(VentaLeche, "El tipo de venta de leche debe ser un valor válido"),
-    empleados: z.boolean("Debe indicar si tiene empleados o no"),
-    cantEmpleados: z.number().int().positive("La cantidad de empleados debe ser un número entero positivo").optional(),
+    precioLitro: z.number().positive("El precio por litro debe ser un número positivo"),
     ubicacion: z.object({
         provincia: requiredString("La provincia es obligatoria"),
         localidad: requiredString("La localidad es obligatoria"),

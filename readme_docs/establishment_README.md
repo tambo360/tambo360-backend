@@ -209,26 +209,29 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 | `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (entero positivo) |
 | `tipoOrdenie` | enum | Sí | Tipo de ordeñe (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`) |
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
-| `ventaLeche` | enum | Sí | Tipo de venta de leche (`usina`, `fabrica_propia`, `cooperativa`, `varios`) |
-| `empleados` | boolean | Sí | Indica si tiene empleados |
-| `cantEmpleados` | number (int) | No | Cantidad de empleados cuando `empleados` es `true` |
+| `ventaLeche` | enum | Sí | Tipo de venta de leche (`USINA`, `COOPERTIVA`, `ELABORACION_PROPIA`, `VENTA_DIRECTA_MERCADO_LOCAL`) |
+| `precioLitro` | number | Sí | Precio por litro, mayor que 0 |
 | `productos` | array | No | Productos asociados al establecimiento |
 | `productos[].tipo` | string | Sí | `existente` o `nuevo` |
 | `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
 | `productos[].nombre` | string | Sí | Nombre del producto |
-| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo` |
+| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo`: `quesos`, `leches`, `yogures` u `otros` |
 | `rodeos` | array | Sí si `TipoSeguimiento = RODEO` o `RODEO_UNICO` | Rodeos por tipo de producción |
 | `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`, `UNICO_ORDENIE` o `UNICO_SECA` |
 | `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en ese rodeo |
 | `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
+| `rodeos[].razas` | array | Sí | Distribución de razas dentro del rodeo |
+| `rodeos[].razas[].raza` | enum | Sí | Raza del animal |
+| `rodeos[].razas[].cantVacas` | number (int) | Sí | Cantidad de animales de esa raza |
 | `animales` | array | Sí si `TipoSeguimiento = INDIVIDUAL` | Lista de animales a registrar |
 | `animales[].codigo` | string | No | Código del animal |
 | `animales[].nombre` | string | No | Nombre del animal |
 | `animales[].categoria` | enum | Sí | Categoría del animal (`ORDENE`, `SECAS`) |
-| `animales[].estado` | enum | Sí | Estado del animal (`MASTITIS`, `TRATAMIENTO`, `NORMAL`) |
+| `animales[].estado` | enum | Sí | Estado del animal (`MASTITIS`, `TRATAMIENTO`, `PREPARTO`, `SANO`) |
 | `animales[].fechaNacimiento` | Date | No | Fecha de nacimiento del animal |
 | `animales[].observacion` | string | No | Observación opcional del animal |
 | `animales[].fechaParto` | Date | No | Fecha del último parto del animal |
+| `animales[].raza` | enum | Sí | Raza del animal |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
 
@@ -239,6 +242,7 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 > - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
 > - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
 > - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
+> - Cada rodeo debe incluir una distribución de razas con cantidades positivas.
 
 #### Ejemplo de Request (seguimiento por rodeos)
 
@@ -249,9 +253,8 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
   "promLitros": 25.5,
-  "ventaLeche": "usina",
-  "empleados": true,
-  "cantEmpleados": 3,
+  "ventaLeche": "USINA",
+  "precioLitro": 42.5,
   "productos": [
     {
       "tipo": "existente",
@@ -268,17 +271,27 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
     {
       "tipoRodeo": "ALTA_PRODUCCION",
       "cantVacas": 80,
-      "costoRacion": 150.50
+      "costoRacion": 150.50,
+      "razas": [
+        { "raza": "HOLANDO_ARGENTINO", "cantVacas": 40 },
+        { "raza": "JERSEY", "cantVacas": 40 }
+      ]
     },
     {
       "tipoRodeo": "BAJA_PRODUCCION",
       "cantVacas": 50,
-      "costoRacion": 120.00
+      "costoRacion": 120.00,
+      "razas": [
+        { "raza": "HOLANDO_ARGENTINO", "cantVacas": 50 }
+      ]
     },
     {
       "tipoRodeo": "VACAS_SECAS",
       "cantVacas": 20,
-      "costoRacion": 80.00
+      "costoRacion": 80.00,
+      "razas": [
+        { "raza": "HOLANDO_ARGENTINO", "cantVacas": 20 }
+      ]
     }
   ],
   "ubicacion": {
@@ -297,22 +310,23 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
   "promLitros": 25.5,
-  "ventaLeche": "usina",
-  "empleados": true,
-  "cantEmpleados": 3,
+  "ventaLeche": "USINA",
+  "precioLitro": 42.5,
   "animales": [
     {
       "codigo": "A-001",
       "nombre": "Animal 1",
       "categoria": "ORDENE",
-      "estado": "NORMAL",
-      "fechaNacimiento": "2024-01-01T00:00:00.000Z"
+      "estado": "SANO",
+      "fechaNacimiento": "2024-01-01T00:00:00.000Z",
+      "raza": "HOLANDO_ARGENTINO"
     },
     {
       "codigo": "A-002",
       "nombre": "Animal 2",
       "categoria": "SECAS",
-      "estado": "TRATAMIENTO"
+      "estado": "TRATAMIENTO",
+      "raza": "JERSEY"
     }
   ],
   "ubicacion": {

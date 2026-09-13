@@ -55,8 +55,7 @@ class EstablishmentsService {
                 promLitros: data.promLitros,
                 tipoOrdenie: data.tipoOrdenie,
                 ventaLeche: data.ventaLeche,
-                empleados: data.empleados,
-                cantEmpleados: data.cantEmpleados,
+                precioLitro: data.precioLitro,
                 tipoSeguimiento: data.TipoSeguimiento,
                 modificadoEn: new Date(),
             }
@@ -67,15 +66,25 @@ class EstablishmentsService {
         if (!data.rodeos) {
             throw new AppError("Debe proporcionar los rodeos", 400);
         }
-
-        await tx.rodeo.createMany({
-            data: data.rodeos.map(r => ({
-                tipoRodeo: r.tipoRodeo,
-                cantVacas: r.cantVacas,
-                costoRacion: r.costoRacion,
-                idConfiguracion: idConfiguracion,
-            })),
-        });
+        
+        await Promise.all(
+            data.rodeos.map(r =>
+                tx.rodeo.create({
+                    data: {
+                        tipoRodeo: r.tipoRodeo,
+                        cantVacas: r.cantVacas,
+                        costoRacion: r.costoRacion,
+                        idConfiguracion,
+                        razas: {
+                            create: r.razas.map(raza => ({
+                                nombre: raza.raza,
+                                cantVacas: raza.cantVacas,
+                            })),
+                        },
+                    },
+                })
+            )
+        );
     }
 
     private async sincronizarProductos(tx: Prisma.TransactionClient, data: QuestionnaireData, idOrganizacion: string) {
@@ -234,7 +243,8 @@ class EstablishmentsService {
                 estado: a.estado,
                 fechaNacimiento: a.fechaNacimiento,
                 fechaUltimoParto: a.fechaParto,
-                observacion: a.observacion
+                observacion: a.observacion,
+                raza: a.raza
             }))
         })
     }
@@ -360,11 +370,11 @@ class EstablishmentsService {
             /*
             if (data.promLitros < this.LIMITE_PROM_LITROS && data.TipoSeguimiento === TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser mayor a ${this.LIMITE_PROM_LITROS} para el seguimiento por rodeo`, 400);
-            }
+            }*/
 
             if (data.promLitros > this.LIMITE_PROM_LITROS && data.TipoSeguimiento !== TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser menor a ${this.LIMITE_PROM_LITROS} para el seguimiento individual o unico`, 400);
-            }*/
+            }
 
             const cant =
                 data.TipoSeguimiento === TipoSeguimiento.RODEO || data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO
@@ -430,10 +440,10 @@ class EstablishmentsService {
                 }
             }),
             prisma.animal.findMany({
-                where:{
+                where: {
                     idEstablecimiento: cuestionario.idEstablecimiento
                 },
-                select:{
+                select: {
                     idAnimal: true,
                     idRodeo: true,
                     codigo: true,

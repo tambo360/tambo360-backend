@@ -51,7 +51,7 @@
  *       description: Método de ordeñe del establecimiento.
  *     VentaLeche:
  *       type: string
- *       enum: [usina, fabrica_propia, cooperativa, varios]
+ *       enum: [USINA, COOPERTIVA, ELABORACION_PROPIA, VENTA_DIRECTA_MERCADO_LOCAL]
  *       description: Canal o modalidad de venta de leche.
  *     GeneroAnimal:
  *       type: string
@@ -79,7 +79,7 @@
  *       description: Categoría productiva del animal.
  *     EstadoSanitarioAnimal:
  *       type: string
- *       enum: [MASTITIS, TRATAMIENTO, NORMAL]
+ *       enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
  *       description: Estado sanitario actual del animal.
  *     DestinoProduccion:
  *       type: string
@@ -97,4 +97,8 @@
  *       type: string
  *       enum: [bajo, medio, alto]
  *       description: Nivel de severidad de una alerta.
+ *     Razas:
+ *       type: string
+ *       enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *       description: Raza del animal o composición racial de un rodeo.
  */

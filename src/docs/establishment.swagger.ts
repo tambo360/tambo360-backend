@@ -128,7 +128,7 @@
  *               - tipoOrdenie
  *               - promLitros
  *               - ventaLeche
- *               - empleados
+ *               - precioLitro
  *               - ubicacion
  *             properties:
  *               TipoSeguimiento:
@@ -150,14 +150,12 @@
  *                 example: 25.5
  *               ventaLeche:
  *                 type: string
- *                 enum: [usina, fabrica_propia, cooperativa, varios]
- *                 example: usina
- *               empleados:
- *                 type: boolean
- *                 example: true
- *               cantEmpleados:
- *                 type: integer
- *                 example: 3
+ *                 enum: [USINA, COOPERTIVA, ELABORACION_PROPIA, VENTA_DIRECTA_MERCADO_LOCAL]
+ *                 example: USINA
+ *               precioLitro:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 example: 42.5
  *               productos:
  *                 type: array
  *                 description: Productos asociados al establecimiento. Puede incluir productos existentes o nuevos.
@@ -189,14 +187,14 @@
  *                           example: Yogur Natural
  *                         categoria:
  *                           type: string
- *                           enum: [leches, yogures, quesos, carnes, otros]
+ *                           enum: [quesos, leches, yogures, otros]
  *                           example: yogures
  *               rodeos:
  *                 type: array
  *                 description: Requerido para RODEO y RODEO_UNICO. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
  *                 items:
  *                   type: object
- *                   required: [tipoRodeo, cantVacas, costoRacion]
+ *                   required: [tipoRodeo, cantVacas, costoRacion, razas]
  *                   properties:
  *                     tipoRodeo:
  *                       type: string
@@ -208,12 +206,27 @@
  *                     costoRacion:
  *                       type: number
  *                       example: 150.5
+ *                     razas:
+ *                       type: array
+ *                       minItems: 1
+ *                       items:
+ *                         type: object
+ *                         required: [raza, cantVacas]
+ *                         properties:
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                             example: HOLANDO_ARGENTINO
+ *                           cantVacas:
+ *                             type: integer
+ *                             minimum: 1
+ *                             example: 40
  *               animales:
  *                 type: array
  *                 description: Requerido para INDIVIDUAL; su cantidad debe coincidir con cantVacas.
  *                 items:
  *                   type: object
- *                   required: [categoria, estado]
+ *                   required: [categoria, estado, raza]
  *                   properties:
  *                     codigo:
  *                       type: string
@@ -227,8 +240,8 @@
  *                       example: ORDENE
  *                     estado:
  *                       type: string
- *                       enum: [MASTITIS, TRATAMIENTO, NORMAL]
- *                       example: NORMAL
+ *                       enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
+ *                       example: SANO
  *                     fechaNacimiento:
  *                       type: string
  *                       format: date-time
@@ -240,6 +253,10 @@
  *                       type: string
  *                       format: date-time
  *                       example: "2026-07-20T00:00:00.000Z"
+ *                     raza:
+ *                       type: string
+ *                       enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                       example: HOLANDO_ARGENTINO
  *               ubicacion:
  *                 type: object
  *                 required:
