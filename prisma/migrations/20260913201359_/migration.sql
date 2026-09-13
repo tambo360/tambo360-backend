@@ -1,0 +1,18 @@
+-- CreateEnum
+CREATE TYPE "Razas" AS ENUM ('HOLANDO_ARGENTINO', 'JERSEY', 'PARDO_SUIZO', 'GIR_LECHERO', 'HOLANDO_JERSEY_CRUZA', 'AYRSHIRE', 'NORMANDO', 'BROWN_SWISS', 'MONTBELIARDE', 'SIMMENTAL_LECHERO', 'OTRAS');
+
+-- AlterTable
+ALTER TABLE "Animal" ADD COLUMN     "raza" "Razas" NOT NULL DEFAULT 'OTRAS';
+
+-- CreateTable
+CREATE TABLE "Raza" (
+    "idRaza" TEXT NOT NULL,
+    "nombre" "Razas" NOT NULL,
+    "cantVacas" INTEGER NOT NULL,
+    "idRodeo" TEXT NOT NULL,
+
+    CONSTRAINT "Raza_pkey" PRIMARY KEY ("idRaza")
+);
+
+-- AddForeignKey
+ALTER TABLE "Raza" ADD CONSTRAINT "Raza_idRodeo_fkey" FOREIGN KEY ("idRodeo") REFERENCES "Rodeo"("idRodeo") ON DELETE RESTRICT ON UPDATE CASCADE;

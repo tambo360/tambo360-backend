@@ -85,10 +85,10 @@ enum TipoOrdenie {
 }
 
 enum VentaLeche {
-  usina
-  fabrica_propia
-  cooperativa
-  varios
+  USINA
+  COOPERTIVA
+  ELABORACION_PROPIA
+  VENTA_DIRECTA_MERCADO_LOCAL
 }
 
 enum GeneroAnimal {
@@ -135,7 +135,8 @@ enum CategoriaAnimal {
 enum EstadoSanitarioAnimal {
   MASTITIS
   TRATAMIENTO
-  NORMAL
+  PREPARTO
+  SANO
 }
 
 enum DestinoProduccion {
@@ -166,6 +167,20 @@ enum NivelAlerta {
   bajo
   medio
   alto
+}
+
+enum Razas {
+  HOLANDO_ARGENTINO
+  JERSEY
+  PARDO_SUIZO
+  GIR_LECHERO
+  HOLANDO_JERSEY_CRUZA
+  AYRSHIRE
+  NORMANDO
+  BROWN_SWISS
+  MONTBELIARDE
+  SIMMENTAL_LECHERO
+  OTRAS
 }
 
 // TABLAS ------------------------------------------------------------
@@ -248,6 +263,7 @@ model configuracion {
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
+  precioLitro       Decimal?           @db.Decimal(13, 2)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
@@ -321,8 +337,17 @@ model Rodeo {
   animals         Animal[]
   loteProduccions LoteProduccion[]
   configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  razas           Raza[]
 
   @@unique([idConfiguracion, tipoRodeo])
+}
+
+model Raza {
+  idRaza    String @id @default(uuid(7))
+  nombre    Razas
+  cantVacas Int
+  idRodeo   String
+  rodeo     Rodeo  @relation(fields: [idRodeo], references: [idRodeo])
 }
 
 //Solo guarda altas, bajas y transferencias (impactan en stock).
@@ -360,6 +385,7 @@ model Animal {
   nombre            String?
   categoria         CategoriaAnimal
   estado            EstadoSanitarioAnimal
+  raza              Razas                     @default(OTRAS)
   activo            Boolean                   @default(true)
   fechaNacimiento   DateTime?
   genero            GeneroAnimal              @default(HEMBRA)
@@ -396,6 +422,7 @@ model LoteProduccion {
   estado                   Boolean            @default(false)
   idRodeo                  String?
   destino                  TipoDestino
+  cantBajadas              Int
   tempTanque               Decimal            @db.Decimal(13, 2)
   cantAnimales             Int
   costosDirectos           CostosDirecto[]
