@@ -116,9 +116,9 @@
  *             type: object
  *             required:
  *               - TipoSeguimiento
- *               - cantVacas
  *               - cantOrdenie
  *               - tipoOrdenie
+ *               - promDEL
  *               - promLitros
  *               - ventaLeche
  *               - precioLitro
@@ -128,9 +128,6 @@
  *                 type: string
  *                 enum: [RODEO, RODEO_UNICO, INDIVIDUAL]
  *                 example: RODEO
- *               cantVacas:
- *                 type: integer
- *                 example: 150
  *               cantOrdenie:
  *                 type: integer
  *                 example: 2
@@ -141,6 +138,11 @@
  *               promLitros:
  *                 type: number
  *                 example: 25.5
+ *               promDEL:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 description: Promedio de días en leche (DEL).
+ *                 example: 120
  *               ventaLeche:
  *                 type: string
  *                 enum: [USINA, COOPERTIVA, ELABORACION_PROPIA, VENTA_DIRECTA_MERCADO_LOCAL]
@@ -184,18 +186,15 @@
  *                           example: yogures
  *               rodeos:
  *                 type: array
- *                 description: Requerido para RODEO y RODEO_UNICO. Debe contener al menos una raza por rodeo. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
+ *                 description: Requerido para RODEO y RODEO_UNICO. La cantidad de vacas se calcula sumando las cantidades de sus razas. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
  *                 items:
  *                   type: object
- *                   required: [tipoRodeo, cantVacas, costoRacion, razas]
+ *                   required: [tipoRodeo, costoRacion, razas]
  *                   properties:
  *                     tipoRodeo:
  *                       type: string
  *                       enum: [ALTA_PRODUCCION, BAJA_PRODUCCION, VACAS_SECAS, UNICO_ORDENIE, UNICO_SECA]
  *                       example: ALTA_PRODUCCION
- *                     cantVacas:
- *                       type: integer
- *                       example: 80
  *                     costoRacion:
  *                       type: number
  *                       example: 150.5
@@ -216,7 +215,7 @@
  *                             example: 40
  *               animales:
  *                 type: array
- *                 description: Requerido para INDIVIDUAL; su cantidad debe coincidir con cantVacas.
+ *                 description: Requerido para INDIVIDUAL. La cantidad total de animales se calcula a partir del array.
  *                 items:
  *                   type: object
  *                   required: [categoria, estado, raza]
@@ -285,7 +284,7 @@
  *                       type: string
  *                       example: success
  *       400:
- *         description: Datos inválidos, faltan rodeos/animales, falta una raza o un animal de categoría ORDENE tiene un estado distinto de SANO
+ *         description: Datos inválidos, faltan rodeos/animales, falta una raza, un animal de categoría ORDENE tiene un estado distinto de SANO o se exceden los límites del seguimiento individual
  *       401:
  *         description: Usuario no autenticado
  *       403:

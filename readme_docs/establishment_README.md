@@ -245,13 +245,12 @@ Solo pueden registrar el cuestionario:
 | Campo | Tipo | Obligatorio | Descripción |
 |-------|------|-------------|-------------|
 | `TipoSeguimiento` | enum | Sí | Modo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
-| `cantVacas` | number (int) | Sí | Cantidad total de vacas (entero positivo) |
 | `cantOrdenie` | number (int) | Sí | Cantidad de ordeñes por día (entero positivo) |
 | `tipoOrdenie` | enum | Sí | Tipo de ordeñe (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`) |
+| `promDEL` | number | Sí | Promedio de días en leche (DEL), mayor que 0 |
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
 | `ventaLeche` | enum | Sí | Tipo de venta de leche (`USINA`, `COOPERTIVA`, `ELABORACION_PROPIA`, `VENTA_DIRECTA_MERCADO_LOCAL`) |
 | `precioLitro` | number | Sí | Precio por litro, mayor que 0 |
-| `promDEL` | number | Sí | Promedio DEL, mayor que 0 |
 | `productos` | array | No | Productos asociados al establecimiento |
 | `productos[].tipo` | string | Sí | `existente` o `nuevo` |
 | `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
@@ -259,7 +258,6 @@ Solo pueden registrar el cuestionario:
 | `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo`: `quesos`, `leches`, `yogures` u `otros` |
 | `rodeos` | array | Sí si `TipoSeguimiento = RODEO` o `RODEO_UNICO` | Rodeos por tipo de producción |
 | `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`, `UNICO_ORDENIE` o `UNICO_SECA` |
-| `rodeos[].cantVacas` | number (int) | Sí | Cantidad de vacas en ese rodeo |
 | `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
 | `rodeos[].razas` | array | Sí | Distribución de razas dentro del rodeo |
 | `rodeos[].razas[].raza` | enum | Sí | Raza del animal |
@@ -280,25 +278,22 @@ Solo pueden registrar el cuestionario:
 > **Reglas de negocio importantes:**
 > - Si `TipoSeguimiento = RODEO`, debe enviarse `rodeos` y el backend valida que exista al menos un rodeo de cada tipo (`ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`).
 > - Si `TipoSeguimiento = RODEO_UNICO`, deben enviarse rodeos que incluyan al menos un `UNICO_ORDENIE` y un `UNICO_SECA`.
-> - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
-> - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
-> - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
+> - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales`; la cantidad total se calcula desde el array.
+> - Para `RODEO` y `RODEO_UNICO`, la cantidad total de vacas se calcula sumando `razas[].cantVacas` de todos los rodeos.
+> - En seguimiento individual se rechaza una cantidad de animales superior a 70 o un `promLitros` superior a 2000.
 > - Cada rodeo debe incluir al menos una raza y cada `raza` con cantidad positiva.
 > - Un animal de categoría `ORDENE` solo puede tener estado `SANO`.
 > - `fechaNacimiento` y `fechaParto` se envían como strings ISO/Date y luego se convierten a `Date` en el Zod.
-> - Cada rodeo debe incluir al menos una raza.
-> - Un animal de categoría `ORDENE` solo puede tener estado `SANO`.
 
 #### Ejemplo de Request (seguimiento por rodeos)
 
 ```json
 {
   "TipoSeguimiento": "RODEO",
-  "cantVacas": 150,
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
+  "promDEL": 120,
   "promLitros": 25.5,
-  "promDEL": 90,
   "ventaLeche": "USINA",
   "precioLitro": 42.5,
   "productos": [
@@ -316,7 +311,6 @@ Solo pueden registrar el cuestionario:
   "rodeos": [
     {
       "tipoRodeo": "ALTA_PRODUCCION",
-      "cantVacas": 80,
       "costoRacion": 150.50,
       "razas": [
         { "raza": "HOLANDO_ARGENTINO", "cantVacas": 40 },
@@ -325,7 +319,6 @@ Solo pueden registrar el cuestionario:
     },
     {
       "tipoRodeo": "BAJA_PRODUCCION",
-      "cantVacas": 50,
       "costoRacion": 120.00,
       "razas": [
         { "raza": "HOLANDO_ARGENTINO", "cantVacas": 50 }
@@ -333,7 +326,6 @@ Solo pueden registrar el cuestionario:
     },
     {
       "tipoRodeo": "VACAS_SECAS",
-      "cantVacas": 20,
       "costoRacion": 80.00,
       "razas": [
         { "raza": "HOLANDO_ARGENTINO", "cantVacas": 20 }
@@ -352,11 +344,10 @@ Solo pueden registrar el cuestionario:
 ```json
 {
   "TipoSeguimiento": "INDIVIDUAL",
-  "cantVacas": 2,
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
+  "promDEL": 120,
   "promLitros": 25.5,
-  "promDEL": 90,
   "ventaLeche": "USINA",
   "precioLitro": 42.5,
   "animales": [

@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
+import { Animal, CreateEstablishmentData, QuestionnaireData, QuestionnaireIndividualData, Rodeo } from "../schemas/establishmentSchema";
 import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento, TipoRodeo, CategoriaAnimal, EstadoSanitarioAnimal } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
@@ -44,13 +44,13 @@ class EstablishmentsService {
         });
     }
 
-    private async actualizarConfiguracion(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
+    private async actualizarConfiguracion(tx: Prisma.TransactionClient, data: QuestionnaireData, cantVacas: number, idConfiguracion: string) {
         await tx.configuracion.update({
             where: {
                 idConfiguracion: idConfiguracion,
             },
             data: {
-                cantVacas: data.cantVacas,
+                cantVacas: cantVacas,
                 cantOrdenies: data.cantOrdenie,
                 promLitros: data.promLitros,
                 promDEL: data.promDEL,
@@ -63,18 +63,8 @@ class EstablishmentsService {
         });
     }
 
-    private async sincronizarRodeos(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
-
-        if (!data.rodeos) {
-            throw new AppError("Debe proporcionar los rodeos", 400);
-        }
-        for (const r of data.rodeos) {
-            const sumaRazas = r.razas.reduce((acc, raza) => acc + raza.cantVacas, 0);
-
-            if (sumaRazas !== r.cantVacas) {
-                throw new AppError(`El rodeo ${r.tipoRodeo} tiene ${r.cantVacas} vacas, pero las razas suman ${sumaRazas}`, 400);
-            }
-
+    private async sincronizarRodeos(tx: Prisma.TransactionClient, data: Rodeo[], idConfiguracion: string) {
+        for (const r of data) {
             await tx.rodeo.create({
                 data: {
                     tipoRodeo: r.tipoRodeo,
@@ -219,30 +209,21 @@ class EstablishmentsService {
         }
     }
 
-    private async sincronizarAnimales(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
-        if (!data.animales) {
-            throw new AppError("Debe proporcionar los animales", 400);
-        }
-        const cant = data.animales.length
-
-        if (cant !== data.cantVacas) {
-            throw new AppError("La cantidad de animales no coincide con la cantidad total de vacas", 400);
-        }
-
+    private async sincronizarAnimales(tx: Prisma.TransactionClient, data: Animal[], cantVacas: number, idEst: string) {
         const animales = await tx.animal.count({
             where: {
-                idEstablecimiento: data.idEstablecimiento,
+                idEstablecimiento: idEst,
                 activo: true,
             }
         });
 
-        if (animales + cant > this.LIMITE_ANIMAL) {
+        if (animales + cantVacas > this.LIMITE_ANIMAL) {
             throw new AppError("No se puede superar el límite de animales para el establecimiento", 400);
         }
 
         await tx.animal.createMany({
-            data: data.animales.map(a => ({
-                idEstablecimiento: data.idEstablecimiento,
+            data: data.map(a => ({
+                idEstablecimiento: idEst,
                 codigo: a.codigo,
                 nombre: a.nombre,
                 categoria: a.categoria,
@@ -382,51 +363,64 @@ class EstablishmentsService {
                     idOrganizacion: true,
                     configuracions: {
                         select: { idConfiguracion: true }
-                    }
+                    },
+                    idEstablecimiento: true
                 }
             });
 
             if (!establecimiento) {
                 throw new AppError("Establecimiento no encontrado", 404);
             }
-
             const orgId = establecimiento.idOrganizacion;
+            let cant = 0
 
-            if (data.cantVacas > this.LIMITE_ANIMAL && data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
-                throw new AppError("La cantidad de vacas excede el límite para el seguimiento individual", 400);
+            switch (data.TipoSeguimiento) {
+                case TipoSeguimiento.RODEO:
+                case TipoSeguimiento.RODEO_UNICO:
+                    const rodeosProcesados = data.rodeos.map(r => {
+                        let sumaRazas = r.razas.reduce((acc, raza) => acc + raza.cantVacas, 0);
+
+                        if (sumaRazas <= 0) {
+                            throw new AppError(`El rodeo ${r.tipoRodeo} no tiene vacas válidas`, 400);
+                        }
+
+                        cant += sumaRazas;
+
+                        return {
+                            ...r,
+                            cantVacas: sumaRazas, // derivado, no tomado del cliente
+                        };
+                    });
+
+                    await this.actualizarEstablecimiento(tx, data)
+                    await this.actualizarConfiguracion(tx, data, cant, establecimiento.configuracions[0].idConfiguracion)
+                    await this.sincronizarProductos(tx, data, orgId)
+
+                    await this.sincronizarRodeos(tx, rodeosProcesados, establecimiento.configuracions[0].idConfiguracion)
+                    break
+                case TipoSeguimiento.INDIVIDUAL:
+                    if (!data.animales) {
+                        throw new AppError("Debe proporcionar los animales", 400);
+                    }
+                    cant = data.animales.length;
+
+                    if ((cant > this.LIMITE_ANIMAL || data.promLitros > this.LIMITE_PROM_LITROS) && data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
+                        throw new AppError("Los datos proporcionados exceden los límites permitidos para el seguimiento individual", 400);
+                    }
+                    await this.actualizarEstablecimiento(tx, data)
+                    await this.actualizarConfiguracion(tx, data, cant, establecimiento.configuracions[0].idConfiguracion)
+                    await this.sincronizarProductos(tx, data, orgId)
+
+                    await this.sincronizarAnimales(tx, data.animales, cant, establecimiento.idEstablecimiento)
+                    break;
+                default:
+                    throw new AppError("Tipo de seguimiento no válido", 400);
             }
 
             /*
             if (data.promLitros < this.LIMITE_PROM_LITROS && data.TipoSeguimiento === TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser mayor a ${this.LIMITE_PROM_LITROS} para el seguimiento por rodeo`, 400);
             }*/
-
-            if (data.promLitros > this.LIMITE_PROM_LITROS && data.TipoSeguimiento !== TipoSeguimiento.RODEO) {
-                throw new AppError(`El promedio de litros debe ser menor a ${this.LIMITE_PROM_LITROS} para el seguimiento individual o unico`, 400);
-            }
-
-            const cant =
-                data.TipoSeguimiento === TipoSeguimiento.RODEO || data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO
-                    ? data.rodeos?.reduce((sum, r) => sum + r.cantVacas, 0)
-                    : data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL
-                        ? data.animales?.length
-                        : undefined;
-
-            if (cant !== data.cantVacas) {
-                throw new AppError("La cantidad de vacas no coincide con la cantidad total de vacas", 400);
-            }
-
-            // 2. Actualizar datos básicos
-            await this.actualizarEstablecimiento(tx, data)
-            await this.actualizarConfiguracion(tx, data, establecimiento.configuracions[0].idConfiguracion)
-            await this.sincronizarProductos(tx, data, orgId)
-
-            if (data.TipoSeguimiento === TipoSeguimiento.RODEO || data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO) {
-                await this.sincronizarRodeos(tx, data, establecimiento.configuracions[0].idConfiguracion)
-            } else {
-                await this.sincronizarAnimales(tx, data, establecimiento.configuracions[0].idConfiguracion)
-            }
-
 
             return { status: "success" };
         });

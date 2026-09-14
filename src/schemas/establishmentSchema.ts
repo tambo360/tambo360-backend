@@ -37,7 +37,6 @@ const productSchema = z.discriminatedUnion("tipo", [
 
 const RodeoSchema = z.object({
     tipoRodeo: z.enum(TipoRodeo, "El tipo de rodeo debe ser un valor válido"),
-    cantVacas: z.number("La cantidad de vacas es obligatoria").int("La cantidad de vacas debe ser un número entero").positive("La cantidad de vacas debe ser un número entero positivo"),
     costoRacion: z.number("El costo de la ración es obligatorio").positive("El costo de la ración debe ser un número positivo"),
     razas: z.array(z.object({
         raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
@@ -71,7 +70,6 @@ export const AnimalSchema = z.object({
 const questionnaireBaseSchema = z.object({
     idEstablecimiento: z.string("El ID del establecimiento es obligatorio").uuid("ID de establecimiento no válido"),
     productos: z.array(productSchema).optional(),
-    cantVacas: z.number("La cantidad de vacas es obligatoria").int("La cantidad de vacas debe ser un número entero").positive("La cantidad de vacas debe ser un número entero positivo"),
     cantOrdenie: z.number("La cantidad de ordeñe es obligatoria").int("La cantidad de ordeñe debe ser un número entero").positive("La cantidad de ordeñe debe ser un número entero positivo"),
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
     promDEL: z.number("El promedio de DEL es obligatorio").positive("El promedio de DEL debe ser un número positivo"),
@@ -153,3 +151,8 @@ export type DeleteInvitationInput = z.infer<typeof deleteInvitationSchema>;
 export type CreateEstablishmentData = z.infer<typeof createEstablishmentSchema>;
 export type UpdateEstablishmentNameData = z.infer<typeof updateEstablishmentNameSchema>;
 export type QuestionnaireData = z.infer<typeof questionnaireSchema>;
+
+
+export type Rodeo = z.infer<typeof RodeoSchema> & { cantVacas: number };
+export type Animal = z.infer<typeof AnimalSchema>;
+export type QuestionnaireIndividualData = z.infer<typeof questionnaireIndividualSchema>;
