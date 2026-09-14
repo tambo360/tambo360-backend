@@ -232,7 +232,13 @@ El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni dato
 
 **Método:** `POST`  
 **Ruta:** `/establecimiento/cuestionario`  
-**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `requireRoles({ est: [OWNER, ADMIN], org: [ORG_OWNER] })`
+
+#### Permisos
+
+Solo pueden registrar el cuestionario:
+- rol `OWNER` o `ADMIN` del establecimiento
+- rol `ORG_OWNER` de la organización
 
 #### Request Body
 
@@ -245,6 +251,7 @@ El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni dato
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
 | `ventaLeche` | enum | Sí | Tipo de venta de leche (`USINA`, `COOPERTIVA`, `ELABORACION_PROPIA`, `VENTA_DIRECTA_MERCADO_LOCAL`) |
 | `precioLitro` | number | Sí | Precio por litro, mayor que 0 |
+| `promDEL` | number | Sí | Promedio DEL, mayor que 0 |
 | `productos` | array | No | Productos asociados al establecimiento |
 | `productos[].tipo` | string | Sí | `existente` o `nuevo` |
 | `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
@@ -276,7 +283,9 @@ El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni dato
 > - Si `TipoSeguimiento = INDIVIDUAL`, debe enviarse `animales` y la cantidad de animales debe coincidir con `cantVacas`.
 > - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
 > - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
-> - Cada rodeo debe incluir una distribución de razas con cantidades positivas.
+> - Cada rodeo debe incluir al menos una raza y cada `raza` con cantidad positiva.
+> - Un animal de categoría `ORDENE` solo puede tener estado `SANO`.
+> - `fechaNacimiento` y `fechaParto` se envían como strings ISO/Date y luego se convierten a `Date` en el Zod.
 > - Cada rodeo debe incluir al menos una raza.
 > - Un animal de categoría `ORDENE` solo puede tener estado `SANO`.
 
@@ -289,6 +298,7 @@ El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni dato
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
   "promLitros": 25.5,
+  "promDEL": 90,
   "ventaLeche": "USINA",
   "precioLitro": 42.5,
   "productos": [
@@ -346,6 +356,7 @@ El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni dato
   "cantOrdenie": 2,
   "tipoOrdenie": "linea",
   "promLitros": 25.5,
+  "promDEL": 90,
   "ventaLeche": "USINA",
   "precioLitro": 42.5,
   "animales": [

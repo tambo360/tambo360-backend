@@ -261,6 +261,7 @@ model configuracion {
   cantVacas         Int?
   cantOrdenies      Int?
   promLitros        Float?
+  promDEL           Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
   precioLitro       Decimal?           @db.Decimal(13, 2)

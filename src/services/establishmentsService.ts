@@ -53,6 +53,7 @@ class EstablishmentsService {
                 cantVacas: data.cantVacas,
                 cantOrdenies: data.cantOrdenie,
                 promLitros: data.promLitros,
+                promDEL: data.promDEL,
                 tipoOrdenie: data.tipoOrdenie,
                 ventaLeche: data.ventaLeche,
                 precioLitro: data.precioLitro,

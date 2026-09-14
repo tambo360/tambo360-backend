@@ -74,6 +74,7 @@ const questionnaireBaseSchema = z.object({
     cantVacas: z.number("La cantidad de vacas es obligatoria").int("La cantidad de vacas debe ser un número entero").positive("La cantidad de vacas debe ser un número entero positivo"),
     cantOrdenie: z.number("La cantidad de ordeñe es obligatoria").int("La cantidad de ordeñe debe ser un número entero").positive("La cantidad de ordeñe debe ser un número entero positivo"),
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
+    promDEL: z.number("El promedio de DEL es obligatorio").positive("El promedio de DEL debe ser un número positivo"),
     promLitros: z.number("El promedio de litros es obligatorio").positive("El promedio de litros debe ser un número positivo"),
     ventaLeche: z.enum(VentaLeche, "El tipo de venta de leche debe ser un valor válido"),
     precioLitro: z.number("El precio por litro es obligatorio").positive("El precio por litro debe ser un número positivo"),
