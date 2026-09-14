@@ -26,8 +26,6 @@ export class LoteService {
 
         const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idConf)
 
-
-
         const lote = await tx.loteProduccion.create({
             data: {
                 idLote: data.idLote,
@@ -45,7 +43,6 @@ export class LoteService {
                 produccionRodeos: {
                     create: rodeo.razas.map(raza => ({
                         idRodeo: rodeo.idRodeo,
-                        idRaza: raza.idRaza,
                         raza: raza.nombre,
                         cantVacas: raza.cantVacas
                     }))

@@ -51,7 +51,7 @@ const baseLoteSchema = z.object({
         }),
     estado: z.boolean().optional(),
     unidad: z.enum(Unidad, "Unidad de medida inválida"),
-    cantBajadas: z.number().int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100")
+    cantBajadas: z.number("La cantidad de bajadas es obligatoria").int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100")
 }).refine(
   (data) => {
     if (data.destino === "TANQUE_FRIO") {
@@ -138,7 +138,7 @@ const baseEditarLoteSchema = z.object({
         .number()
         .positive("La temperatura del tanque debe ser mayor a 0").optional(),
     destino: z.enum(TipoDestino, "Destino inválido"),
-    cantBajadas: z.number().int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100"),
+    cantBajadas: z.number("La cantidad de bajadas es obligatoria").int("La cantidad de bajadas debe ser un número entero").positive("La cantidad de bajadas debe ser mayor a 0").max(100, "La cantidad de bajadas no puede superar 100"),
 }).refine(
   (data) => {
     if (data.destino === "TANQUE_FRIO") {

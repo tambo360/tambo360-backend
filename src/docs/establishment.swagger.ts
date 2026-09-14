@@ -184,7 +184,7 @@
  *                           example: yogures
  *               rodeos:
  *                 type: array
- *                 description: Requerido para RODEO y RODEO_UNICO. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
+ *                 description: Requerido para RODEO y RODEO_UNICO. Debe contener al menos una raza por rodeo. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
  *                 items:
  *                   type: object
  *                   required: [tipoRodeo, cantVacas, costoRacion, razas]
@@ -238,6 +238,7 @@
  *                     fechaNacimiento:
  *                       type: string
  *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
  *                       example: "2024-01-01T00:00:00.000Z"
  *                     observacion:
  *                       type: string
@@ -245,6 +246,7 @@
  *                     fechaParto:
  *                       type: string
  *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
  *                       example: "2026-07-20T00:00:00.000Z"
  *                     raza:
  *                       type: string
@@ -283,7 +285,7 @@
  *                       type: string
  *                       example: success
  *       400:
- *         description: Datos inválidos, faltan rodeos/animales o validación del negocio
+ *         description: Datos inválidos, faltan rodeos/animales, falta una raza o un animal de categoría ORDENE tiene un estado distinto de SANO
  *       401:
  *         description: Usuario no autenticado
  *       403:

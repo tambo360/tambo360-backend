@@ -154,19 +154,14 @@ No requiere body. Los establecimientos se filtran por la organización del usuar
 
 **Método:** `GET`  
 **Ruta:** `/establecimiento/info/opciones-seguimiento`  
-**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `requireRoles`
-
-#### Permisos
-
-Requiere simultáneamente:
-
-- Rol `OWNER` o `ADMIN` en el establecimiento.
-- Rol `ORG_OWNER` en la organización.
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
 
 Devuelve los recursos disponibles para crear lotes según la configuración del establecimiento.
 
-- `RODEO` o `RODEO_UNICO` → responde con `rodeos`
-- `INDIVIDUAL` → responde con `animales`
+- `RODEO` o `RODEO_UNICO` → responde con `rodeos` filtrados.
+- `INDIVIDUAL` → responde con animales activos.
+
+En la respuesta de rodeos, `label` y `value` se generan a partir del tipo de rodeo. Actualmente el servicio considera `ALTA_PRODUCCION`, `BAJA_PRODUCCION` y `UNICO_ORDENIE`.
 
 #### Response (200 - OK)
 
@@ -179,15 +174,49 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
     "rodeos": [
       {
         "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
-        "label": "Rodeo 1",
-        "value": "rodeo-1",
+        "label": "Rodeo Alta Producción",
+        "value": "ALTA_PRODUCCION",
         "costoRacion": 120,
-        "cantVacas": 15
+        "cantVacas": 15,
+        "razas": [
+          {
+            "idRaza": "550e8400-e29b-41d4-a716-446655440003",
+            "nombre": "Holando Argentino",
+            "value": "HOLANDO_ARGENTINO",
+            "cantVacas": 10
+          },
+          { 
+            "idRaza": "550e8400-e29b-41d4-a716-446655440003",
+            "nombre": "Jersey",
+            "value": "JERSEY",
+            "cantVacas": 5
+          }
+        ]
       }
     ]
   }
 }
 ```
+
+Cuando `tipoSeguimiento` es `INDIVIDUAL`, `data` tiene esta forma:
+
+```json
+{
+  "tipoSeguimiento": "INDIVIDUAL",
+  "animales": [
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+      "codigo": "A-001",
+      "nombre": "Vaca Rosa",
+      "categoria": "ORDENE",
+      "estado": "SANO",
+      "fechaNacimiento": "2024-01-15T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+El endpoint devuelve animales activos y no incluye `raza`, `observacion` ni datos de producción en esta respuesta.
 
 #### Posibles Errores
 
@@ -195,6 +224,7 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 |--------|---------|
 | 400 | No se pudo determinar el establecimiento |
 | 401 | Usuario no autenticado |
+| 404 | Establecimiento no encontrado |
 
 ---
 
@@ -232,9 +262,9 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 | `animales[].nombre` | string | No | Nombre del animal |
 | `animales[].categoria` | enum | Sí | Categoría del animal (`ORDENE`, `SECAS`) |
 | `animales[].estado` | enum | Sí | Estado del animal (`MASTITIS`, `TRATAMIENTO`, `PREPARTO`, `SANO`) |
-| `animales[].fechaNacimiento` | Date | No | Fecha de nacimiento del animal |
+| `animales[].fechaNacimiento` | string | No | String convertible a fecha JavaScript |
 | `animales[].observacion` | string | No | Observación opcional del animal |
-| `animales[].fechaParto` | Date | No | Fecha del último parto del animal |
+| `animales[].fechaParto` | string | No | String convertible a fecha JavaScript |
 | `animales[].raza` | enum | Sí | Raza del animal |
 | `ubicacion.provincia` | string | Sí | Provincia |
 | `ubicacion.localidad` | string | Sí | Localidad |
@@ -247,6 +277,8 @@ Devuelve los recursos disponibles para crear lotes según la configuración del 
 > - La suma de `cantVacas` de todos los rodeos debe coincidir con `cantVacas`.
 > - Si `cantVacas` supera el límite, el seguimiento individual queda invalidado por el backend.
 > - Cada rodeo debe incluir una distribución de razas con cantidades positivas.
+> - Cada rodeo debe incluir al menos una raza.
+> - Un animal de categoría `ORDENE` solo puede tener estado `SANO`.
 
 #### Ejemplo de Request (seguimiento por rodeos)
 

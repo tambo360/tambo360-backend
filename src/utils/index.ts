@@ -1,4 +1,4 @@
-import { MotivoMovimientoAnimal, TipoMerma, TipoRodeo } from "@prisma/client";
+import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -8,7 +8,7 @@ export const formatDate = (date: Date): string => {
 }
 
 
-export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
+export const TipoMermaMetadata: Record<TipoMerma, { label: string; }> = {
     MASTITIS: {
         label: "Mastitis",
     },
@@ -48,7 +48,7 @@ export const TipoMermaMetadata: Record<TipoMerma,{label: string;}> = {
     },
 };
 
-export const TipoRodeoMetaData: Record<TipoRodeo, {label: string, value: string}> = {
+export const TipoRodeoMetaData: Record<TipoRodeo, { label: string, value: string }> = {
     [TipoRodeo.ALTA_PRODUCCION]: {
         label: "Rodeo Alta Producción",
         value: TipoRodeo.ALTA_PRODUCCION
@@ -71,22 +71,70 @@ export const TipoRodeoMetaData: Record<TipoRodeo, {label: string, value: string}
     },
 };
 
+export const RazasMetaData: Record<Razas, { label: string; value: string }> = {
+    [Razas.HOLANDO_ARGENTINO]: {
+        label: "Holando Argentino",
+        value: Razas.HOLANDO_ARGENTINO,
+    },
+    [Razas.JERSEY]: {
+        label: "Jersey",
+        value: Razas.JERSEY,
+    },
+    [Razas.PARDO_SUIZO]: {
+        label: "Pardo Suizo",
+        value: Razas.PARDO_SUIZO,
+    },
+    [Razas.GIR_LECHERO]: {
+        label: "Gir Lechero",
+        value: Razas.GIR_LECHERO,
+    },
+    [Razas.HOLANDO_JERSEY_CRUZA]: {
+        label: "Holando-Jersey (Cruza)",
+        value: Razas.HOLANDO_JERSEY_CRUZA,
+    },
+    [Razas.AYRSHIRE]: {
+        label: "Ayrshire",
+        value: Razas.AYRSHIRE,
+    },
+    [Razas.NORMANDO]: {
+        label: "Normando",
+        value: Razas.NORMANDO,
+    },
+    [Razas.BROWN_SWISS]: {
+        label: "Brown Swiss",
+        value: Razas.BROWN_SWISS,
+    },
+    [Razas.MONTBELIARDE]: {
+        label: "Montbeliarde",
+        value: Razas.MONTBELIARDE,
+    },
+    [Razas.SIMMENTAL_LECHERO]: {
+        label: "Simmental Lechero",
+        value: Razas.SIMMENTAL_LECHERO,
+    },
+    [Razas.OTRAS]: {
+        label: "Otras Razas",
+        value: Razas.OTRAS,
+    },
+};
+
+
 export const UUIDS = {
-  establishment: '550e8400-e29b-41d4-a716-446655440000',
-  raza: '550e8400-e29b-41d4-a716-446655440001',
-  producto: '550e8400-e29b-41d4-a716-446655440002',
+    establishment: '550e8400-e29b-41d4-a716-446655440000',
+    raza: '550e8400-e29b-41d4-a716-446655440001',
+    producto: '550e8400-e29b-41d4-a716-446655440002',
 };
 
 
 export const obtenerTurno = (fechaProduccion: Date): "mañana" | "tarde" => {
-  const hora = fechaProduccion.getHours();
-  // Definimos mañana hasta las 12:59, tarde desde las 13:00
-  return hora < 13 ? "mañana" : "tarde";
+    const hora = fechaProduccion.getHours();
+    // Definimos mañana hasta las 12:59, tarde desde las 13:00
+    return hora < 13 ? "mañana" : "tarde";
 }
 
-export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string  => {
-  const sinPrefijo = motivo.split("_").slice(1).join(" ");
-  return sinPrefijo
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string => {
+    const sinPrefijo = motivo.split("_").slice(1).join(" ");
+    return sinPrefijo
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
 }

@@ -204,10 +204,10 @@
 
 /**
  * @swagger
- * /establecimiento/opciones-seguimiento:
+ * /establecimiento/info/opciones-seguimiento:
  *   get:
  *     summary: Obtener opciones de seguimiento para crear lotes según la configuración del establecimiento
- *     description: La ruta quedó movida desde /lote a /establecimiento. Devuelve rodeos cuando el seguimiento es RODEO o RODEO_UNICO, y animales cuando es INDIVIDUAL.
+ *     description: Devuelve las opciones disponibles para crear lotes según el tipo de seguimiento configurado. Para RODEO y RODEO_UNICO devuelve rodeos filtrados; para INDIVIDUAL devuelve animales activos.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []
@@ -236,10 +236,19 @@
  *                             type: object
  *                             properties:
  *                               idRodeo: { type: string, format: uuid }
- *                               label: { type: string }
- *                               value: { type: string }
+ *                               label: { type: string, description: Etiqueta legible del tipo de rodeo }
+ *                               value: { type: string, description: Valor identificador del tipo de rodeo }
  *                               costoRacion: { type: number }
  *                               cantVacas: { type: integer }
+ *                               razas:
+ *                                 type: array
+ *                                 description: Razas configuradas para el rodeo.
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     nombre: { type: string, description: Etiqueta legible de la raza }
+ *                                     value: { type: string, description: Valor identificador de la raza }
+ *                                     cantVacas: { type: integer }
  *                     - type: object
  *                       required: [tipoSeguimiento, animales]
  *                       properties:
@@ -253,11 +262,11 @@
  *                             type: object
  *                             properties:
  *                               idAnimal: { type: string, format: uuid }
- *                               codigo: { type: string }
- *                               nombre: { type: string }
+ *                               codigo: { type: string, nullable: true }
+ *                               nombre: { type: string, nullable: true }
  *                               categoria: { type: string }
  *                               estado: { type: string }
- *                               fechaNacimiento: { type: string, format: date-time }
+ *                               fechaNacimiento: { type: string, format: date-time, nullable: true }
  *       400:
  *         description: No se pudo determinar el establecimiento
  *         content:
@@ -278,6 +287,8 @@
  *                 statusCode: { type: integer, example: 401 }
  *                 message: { type: string, example: "Usuario no autenticado" }
  *                 data: { type: null }
+ *       404:
+ *         description: Establecimiento no encontrado
  */
 
 /**
