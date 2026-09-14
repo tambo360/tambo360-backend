@@ -5,6 +5,7 @@ import { generateToken, hashToken } from "../utils/token";
 import { sendInvitationEmail } from "./mailService";
 import { getRoleLabel } from "../utils/enumValidation";
 import { formatDate } from "../utils";
+import establishmentsService from "./establishmentsService";
 
 class OrganizationService {
     async createOrganization(data: CreateOrganizationInput) {
@@ -15,15 +16,17 @@ class OrganizationService {
                 }
             })
 
-            await prisma.organizacionUsuario.create({
+            const orgUser = await prisma.organizacionUsuario.create({
                 data: {
                     idUsuario: data.userId,
                     idOrganizacion: org.idOrganizacion,
-                    rol: data.rol
+                    rol: RolOrganizacion.ORG_OWNER
                 }
             })
 
-            return org
+            const result = await establishmentsService.create({ nombre: data.nombre, userId: data.userId, idOrg: org.idOrganizacion, idOrganizacionUsuario: orgUser.idOrganizacionUsuario }, prisma);
+
+            return result
         })
 
         return result

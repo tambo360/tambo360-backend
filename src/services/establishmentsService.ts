@@ -1,11 +1,11 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { CreateEstablishmentData, QuestionnaireData } from "../schemas/establishmentSchema";
-import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento, TipoRodeo } from "@prisma/client";
+import { EstadoInvitacion, RolEstablecimiento, Prisma, TipoSeguimiento, TipoRodeo, CategoriaAnimal, EstadoSanitarioAnimal } from "@prisma/client";
 import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
-import { formatDate, TipoRodeoMetaData } from "../utils";
+import { formatDate, RazasMetaData, TipoRodeoMetaData } from "../utils";
 
 type CreateEstablishmentServiceData = CreateEstablishmentData & {
     userId: string;
@@ -55,8 +55,7 @@ class EstablishmentsService {
                 promLitros: data.promLitros,
                 tipoOrdenie: data.tipoOrdenie,
                 ventaLeche: data.ventaLeche,
-                empleados: data.empleados,
-                cantEmpleados: data.cantEmpleados,
+                precioLitro: data.precioLitro,
                 tipoSeguimiento: data.TipoSeguimiento,
                 modificadoEn: new Date(),
             }
@@ -64,19 +63,34 @@ class EstablishmentsService {
     }
 
     private async sincronizarRodeos(tx: Prisma.TransactionClient, data: QuestionnaireData, idConfiguracion: string) {
+
         if (!data.rodeos) {
             throw new AppError("Debe proporcionar los rodeos", 400);
         }
+        for (const r of data.rodeos) {
+            const sumaRazas = r.razas.reduce((acc, raza) => acc + raza.cantVacas, 0);
 
-        await tx.rodeo.createMany({
-            data: data.rodeos.map(r => ({
-                tipoRodeo: r.tipoRodeo,
-                cantVacas: r.cantVacas,
-                costoRacion: r.costoRacion,
-                idConfiguracion: idConfiguracion,
-            })),
-        });
+            if (sumaRazas !== r.cantVacas) {
+                throw new AppError(`El rodeo ${r.tipoRodeo} tiene ${r.cantVacas} vacas, pero las razas suman ${sumaRazas}`, 400);
+            }
+
+            await tx.rodeo.create({
+                data: {
+                    tipoRodeo: r.tipoRodeo,
+                    cantVacas: r.cantVacas,
+                    costoRacion: r.costoRacion,
+                    idConfiguracion,
+                    razas: {
+                        create: r.razas.map(raza => ({
+                            nombre: raza.raza,
+                            cantVacas: raza.cantVacas,
+                        })),
+                    },
+                },
+            });
+        }
     }
+
 
     private async sincronizarProductos(tx: Prisma.TransactionClient, data: QuestionnaireData, idOrganizacion: string) {
         if (data.productos) {
@@ -234,12 +248,13 @@ class EstablishmentsService {
                 estado: a.estado,
                 fechaNacimiento: a.fechaNacimiento,
                 fechaUltimoParto: a.fechaParto,
-                observacion: a.observacion
+                observacion: a.observacion,
+                raza: a.raza
             }))
         })
     }
 
-    async create(data: CreateEstablishmentServiceData) {
+    async create(data: CreateEstablishmentServiceData, tx?: Prisma.TransactionClient) {
 
         const existente = await prisma.organizacion.findFirst({
             where: {
@@ -256,16 +271,15 @@ class EstablishmentsService {
             throw new AppError("Ya existe un establecimiento con ese nombre en la organización", 400);
         }
 
-        const result = await prisma.$transaction(async (prisma) => {
-
-            const establecimiento = await prisma.establecimiento.create({
+        if (tx) {
+            const establecimiento = await tx.establecimiento.create({
                 data: {
                     nombre: data.nombre,
                     idOrganizacion: data.idOrg,
                 },
             });
 
-            await prisma.establecimiento_OrganizacionUsuario.create({
+            await tx.establecimiento_OrganizacionUsuario.create({
                 data: {
                     idEstablecimiento: establecimiento.idEstablecimiento,
                     idOrganizacionUsuario: data.idOrganizacionUsuario,
@@ -273,17 +287,41 @@ class EstablishmentsService {
                 }
             })
 
-            await prisma.configuracion.create({
+            await tx.configuracion.create({
                 data: {
                     idEstablecimiento: establecimiento.idEstablecimiento
                 }
             })
 
             return establecimiento;
-        })
+        } else {
+            const result = await prisma.$transaction(async (prisma) => {
+                const establecimiento = await prisma.establecimiento.create({
+                    data: {
+                        nombre: data.nombre,
+                        idOrganizacion: data.idOrg,
+                    },
+                });
 
+                await prisma.establecimiento_OrganizacionUsuario.create({
+                    data: {
+                        idEstablecimiento: establecimiento.idEstablecimiento,
+                        idOrganizacionUsuario: data.idOrganizacionUsuario,
+                        rol: RolEstablecimiento.OWNER,
+                    }
+                })
 
-        return result;
+                await prisma.configuracion.create({
+                    data: {
+                        idEstablecimiento: establecimiento.idEstablecimiento
+                    }
+                })
+
+                return establecimiento;
+            })
+
+            return result;
+        }
     }
 
     async listarPorUsuario(idOrganizacionUsuario: string) {
@@ -360,11 +398,11 @@ class EstablishmentsService {
             /*
             if (data.promLitros < this.LIMITE_PROM_LITROS && data.TipoSeguimiento === TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser mayor a ${this.LIMITE_PROM_LITROS} para el seguimiento por rodeo`, 400);
-            }
+            }*/
 
             if (data.promLitros > this.LIMITE_PROM_LITROS && data.TipoSeguimiento !== TipoSeguimiento.RODEO) {
                 throw new AppError(`El promedio de litros debe ser menor a ${this.LIMITE_PROM_LITROS} para el seguimiento individual o unico`, 400);
-            }*/
+            }
 
             const cant =
                 data.TipoSeguimiento === TipoSeguimiento.RODEO || data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO
@@ -430,10 +468,10 @@ class EstablishmentsService {
                 }
             }),
             prisma.animal.findMany({
-                where:{
+                where: {
                     idEstablecimiento: cuestionario.idEstablecimiento
                 },
-                select:{
+                select: {
                     idAnimal: true,
                     idRodeo: true,
                     codigo: true,
@@ -579,6 +617,9 @@ class EstablishmentsService {
         const rodeo = await prisma.rodeo.findUnique({
             where: {
                 idRodeo: idRodeo,
+            },
+            include: {
+                razas: true
             }
         })
 
@@ -617,7 +658,9 @@ class EstablishmentsService {
         const animales = await prisma.animal.findMany({
             where: {
                 idEstablecimiento: idEstablecimiento,
-                activo: true
+                activo: true,
+                categoria: CategoriaAnimal.ORDENE,
+                estado: EstadoSanitarioAnimal.SANO
             }
         });
         return animales.map(a => ({
@@ -653,6 +696,9 @@ class EstablishmentsService {
             where: {
                 idConfiguracion: est.configuracions[0].idConfiguracion,
                 ...(filtroTipoRodeo ? { tipoRodeo: { in: filtroTipoRodeo } } : {})
+            },
+            include: {
+                razas: true
             }
         })
 
@@ -662,6 +708,12 @@ class EstablishmentsService {
             value: TipoRodeoMetaData[r.tipoRodeo].value || "tipo-rodeo-no-definido",
             costoRacion: r.costoRacion,
             cantVacas: r.cantVacas,
+            razas: r.razas.map(raza => ({
+                idRaza: raza.idRaza,
+                nombre: RazasMetaData[raza.nombre].label || "Raza no definida",
+                value: RazasMetaData[raza.nombre].value || "raza-no-definida",
+                cantVacas: raza.cantVacas
+            }))
         }));
     }
 

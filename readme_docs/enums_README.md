@@ -70,10 +70,10 @@ Indica el canal de comercialización de la leche.
 
 | Valor | Uso |
 |---|---|
-| `usina` | Venta a una usina. |
-| `fabrica_propia` | Procesamiento en fábrica propia. |
-| `cooperativa` | Venta mediante una cooperativa. |
-| `varios` | Combinación de canales. |
+| `USINA` | Venta a una usina. |
+| `COOPERTIVA` | Venta mediante una cooperativa. |
+| `ELABORACION_PROPIA` | Procesamiento en elaboración propia. |
+| `VENTA_DIRECTA_MERCADO_LOCAL` | Venta directa en el mercado local. |
 
 ### `GeneroAnimal`
 Representa el género del animal.
@@ -98,7 +98,8 @@ Indica el estado sanitario del animal.
 |---|---|
 | `MASTITIS` | Animal con mastitis. |
 | `TRATAMIENTO` | Animal bajo tratamiento sanitario. |
-| `NORMAL` | Animal sin una condición sanitaria especial registrada. |
+| `PREPARTO` | Animal en etapa previa al parto. |
+| `SANO` | Animal sin una condición sanitaria especial registrada. |
 
 ### `DestinoProduccion`
 Indica qué ocurre con la producción de leche.
@@ -107,6 +108,23 @@ Indica qué ocurre con la producción de leche.
 |---|---|
 | `TANQUE` | Producción enviada al tanque. |
 | `DESCARTE` | Producción descartada. |
+
+### `Razas`
+Representa la raza principal del animal o una composición racial dentro de un rodeo.
+
+| Valor | Uso |
+|---|---|
+| `HOLANDO_ARGENTINO` | Raza Holando Argentino. |
+| `JERSEY` | Raza Jersey. |
+| `PARDO_SUIZO` | Raza Pardo Suizo. |
+| `GIR_LECHERO` | Raza Gir Lechero. |
+| `HOLANDO_JERSEY_CRUZA` | Cruza Holando-Jersey. |
+| `AYRSHIRE` | Raza Ayrshire. |
+| `NORMANDO` | Raza Normando. |
+| `BROWN_SWISS` | Raza Brown Swiss. |
+| `MONTBELIARDE` | Raza Montbeliarde. |
+| `SIMMENTAL_LECHERO` | Raza Simmental Lechero. |
+| `OTRAS` | Otra raza no listada. |
 
 ### `TipoDestino`
 Indica el destino comercial o productivo de productos o leche.

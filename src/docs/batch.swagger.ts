@@ -20,7 +20,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, idRodeo]
+ *                 required: [tipoSeguimiento, idLote, destino, idProducto, cantidad, unidad, fechaProduccion, cantBajadas, idRodeo]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -32,6 +32,8 @@
  *                     example: "550e8400-e29b-41d4-a716-446655440000"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 4.5
  *                   destino:
  *                     type: string
@@ -50,16 +52,22 @@
  *                     example: kg
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "15/05/2026"
  *                   estado:
  *                     type: boolean
  *                     example: false
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   idRodeo:
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440003"
  *               - type: object
- *                 required: [tipoSeguimiento, idLote, tempTanque, destino, idProducto, cantidad, unidad, fechaProduccion, animales]
+ *                 required: [tipoSeguimiento, idLote, destino, idProducto, cantidad, unidad, fechaProduccion, cantBajadas, animales]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -71,6 +79,8 @@
  *                     example: "550e8400-e29b-41d4-a716-446655440010"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 3.2
  *                   destino:
  *                     type: string
@@ -89,16 +99,22 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "15/05/2026"
  *                   estado:
  *                     type: boolean
  *                     example: false
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   animales:
  *                     type: array
  *                     minItems: 1
  *                     items:
  *                       type: object
- *                       required: [idAnimal, litros, estado]
+ *                       required: [idAnimal, litros, destino]
  *                       properties:
  *                         idAnimal:
  *                           type: string
@@ -107,10 +123,10 @@
  *                         litros:
  *                           type: number
  *                           example: 40
- *                         estado:
+ *                         destino:
  *                           type: string
- *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
- *                           example: PREPARTO
+ *                           enum: [TANQUE, DESCARTE]
+ *                           example: TANQUE
  *     responses:
  *       201:
  *         description: Lote creado correctamente
@@ -129,7 +145,11 @@
  *                     cantidad: { type: number, example: 100 }
  *                     unidad: { type: string, example: "kg" }
  *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-15T12:00:00.000Z" }
+ *                     destino: { type: string, enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS], example: "TANQUE_FRIO" }
+ *                     tempTanque: { type: number, nullable: true, example: 4.5 }
+ *                     cantBajadas: { type: integer, example: 2 }
  *                     estado: { type: boolean, example: false }
+ *                     idRodeo: { type: string, format: uuid, nullable: true }
  *                     numeroLote: { type: integer, example: 1 }
  *                     producto:
  *                       type: object
@@ -137,6 +157,19 @@
  *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
  *                         nombre: { type: string, example: "Leche Fresca" }
  *                         categoria: { type: string, example: "leches" }
+ *                     produccionRodeos:
+ *                       type: array
+ *                       description: Distribución de razas del rodeo copiada al lote al momento de la creación. Solo se devuelve para lotes por RODEO o RODEO_UNICO.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idProduccionRodeo: { type: string, format: uuid }
+ *                           idRodeo: { type: string, format: uuid }
+ *                           idLote: { type: string, format: uuid }
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                           cantVacas: { type: integer, minimum: 1 }
  *       400:
  *         description: Datos inválidos, seguimiento incompatible con la configuración del establecimiento o cuerpo inválido
  *         content:
@@ -171,10 +204,10 @@
 
 /**
  * @swagger
- * /establecimiento/opciones-seguimiento:
+ * /establecimiento/info/opciones-seguimiento:
  *   get:
  *     summary: Obtener opciones de seguimiento para crear lotes según la configuración del establecimiento
- *     description: La ruta quedó movida desde /lote a /establecimiento. Devuelve rodeos cuando el seguimiento es RODEO o RODEO_UNICO, y animales cuando es INDIVIDUAL.
+ *     description: Devuelve las opciones disponibles para crear lotes según el tipo de seguimiento configurado. Para RODEO y RODEO_UNICO devuelve rodeos filtrados; para INDIVIDUAL devuelve animales activos.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []
@@ -203,10 +236,19 @@
  *                             type: object
  *                             properties:
  *                               idRodeo: { type: string, format: uuid }
- *                               label: { type: string }
- *                               value: { type: string }
+ *                               label: { type: string, description: Etiqueta legible del tipo de rodeo }
+ *                               value: { type: string, description: Valor identificador del tipo de rodeo }
  *                               costoRacion: { type: number }
  *                               cantVacas: { type: integer }
+ *                               razas:
+ *                                 type: array
+ *                                 description: Razas configuradas para el rodeo.
+ *                                 items:
+ *                                   type: object
+ *                                   properties:
+ *                                     nombre: { type: string, description: Etiqueta legible de la raza }
+ *                                     value: { type: string, description: Valor identificador de la raza }
+ *                                     cantVacas: { type: integer }
  *                     - type: object
  *                       required: [tipoSeguimiento, animales]
  *                       properties:
@@ -220,11 +262,11 @@
  *                             type: object
  *                             properties:
  *                               idAnimal: { type: string, format: uuid }
- *                               codigo: { type: string }
- *                               nombre: { type: string }
+ *                               codigo: { type: string, nullable: true }
+ *                               nombre: { type: string, nullable: true }
  *                               categoria: { type: string }
  *                               estado: { type: string }
- *                               fechaNacimiento: { type: string, format: date-time }
+ *                               fechaNacimiento: { type: string, format: date-time, nullable: true }
  *       400:
  *         description: No se pudo determinar el establecimiento
  *         content:
@@ -245,6 +287,8 @@
  *                 statusCode: { type: integer, example: 401 }
  *                 message: { type: string, example: "Usuario no autenticado" }
  *                 data: { type: null }
+ *       404:
+ *         description: Establecimiento no encontrado
  */
 
 /**
@@ -543,7 +587,7 @@
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, idRodeo]
+ *                 required: [tipoSeguimiento, cantidad, destino, cantBajadas, idRodeo]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -562,9 +606,12 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "16/05/2026"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 4.5
  *                   destino:
  *                     type: string
@@ -574,8 +621,13 @@
  *                     type: string
  *                     format: uuid
  *                     example: "550e8400-e29b-41d4-a716-446655440003"
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *               - type: object
- *                 required: [tipoSeguimiento, cantidad, unidad, fechaProduccion, tempTanque, destino, animales]
+ *                 required: [tipoSeguimiento, cantidad, destino, cantBajadas, animales]
  *                 properties:
  *                   tipoSeguimiento:
  *                     type: string
@@ -594,20 +646,28 @@
  *                     example: litros
  *                   fechaProduccion:
  *                     type: string
+ *                     pattern: "^\\d{2}/\\d{2}/\\d{4}$"
  *                     example: "16/05/2026"
  *                   tempTanque:
  *                     type: number
+ *                     exclusiveMinimum: 0
+ *                     description: Obligatoria únicamente cuando destino es TANQUE_FRIO.
  *                     example: 3.5
  *                   destino:
  *                     type: string
  *                     enum: [TANQUE_FRIO, VENTA, FABRICA_QUESOS]
  *                     example: TANQUE_FRIO
+ *                   cantBajadas:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 100
+ *                     example: 2
  *                   animales:
  *                     type: array
  *                     minItems: 1
  *                     items:
  *                       type: object
- *                       required: [idAnimal, litros, estado]
+ *                       required: [idAnimal, litros, destino, estado]
  *                       properties:
  *                         idAnimal:
  *                           type: string
@@ -616,10 +676,14 @@
  *                         litros:
  *                           type: number
  *                           example: 40
+ *                         destino:
+ *                           type: string
+ *                           enum: [TANQUE, DESCARTE]
+ *                           example: TANQUE
  *                         estado:
  *                           type: string
- *                           enum: [MATITIS, TRATAMIENTO, PREPARTO, DESCARTE]
- *                           example: PREPARTO
+ *                           enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
+ *                           example: SANO
  *     responses:
  *       200:
  *         description: Lote actualizado correctamente
@@ -640,7 +704,9 @@
  *                     fechaProduccion: { type: string, format: date-time, example: "2026-05-16T00:00:00.000Z" }
  *                     tempTanque: { type: number, example: 4.5 }
  *                     destino: { type: string, example: "VENTA" }
+ *                     cantBajadas: { type: integer, example: 2 }
  *                     estado: { type: boolean, example: false }
+ *                     idRodeo: { type: string, format: uuid, nullable: true }
  *                     numeroLote: { type: integer, example: 123 }
  *                     producto:
  *                       type: object
@@ -648,6 +714,19 @@
  *                         idProducto: { type: string, format: uuid, example: "550e8400-e29b-41d4-a716-446655440001" }
  *                         nombre: { type: string, example: "Leche Fresca" }
  *                         categoria: { type: string, example: "leches" }
+ *                     produccionRodeos:
+ *                       type: array
+ *                       description: Nueva distribución de razas del rodeo asociada al lote editado.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           idProduccionRodeo: { type: string, format: uuid }
+ *                           idRodeo: { type: string, format: uuid }
+ *                           idLote: { type: string, format: uuid }
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                           cantVacas: { type: integer, minimum: 1 }
  *       400:
  *         description: Datos inválidos o el lote no puede editarse
  *         content:

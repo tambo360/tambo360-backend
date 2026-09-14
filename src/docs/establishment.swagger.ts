@@ -7,10 +7,10 @@
 
 /**
  * @swagger
- * /establecimiento/registrar:
+ * /establecimiento/:
  *   post:
- *     summary: Crear un nuevo establecimiento
- *     description: Permite registrar un establecimiento para un usuario autenticado. Cada usuario solo puede tener un establecimiento.
+ *     summary: Crear un establecimiento en la organización actual
+ *     description: Crea un establecimiento dentro de la organización indicada por x-organizacion-id. El usuario que realiza la operación queda asociado como OWNER y se crea una configuración inicial.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []   # Si usas JWT
@@ -20,23 +20,14 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - nombre
- *               - localidad
- *               - provincia
+ *             required: [nombre]
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: Nombre del establecimiento
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: Nombre del establecimiento, único dentro de la organización
  *                 example: Establecimiento Norte
- *               localidad:
- *                 type: string
- *                 description: Localidad del establecimiento
- *                 example: Rafaela
- *               provincia:
- *                 type: string
- *                 description: Provincia del establecimiento
- *                 example: Santa Fe
  *     responses:
  *       201:
  *         description: Establecimiento creado correctamente
@@ -63,19 +54,21 @@
  *                       example: Establecimiento Norte
  *                     localidad:
  *                       type: string
- *                       example: Rafaela
+ *                       nullable: true
  *                     provincia:
  *                       type: string
- *                       example: Santa Fe
- *                     idUsuario:
+ *                       nullable: true
+ *                     fechaCreacion:
+ *                       type: string
+ *                       format: date-time
+ *                     idOrganizacion:
  *                       type: string
  *                       format: uuid
- *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
  *                     cuestionarioCompletado:
  *                       type: boolean
  *                       example: false
  *       400:
- *         description: Datos inválidos o usuario ya tiene establecimiento
+ *         description: Datos inválidos, acceso a organización no válido o nombre duplicado dentro de la organización
  *         content:
  *           application/json:
  *             schema:
@@ -86,7 +79,7 @@
  *                   example: 400
  *                 message:
  *                   type: string
- *                   example: "Todos los campos son obligatorios o el usuario ya tiene un establecimiento"
+ *                   example: "Ya existe un establecimiento con ese nombre en la organización"
  *                 data:
  *                   type: null
  *       401:
@@ -128,7 +121,7 @@
  *               - tipoOrdenie
  *               - promLitros
  *               - ventaLeche
- *               - empleados
+ *               - precioLitro
  *               - ubicacion
  *             properties:
  *               TipoSeguimiento:
@@ -150,14 +143,12 @@
  *                 example: 25.5
  *               ventaLeche:
  *                 type: string
- *                 enum: [usina, fabrica_propia, cooperativa, varios]
- *                 example: usina
- *               empleados:
- *                 type: boolean
- *                 example: true
- *               cantEmpleados:
- *                 type: integer
- *                 example: 3
+ *                 enum: [USINA, COOPERTIVA, ELABORACION_PROPIA, VENTA_DIRECTA_MERCADO_LOCAL]
+ *                 example: USINA
+ *               precioLitro:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 example: 42.5
  *               productos:
  *                 type: array
  *                 description: Productos asociados al establecimiento. Puede incluir productos existentes o nuevos.
@@ -189,14 +180,14 @@
  *                           example: Yogur Natural
  *                         categoria:
  *                           type: string
- *                           enum: [leches, yogures, quesos, carnes, otros]
+ *                           enum: [quesos, leches, yogures, otros]
  *                           example: yogures
  *               rodeos:
  *                 type: array
- *                 description: Requerido para RODEO y RODEO_UNICO. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
+ *                 description: Requerido para RODEO y RODEO_UNICO. Debe contener al menos una raza por rodeo. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
  *                 items:
  *                   type: object
- *                   required: [tipoRodeo, cantVacas, costoRacion]
+ *                   required: [tipoRodeo, cantVacas, costoRacion, razas]
  *                   properties:
  *                     tipoRodeo:
  *                       type: string
@@ -208,12 +199,27 @@
  *                     costoRacion:
  *                       type: number
  *                       example: 150.5
+ *                     razas:
+ *                       type: array
+ *                       minItems: 1
+ *                       items:
+ *                         type: object
+ *                         required: [raza, cantVacas]
+ *                         properties:
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                             example: HOLANDO_ARGENTINO
+ *                           cantVacas:
+ *                             type: integer
+ *                             minimum: 1
+ *                             example: 40
  *               animales:
  *                 type: array
  *                 description: Requerido para INDIVIDUAL; su cantidad debe coincidir con cantVacas.
  *                 items:
  *                   type: object
- *                   required: [categoria, estado]
+ *                   required: [categoria, estado, raza]
  *                   properties:
  *                     codigo:
  *                       type: string
@@ -227,11 +233,12 @@
  *                       example: ORDENE
  *                     estado:
  *                       type: string
- *                       enum: [MASTITIS, TRATAMIENTO, NORMAL]
- *                       example: NORMAL
+ *                       enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
+ *                       example: SANO
  *                     fechaNacimiento:
  *                       type: string
  *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
  *                       example: "2024-01-01T00:00:00.000Z"
  *                     observacion:
  *                       type: string
@@ -239,7 +246,12 @@
  *                     fechaParto:
  *                       type: string
  *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
  *                       example: "2026-07-20T00:00:00.000Z"
+ *                     raza:
+ *                       type: string
+ *                       enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                       example: HOLANDO_ARGENTINO
  *               ubicacion:
  *                 type: object
  *                 required:
@@ -273,7 +285,7 @@
  *                       type: string
  *                       example: success
  *       400:
- *         description: Datos inválidos, faltan rodeos/animales o validación del negocio
+ *         description: Datos inválidos, faltan rodeos/animales, falta una raza o un animal de categoría ORDENE tiene un estado distinto de SANO
  *       401:
  *         description: Usuario no autenticado
  *       403:

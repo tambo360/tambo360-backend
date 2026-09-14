@@ -85,10 +85,10 @@ enum TipoOrdenie {
 }
 
 enum VentaLeche {
-  usina
-  fabrica_propia
-  cooperativa
-  varios
+  USINA
+  COOPERTIVA
+  ELABORACION_PROPIA
+  VENTA_DIRECTA_MERCADO_LOCAL
 }
 
 enum GeneroAnimal {
@@ -135,7 +135,8 @@ enum CategoriaAnimal {
 enum EstadoSanitarioAnimal {
   MASTITIS
   TRATAMIENTO
-  NORMAL
+  PREPARTO
+  SANO
 }
 
 enum DestinoProduccion {
@@ -166,6 +167,20 @@ enum NivelAlerta {
   bajo
   medio
   alto
+}
+
+enum Razas {
+  HOLANDO_ARGENTINO
+  JERSEY
+  PARDO_SUIZO
+  GIR_LECHERO
+  HOLANDO_JERSEY_CRUZA
+  AYRSHIRE
+  NORMANDO
+  BROWN_SWISS
+  MONTBELIARDE
+  SIMMENTAL_LECHERO
+  OTRAS
 }
 
 // TABLAS ------------------------------------------------------------
@@ -248,6 +263,7 @@ model configuracion {
   promLitros        Float?
   tipoOrdenie       TipoOrdenie?
   ventaLeche        VentaLeche?
+  precioLitro       Decimal?           @db.Decimal(13, 2)
   empleados         Boolean?
   cantEmpleados     Int?
   modificadoEn      DateTime?
@@ -313,16 +329,26 @@ model EstablecimientoProducto {
 }
 
 model Rodeo {
-  idRodeo         String           @id @default(uuid(7))
-  idConfiguracion String
-  tipoRodeo       TipoRodeo
-  cantVacas       Int
-  costoRacion     Decimal          @db.Decimal(13, 2)
-  animals         Animal[]
-  loteProduccions LoteProduccion[]
-  configuracion   configuracion    @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  idRodeo          String            @id @default(uuid(7))
+  idConfiguracion  String
+  tipoRodeo        TipoRodeo
+  cantVacas        Int
+  costoRacion      Decimal           @db.Decimal(13, 2)
+  animals          Animal[]
+  loteProduccions  LoteProduccion[]
+  configuracion    configuracion     @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  razas            Raza[]
+  produccionRodeos ProduccionRodeo[]
 
   @@unique([idConfiguracion, tipoRodeo])
+}
+
+model Raza {
+  idRaza    String @id @default(uuid(7))
+  nombre    Razas
+  cantVacas Int
+  idRodeo   String
+  rodeo     Rodeo  @relation(fields: [idRodeo], references: [idRodeo])
 }
 
 //Solo guarda altas, bajas y transferencias (impactan en stock).
@@ -360,6 +386,7 @@ model Animal {
   nombre            String?
   categoria         CategoriaAnimal
   estado            EstadoSanitarioAnimal
+  raza              Razas                     @default(OTRAS)
   activo            Boolean                   @default(true)
   fechaNacimiento   DateTime?
   genero            GeneroAnimal              @default(HEMBRA)
@@ -385,6 +412,16 @@ model ProduccionAnimal {
   lote               LoteProduccion        @relation(fields: [idLote], references: [idLote])
 }
 
+model ProduccionRodeo {
+  idProduccionRodeo String         @id @default(uuid(7))
+  idRodeo           String
+  idLote            String
+  raza              Razas
+  cantVacas         Int
+  rodeo             Rodeo          @relation(fields: [idRodeo], references: [idRodeo])
+  lote              LoteProduccion @relation(fields: [idLote], references: [idLote])
+}
+
 model LoteProduccion {
   idLote                   String             @id @default(uuid(7))
   numeroLote               Int
@@ -394,16 +431,18 @@ model LoteProduccion {
   unidad                   Unidad
   idEstablecimiento        String
   estado                   Boolean            @default(false)
-  idRodeo                  String?
   destino                  TipoDestino
-  tempTanque               Decimal            @db.Decimal(13, 2)
+  cantBajadas              Int
+  tempTanque               Decimal?           @db.Decimal(13, 2)
   cantAnimales             Int
   costosDirectos           CostosDirecto[]
   establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
   producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
-  rodeo                    Rodeo?             @relation(fields: [idRodeo], references: [idRodeo])
   mermas                   Merma[]
   produccionesIndividuales ProduccionAnimal[]
+  produccionRodeos         ProduccionRodeo[]
+  rodeo                    Rodeo?             @relation(fields: [rodeoIdRodeo], references: [idRodeo])
+  rodeoIdRodeo             String?
 
   @@unique([idEstablecimiento, numeroLote])
 }

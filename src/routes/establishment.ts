@@ -10,7 +10,7 @@ router.use(authenticate);
 router.use(orgContext);
 router.use(requireOrgAccess);
 
-router.post('/', registrarEstablecimiento);
+//router.post('/', registrarEstablecimiento); BLOQUEADO (SE CREA AUTOMATICAMENTE AL CREAR UNA ORGANIZACION)
 router.get('/:idEst', getEstablishmentById);
 router.get('/', listarEstablecimientos);
 router.post('/cuestionario', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN], org: [RolOrganizacion.ORG_OWNER]}), registrarCuestionario);

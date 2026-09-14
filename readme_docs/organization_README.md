@@ -17,7 +17,8 @@ Todos los endpoints requieren un token de autenticación válido en el header `A
 
 ## Endpoints
 
-### 1. Crear Organización
+### 1. Crear Organización / Crear establecimiento 
+La organizacion y el establecimiento se crean como uno solo con este endpoint.
 
 **Método:** `POST`  
 **Ruta:** `/organizacion`  
@@ -42,12 +43,15 @@ Todos los endpoints requieren un token de autenticación válido en el header `A
 ```json
 {
   "success": true,
-  "message": "Organización creada correctamente",
+  "message": "Organización/Establecimiento creada correctamente",
   "data": {
-    "id": "uuid",
-    "nombre": "Mi Cooperativa",
-    "rol": "ORG_OWNER",
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "idEstablecimiento": "uuid",
+    "nombre": "Establecimiento La Esperanza",
+    "idOrganizacion": "uuid",
+    "localidad": null,
+    "provincia": null,
+    "cuestionarioCompletado": false,
+    "fechaCreacion": "2024-01-01T00:00:00.000Z"
   }
 }
 ```

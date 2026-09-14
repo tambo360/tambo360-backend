@@ -39,7 +39,14 @@ export class LoteService {
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
                 numeroLote: numeroLote,
-                idRodeo: rodeo.idRodeo
+                cantBajadas: data.cantBajadas,
+                produccionRodeos: {
+                    create: rodeo.razas.map(raza => ({
+                        idRodeo: rodeo.idRodeo,
+                        raza: raza.nombre,
+                        cantVacas: raza.cantVacas
+                    }))
+                }
             },
             include: {
                 producto: {
@@ -48,9 +55,11 @@ export class LoteService {
                         nombre: true,
                         categoria: true
                     }
-                }
+                },
+                produccionRodeos: true
             }
         })
+
 
         return lote
     };
@@ -78,7 +87,8 @@ export class LoteService {
                 destino: data.destino,
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
-                numeroLote: numeroLote
+                numeroLote: numeroLote,
+                cantBajadas: data.cantBajadas
             }
         })
 
@@ -130,13 +140,21 @@ export class LoteService {
             where: { idLote, idEstablecimiento: idEstablecimiento },
             data: {
                 ...(producto && { idProducto: producto.idProducto }),
-                idRodeo: rodeo.idRodeo,
                 cantAnimales: rodeo.cantVacas,
                 cantidad: data.cantidad,
                 unidad: data.unidad,
                 fechaProduccion: data.fechaProduccion,
                 tempTanque: data.tempTanque,
                 destino: data.destino,
+                cantBajadas: data.cantBajadas,
+                produccionRodeos: {
+                    create: rodeo.razas.map(raza => ({
+                        idRodeo: rodeo.idRodeo,
+                        idRaza: raza.idRaza,
+                        raza: raza.nombre,
+                        cantVacas: raza.cantVacas
+                    }))
+                }
             },
             include: {
                 producto: {
@@ -146,6 +164,7 @@ export class LoteService {
                         categoria: true,
                     },
                 },
+                produccionRodeos: true
             },
         });
     }
@@ -229,6 +248,7 @@ export class LoteService {
                 tempTanque: data.tempTanque,
                 destino: data.destino,
                 cantAnimales: data.animales.length,
+                cantBajadas: data.cantBajadas
             }
         });
 

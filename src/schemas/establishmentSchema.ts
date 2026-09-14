@@ -1,4 +1,4 @@
-import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoSanitarioAnimal } from "@prisma/client";
+import { Categoria, TipoOrdenie, VentaLeche, TipoRodeo, TipoSeguimiento, CategoriaAnimal, EstadoSanitarioAnimal, Razas } from "@prisma/client";
 import { z } from "zod";
 
 const requiredString = (message: string) =>
@@ -19,7 +19,7 @@ export const updateEstablishmentNameSchema = z.object({
 
 const existingProductsSchema = z.object({
     tipo: z.literal("existente", "El tipo de producto debe ser 'existente'"),
-    idProducto: z.string().uuid("ID de producto no válido"),
+    idProducto: z.string("El ID del producto es obligatorio").uuid("ID de producto no válido"),
     nombre: requiredString("El nombre del producto es obligatorio"),
 })
 
@@ -37,8 +37,12 @@ const productSchema = z.discriminatedUnion("tipo", [
 
 const RodeoSchema = z.object({
     tipoRodeo: z.enum(TipoRodeo, "El tipo de rodeo debe ser un valor válido"),
-    cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
-    costoRacion: z.number().positive("El costo de la ración debe ser un número positivo"),
+    cantVacas: z.number("La cantidad de vacas es obligatoria").int("La cantidad de vacas debe ser un número entero").positive("La cantidad de vacas debe ser un número entero positivo"),
+    costoRacion: z.number("El costo de la ración es obligatorio").positive("El costo de la ración debe ser un número positivo"),
+    razas: z.array(z.object({
+        raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
+        cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
+    })).min(1, { message: "Debe existir al menos una raza" })
 })
 
 export const AnimalSchema = z.object({
@@ -46,25 +50,33 @@ export const AnimalSchema = z.object({
     nombre: z.string().optional(),
     categoria: z.enum(CategoriaAnimal, "La categoría del animal debe ser un valor válido"),
     estado: z.enum(EstadoSanitarioAnimal, "El estado del animal debe ser un valor válido"),
-    fechaNacimiento: z.date().optional(),
+    fechaNacimiento: z.string().transform(val => new Date(val)).optional(),
     observacion: z.string().optional(),
-    fechaParto: z.date().optional()
+    fechaParto: z.string().transform(val => new Date(val)).optional(),
+    raza: z.enum(Razas, "La raza del animal debe ser un valor válido")
 }).refine((data) => {
     return !!data.codigo || !!data.nombre;
 }, {
     message: "Debe proporcionar al menos un código o un nombre para el animal",
 })
+.refine((data) => {
+    if (data.categoria === "ORDENE" && data.estado !== "SANO") {
+        return false;
+    }
+    return true;
+}, {
+    message: "Un animal de categoría ordeñe solo puede tener estado sano",
+});
 
 const questionnaireBaseSchema = z.object({
-    idEstablecimiento: z.string().uuid("ID de establecimiento no válido"),
+    idEstablecimiento: z.string("El ID del establecimiento es obligatorio").uuid("ID de establecimiento no válido"),
     productos: z.array(productSchema).optional(),
-    cantVacas: z.number().int().positive("La cantidad de vacas debe ser un número entero positivo"),
-    cantOrdenie: z.number().int().positive("La cantidad de ordeñe debe ser un número entero positivo"),
+    cantVacas: z.number("La cantidad de vacas es obligatoria").int("La cantidad de vacas debe ser un número entero").positive("La cantidad de vacas debe ser un número entero positivo"),
+    cantOrdenie: z.number("La cantidad de ordeñe es obligatoria").int("La cantidad de ordeñe debe ser un número entero").positive("La cantidad de ordeñe debe ser un número entero positivo"),
     tipoOrdenie: z.enum(TipoOrdenie, "El tipo de ordeñe debe ser un valor válido"),
-    promLitros: z.number().positive("El promedio de litros debe ser un número positivo"),
+    promLitros: z.number("El promedio de litros es obligatorio").positive("El promedio de litros debe ser un número positivo"),
     ventaLeche: z.enum(VentaLeche, "El tipo de venta de leche debe ser un valor válido"),
-    empleados: z.boolean("Debe indicar si tiene empleados o no"),
-    cantEmpleados: z.number().int().positive("La cantidad de empleados debe ser un número entero positivo").optional(),
+    precioLitro: z.number("El precio por litro es obligatorio").positive("El precio por litro debe ser un número positivo"),
     ubicacion: z.object({
         provincia: requiredString("La provincia es obligatoria"),
         localidad: requiredString("La localidad es obligatoria"),
@@ -125,12 +137,12 @@ export const questionnaireSchema = z.discriminatedUnion(
 
 
 export const sendInvitationSchema = z.object({
-    correo: z.string().email("Correo electrónico no válido"),
-    rol: z.enum(["ADMIN", "EMPLOYEE"])
+    correo: z.string("El correo electrónico es obligatorio").email("Correo electrónico no válido"),
+    rol: z.enum(["ADMIN", "EMPLOYEE"], "El rol no es válido")
 });
 
 export const deleteInvitationSchema = z.object({
-    idInvitacion: z.string().uuid("ID de invitación no válido")
+    idInvitacion: z.string("El ID de invitación es obligatorio").uuid("ID de invitación no válido")
 });
 
 export type sendInvitationSchemaInput = z.infer<typeof sendInvitationSchema>;

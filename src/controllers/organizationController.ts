@@ -18,7 +18,7 @@ export class OrganizationController {
 
             const organization = await OrganizationService.createOrganization(result.data);
 
-            return res.status(200).json(ApiResponse.success(organization, "Organización creada correctamente"));
+            return res.status(200).json(ApiResponse.success(organization, "Organización/Establecimiento creada correctamente"));
         } catch (error) {
             next(error);
         }
