@@ -664,7 +664,8 @@ class EstablishmentsService {
             nombre: a.nombre,
             categoria: a.categoria,
             estado: a.estado,
-            fechaNacimiento: a.fechaNacimiento
+            fechaNacimiento: a.fechaNacimiento,
+            raza: RazasMetaData[a.raza]?.label || "Raza no definida"
         }));
     }
 

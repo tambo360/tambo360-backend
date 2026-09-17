@@ -209,6 +209,7 @@ Cuando `tipoSeguimiento` es `INDIVIDUAL`, `data` tiene esta forma:
       "codigo": "A-001",
       "nombre": "Vaca Rosa",
       "categoria": "ORDENE",
+      "raza": "Holando-Jersey (Cruza)",
       "estado": "SANO",
       "fechaNacimiento": "2024-01-15T00:00:00.000Z"
     }
