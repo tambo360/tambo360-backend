@@ -14,7 +14,23 @@ class UserService {
 
 
   async findByEmail(email: Usuario["correo"]) {
-    return prisma.usuario.findUnique({ where: { correo: email }, include: { organizaciones: true } });
+    return prisma.usuario.findUnique({ where: { correo: email }, include: { organizaciones: {
+      select: {
+        rol: true,
+        organizacion: {
+          select: {
+            nombre: true,
+            idOrganizacion: true,
+            establecimientos: {
+              select: {
+                idEstablecimiento: true,
+                nombre: true,
+              }
+            }
+          }
+        },
+      }
+    } } });
   }
 
   async getAllUsers() {
