@@ -2,9 +2,59 @@
  * @swagger
  * tags:
  *   - name: Dashboard
- *     description: Dashboard de anáilisis
+ *     description: Dashboard de análisis
  */
 
+/**
+ * @swagger
+ * /dashboard/costos:
+ *   get:
+ *     summary: Costos por categoría del mes actual
+ *     description: Devuelve el total de costos directos del establecimiento en el mes actual, agrupados por tipo de costo y moneda.
+ *     tags: [Dashboard]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: header
+ *         name: x-establecimiento-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del establecimiento sobre el que se consulta.
+ *     responses:
+ *       200:
+ *         description: Costos por categoría obtenidos correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Costos por categoría obtenidos correctamente"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       categoria:
+ *                         $ref: '#/components/schemas/TipoCosto'
+ *                       moneda:
+ *                         $ref: '#/components/schemas/Moneda'
+ *                       total:
+ *                         type: number
+ *                         example: 45000
+ *       400:
+ *         description: No se pudo determinar el establecimiento
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: No tiene permisos (requiere rol ADMIN u OWNER)
+ */
 
 /**
  * @swagger
@@ -14,7 +64,15 @@
  *     description: Devuelve métricas de producción del mes actual y su variación respecto al mes anterior.
  *     tags: [Dashboard]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: header
+ *         name: x-establecimiento-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del establecimiento sobre el que se consulta.
  *     responses:
  *       200:
  *         description: Resumen del mes actual obtenido correctamente
@@ -49,6 +107,7 @@
  *                           example: 42000
  *                     variaciones:
  *                       type: object
+ *                       description: Variación porcentual respecto al mes anterior. null cuando no hay datos del mes anterior para comparar.
  *                       properties:
  *                         leches:
  *                           type: number
@@ -70,7 +129,7 @@
  *                       type: string
  *                       example: "Febrero"
  *       400:
- *         description: Usuario sin establecimiento
+ *         description: No se pudo determinar el establecimiento
  *         content:
  *           application/json:
  *             schema:
@@ -81,7 +140,7 @@
  *                   example: 400
  *                 message:
  *                   type: string
- *                   example: "El usuario no tiene un establecimiento registrado"
+ *                   example: "No se pudo determinar el establecimiento"
  *                 data:
  *                   type: null
  *       401:
@@ -101,7 +160,6 @@
  *                   type: null
  */
 
-
 /**
  * @swagger
  * /dashboard/grafico:
@@ -110,14 +168,20 @@
  *     description: Devuelve datos agregados por mes para los últimos 6 meses más el mes actual, filtrados por producto y métrica.
  *     tags: [Dashboard]
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
+ *       - in: header
+ *         name: x-establecimiento-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del establecimiento sobre el que se consulta.
  *       - in: query
  *         name: producto
  *         required: true
  *         schema:
- *           type: string
- *           enum: [leches, quesos]
+ *           $ref: '#/components/schemas/Categoria'
  *         description: Categoría del producto a analizar
  *         example: quesos
  *       - in: query
@@ -141,10 +205,7 @@
  *                   example: 200
  *                 message:
  *                   type: string
- *                   example: "Resumen de los ultimo 6 meses"
- *                 success:
- *                   type: boolean
- *                   example: true
+ *                   example: "Resumen de los ultimos 6 meses"
  *                 data:
  *                   type: object
  *                   properties:
@@ -163,7 +224,7 @@
  *                           valor:
  *                             type: number
  *                             example: 1730
- *                     lote:
+ *                     Lote:
  *                       type: boolean
  *                       description: Indica si existen lotes en el período consultado
  *                       example: true
