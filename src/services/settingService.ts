@@ -21,21 +21,50 @@ class SettingService {
             throw new AppError("Rodeo de destino no encontrado", 404);
         }
 
+        const cantAnimales = body.razas.reduce((acc, raza) => acc + raza.cantVacas, 0);
+
         const nuevoRodeoDestino = await tx.rodeo.update({
             where: {
                 idRodeo: body.rodeoDestino,
             },
             data: {
-                cantVacas: rodeoDestino.cantVacas + body.cantidad
+                cantVacas: {
+                    increment: cantAnimales
+                }
             },
         });
+
+        await Promise.all(
+            body.razas.map((raza) =>
+                tx.raza.upsert({
+                    where: {
+                        idRodeo_nombre: {
+                            idRodeo: body.rodeoDestino,
+                            nombre: raza.raza,
+                        },
+                    },
+                    create: {
+                        idRodeo: body.rodeoDestino,
+                        nombre: raza.raza,
+                        cantVacas: raza.cantVacas,
+                    },
+                    update: {
+                        cantVacas: {
+                            increment: raza.cantVacas,
+                        },
+                    },
+                })
+            )
+        );
+
+
 
         const altaAnimal = await tx.movimientoAnimal.create({
             data: {
                 usuarioId: userId,
                 idConfiguracion: idConfiguracion,
                 rodeoDestino: body.rodeoDestino,
-                cantidad: body.cantidad,
+                cantidad: cantAnimales,
                 motivo: body.motivo,
                 observacion: body.observacion,
                 tipo: TipoMovimientoAnimal.INGRESO,
@@ -46,11 +75,6 @@ class SettingService {
     }
 
     private async altaAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: AltaAnimalIndividual, idEstablecimiento: string) {
-
-        if (body.cantidad !== body.animales.length) {
-            throw new AppError("La cantidad de animles ingresada no coincide", 400)
-        }
-
         const animales = await tx.animal.count({
             where: {
                 idEstablecimiento: idEstablecimiento,
@@ -60,7 +84,7 @@ class SettingService {
         });
 
         if (animales + body.animales.length > EstablishmentsService.LIMITE_ANIMAL) {
-            throw new AppError("No se puede superar el límite de animales para el establecimiento", 400);
+            throw new AppError("No se puede superar el límite de animales para el establecimiento, Limite: " + EstablishmentsService.LIMITE_ANIMAL, 400);
         }
 
         const altaAnimal = await tx.movimientoAnimal.create({
@@ -81,6 +105,7 @@ class SettingService {
                         idEstablecimiento,
                         categoria: animal.categoria,
                         estado: animal.estado,
+                        raza: animal.raza,
                         codigo: animal.codigo,
                         nombre: animal.nombre,
                         fechaNacimiento: animal.fechaNacimiento,
@@ -91,6 +116,7 @@ class SettingService {
                         estado: true,
                         codigo: true,
                         nombre: true,
+                        raza: true,
                         fechaNacimiento: true,
                     },
                 })
@@ -130,7 +156,9 @@ class SettingService {
                 idRodeo: body.rodeoOrigen,
             },
             data: {
-                cantVacas: rodeoOrigen.cantVacas - body.cantidad,
+                cantVacas: {
+                    decrement: body.cantidad
+                }
             },
         });
 
@@ -187,6 +215,7 @@ class SettingService {
                         estado: true,
                         codigo: true,
                         nombre: true,
+                        raza: true,
                         fechaNacimiento: true,
                     },
                 })
@@ -499,14 +528,14 @@ class SettingService {
         return res
     }
 
-    async obtenerMovimientos(idEstablecimiento: string){
+    async obtenerMovimientos(idEstablecimiento: string) {
         const est = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
 
         const movimientos = await prisma.movimientoAnimal.findMany({
             where: {
                 idConfiguracion: est.configuracions[0].idConfiguracion
             },
-            select:{
+            select: {
                 idMovimiento: true,
                 tipo: true,
                 motivo: true,

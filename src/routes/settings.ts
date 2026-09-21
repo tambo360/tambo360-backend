@@ -12,13 +12,15 @@ router.use(requireOrgAccess);
 router.use(establecimientoRequireOrgAccess);
 router.use(estContext);
 
+router.patch("/establecimiento", SettingController.actualizarEstablecimiento);
 router.post("/animal", SettingController.crearAnimal);
-router.patch("/animal", SettingController.actualizarAnimal)
-router.get("/animal/listar", SettingController.listarAnimales)
-router.post("/rodeo/transferir", SettingController.transferirRodeo);
 router.delete("/animal", SettingController.eliminarAnimal);
 
-router.patch("/establecimiento", SettingController.actualizarEstablecimiento);
+
+router.patch("/animal", SettingController.actualizarAnimal)
+router.post("/rodeo/transferir", SettingController.transferirRodeo);
+
+router.get("/animal/listar", SettingController.listarAnimales)
 
 router.get("/movimiento", SettingController.obtenerMovimientos)
 

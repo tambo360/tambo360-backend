@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, Categoria, CategoriaAnimal } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, CategoriaAnimal, Razas } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
 export const motivosPorTipo = {
     INGRESO: [
@@ -38,7 +38,6 @@ export const transferenciaRodeoSchema = z.object({
 })
 
 const altaAnimalBaseSchema = z.object({
-    cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
     observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
     tipo: z.enum([TipoMovimientoAnimal.INGRESO], "Tipo de movimiento inválido"),
     motivo: z.enum(motivosPorTipo.INGRESO, "Motivo de ingreso inválido"),
@@ -46,7 +45,11 @@ const altaAnimalBaseSchema = z.object({
 
 const altaAnimalRodeoSchema = altaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
-    rodeoDestino: z.string().uuid("Id de rodeo destino inválido")
+    rodeoDestino: z.string().uuid("Id de rodeo destino inválido"),
+    razas: z.array(z.object({
+        raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
+        cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
+    })).min(1, { message: "Debe existir al menos una raza" })
 })
 
 

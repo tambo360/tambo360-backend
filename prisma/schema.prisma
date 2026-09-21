@@ -350,6 +350,7 @@ model Raza {
   cantVacas Int
   idRodeo   String
   rodeo     Rodeo  @relation(fields: [idRodeo], references: [idRodeo])
+  @@unique([idRodeo, nombre])
 }
 
 //Solo guarda altas, bajas y transferencias (impactan en stock).
