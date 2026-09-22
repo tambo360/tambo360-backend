@@ -1,253 +1,22 @@
 # Configuración - API Tambo360
 
-Esta sección documenta los endpoints de configuración del backend, orientados a operaciones administrativas sobre movimientos de animales (altas, bajas y transferencias) dentro del establecimiento autenticado.
+Documentación de los endpoints montados bajo `/api/conf`.
 
-## Base
+## Autenticación y contexto
 
-- Prefijo: `/conf`
-- Requiere autenticación JWT y contexto de organización/establecimiento
-- Los endpoints están protegidos por los middlewares de autenticación y contexto multi-tenant
+Todos requieren JWT, `x-organizacion-id` y `x-establecimiento-id`. La ruta aplica esta cadena global:
 
-## Headers Requeridos
+`authenticate -> orgContext -> requireOrgAccess -> establecimientoRequireOrgAccess -> estContext`
 
-| Header | Tipo | Descripción |
-|--------|------|-------------|
-| `Authorization` | string | Token JWT de autenticación |
-| `x-organizacion-id` | string (UUID) | ID de la organización |
-| `x-establecimiento-id` | string (UUID) | ID del establecimiento |
+## 1. Actualizar establecimiento
 
----
+**PATCH** `/api/conf/establecimiento`
 
-## 1. Actualizar un Animal
-
-**Método:** `PATCH`  
-**Ruta:** `/conf/animal`
-
-Actualiza un animal perteneciente al establecimiento autenticado. La implementación actual recibe los datos mediante parámetros de consulta, no mediante JSON en el body.
-
-### Query Parameters
-
-| Parámetro | Tipo | Obligatorio | Descripción |
-|---|---|---:|---|
-| `id` | string (UUID) | Sí | ID del animal a actualizar |
-| `codigo` | string | Sí | Código del animal. Debe existir `codigo` o `nombre` |
-| `nombre` | string | Sí | Nombre del animal. Debe existir `codigo` o `nombre` |
-| `Categoria` | enum | Sí | Categoría: `ORDENE` o `SECAS` |
-| `estado` | enum | Sí | Estado sanitario: `MASTITIS`, `TRATAMIENTO` o `NORMAL` |
-| `observacion` | string | No | Observación del animal |
-| `fechaNacimiento` | date | No | Fecha de nacimiento |
-| `fechaParto` | date | No | Fecha del último parto |
-
-### Ejemplo de Request
-
-```bash
-PATCH "/api/conf/animal?id=550e8400-e29b-41d4-a716-446655440401&codigo=A-001&nombre=Vaca%20Rosa&Categoria=ORDENE&estado=NORMAL&observacion=Animal%20en%20seguimiento&fechaNacimiento=2024-01-15&fechaParto=2026-07-20"
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-```
-
-### Response (200 - OK)
+Actualiza datos básicos y de ordeñe. El body es JSON:
 
 ```json
 {
-  "success": true,
-  "message": "Animal actualizado correctamente",
-  "data": {
-    "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
-    "idEstablecimiento": "550e8400-e29b-41d4-a716-446655440002",
-    "codigo": "A-001",
-    "nombre": "Vaca Rosa",
-    "Categoria": "ORDENE",
-    "estado": "NORMAL",
-    "observacion": "Animal en seguimiento",
-    "fechaNacimiento": "2024-01-15T00:00:00.000Z",
-    "fechaUltimoParto": "2026-07-20T00:00:00.000Z"
-  }
-}
-```
-
-### Posibles Errores
-
-| Código | Mensaje |
-|---|---|
-| 400 | Parámetros inválidos |
-| 400 | Debe proporcionar al menos un código o un nombre para el animal |
-| 400 | El animal no existe |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-
----
-
-## 2. Obtener Movimientos de Animales
-
-**Método:** `GET`  
-**Ruta:** `/conf/movimiento`
-
-Devuelve todos los movimientos de animales asociados a la configuración del establecimiento autenticado. Incluye movimientos de ingreso, egreso y transferencia, junto con el usuario que los registró y el detalle de los animales involucrados.
-
-### Query Parameters
-
-No requiere parámetros de consulta. El establecimiento se obtiene desde el header `x-establecimiento-id` y el contexto autenticado.
-
-### Ejemplo de Request
-
-```bash
-GET /api/conf/movimiento
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-```
-
-### Response (200 - OK)
-
-```json
-{
-  "success": true,
-  "message": "Animal actualizado correctamente",
-  "data": [
-    {
-      "idMovimiento": "550e8400-e29b-41d4-a716-446655440120",
-      "tipo": "TRANSFERENCIA",
-      "motivo": "Transferencia por baja producción",
-      "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010",
-      "rodeoDestino": "550e8400-e29b-41d4-a716-446655440011",
-      "cantidad": 3,
-      "observacion": "Transferencia por baja producción",
-      "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-      "fechaCreacion": "2026-08-20T12:00:00.000Z",
-      "usuario": {
-        "nombre": "Administrador"
-      },
-      "detalles": [
-        {
-          "animal": {
-            "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
-            "codigo": "A-001",
-            "nombre": "Vaca Rosa",
-            "idRodeo": "550e8400-e29b-41d4-a716-446655440010",
-            "categoria": "ORDENE",
-            "estado": "NORMAL"
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
-`rodeoOrigen` y `rodeoDestino` pueden ser `null` según el tipo de movimiento. `detalles` puede estar vacío para movimientos por rodeo que no tienen animales individuales asociados.
-
-### Posibles Errores
-
-| Código | Mensaje |
-|---|---|
-| 400 | ID de establecimiento inválido o establecimiento no encontrado |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-
-> Nota: actualmente el controlador responde con el mensaje `Animal actualizado correctamente` aunque este endpoint obtiene movimientos. Conviene cambiarlo por `Movimientos obtenidos correctamente` en el controlador.
-
----
-
-## 3. Listar Animales
-
-**Método:** `GET`  
-**Ruta:** `/conf/animal/listar`
-
-Devuelve únicamente animales activos del establecimiento autenticado. Permite filtrar por código, nombre y estado sanitario. También incluye el `DEL` (días desde el último parto) y la producción registrada durante el día actual.
-
-### Query Parameters
-
-| Parámetro | Tipo | Obligatorio | Default | Descripción |
-|---|---|---:|---:|---|
-| `codigo` | string | No | - | Coincidencia parcial, sin distinguir mayúsculas y minúsculas |
-| `nombre` | string | No | - | Coincidencia parcial, sin distinguir mayúsculas y minúsculas |
-| `estado` | enum | No | - | Estado sanitario: `MASTITIS`, `TRATAMIENTO` o `NORMAL` |
-| `orden` | `asc \| desc` | No | `asc` | Orden por nombre |
-| `page` | integer | No | `1` | Página, mayor que 0 |
-| `limit` | integer | No | `10` | Resultados por página, entre 1 y 100 |
-
-### Ejemplo de Request
-
-```bash
-GET /api/conf/animal/listar?estado=PREPARTO&page=1&limit=10&orden=asc
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-```
-
-### Response (200 - OK)
-
-```json
-{
-  "success": true,
-  "message": "Animales obtenidos correctamente",
-  "data": [
-    {
-      "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
-      "idRodeo": "550e8400-e29b-41d4-a716-446655440010",
-      "nombre": "Vaca Rosa",
-      "codigo": "A-001",
-      "categoria": "ORDENE",
-      "estado": "PREPARTO",
-      "genero": "HEMBRA",
-      "observacion": null,
-      "fechaNacimiento": "2024-01-15T00:00:00.000Z",
-      "DEL": 42,
-      "produccion": {
-        "litros_hoy": {
-          "VENTA": "24.50"
-        },
-        "litros_totales": "24.50"
-      }
-    }
-  ]
-}
-```
-
-### Posibles Errores
-
-| Código | Mensaje |
-|---|---|
-| 400 | Filtros inválidos o no se pudo determinar el establecimiento |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-
----
-
-## 4. Actualizar Establecimiento
-
-**Método:** `PATCH`  
-**Ruta:** `/conf/establecimiento`
-
-Actualiza el nombre, la ubicación y los parámetros de ordeñe del establecimiento autenticado.
-
-### Body
-
-| Campo | Tipo | Obligatorio | Descripción |
-|---|---|---:|---|
-| `idEst` | string (UUID) | Sí | ID del establecimiento a actualizar |
-| `nombre` | string | Sí | Nombre, máximo 50 caracteres |
-| `tipo_ordenie` | enum | Sí | `balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual` u `otro` |
-| `ordenie_dia` | integer | Sí | Cantidad de ordeñes por día, entre 1 y 3 |
-| `promLitros` | number | Sí | Promedio de litros, mayor que 0 |
-| `ubicacion.provincia` | string | Sí | Provincia, entre 2 y 100 caracteres |
-| `ubicacion.localidad` | string | Sí | Localidad, entre 2 y 100 caracteres |
-
-### Ejemplo de Request
-
-```bash
-PATCH /api/conf/establecimiento
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-Content-Type: application/json
-```
-
-```json
-{
-  "idEst": "550e8400-e29b-41d4-a716-446655440002",
+  "idEst": "uuid-establecimiento",
   "nombre": "Tambo La Esperanza",
   "tipo_ordenie": "linea",
   "ordenie_dia": 2,
@@ -259,409 +28,187 @@ Content-Type: application/json
 }
 ```
 
-### Response (200 - OK)
+Campos: `idEst` UUID, `nombre` máximo 50 caracteres, `tipo_ordenie` (`balde`, `linea`, `espina_de_pescado`, `rotativo`, `manual`, `otro`), `ordenie_dia` entero de 1 a 3, `promLitros` positivo y ubicación con provincia/localidad de 2 a 100 caracteres.
 
-La respuesta contiene el objeto `conf` actualizado y el objeto `establecimiento` actualizado dentro de `data`.
+Respuesta: `data` contiene `conf` y `establecimiento`. Errores: `400`, `401` y `403`.
 
-```json
-{
-  "success": true,
-  "message": "Información del establecimiento actualizada correctamente",
-  "data": {
-    "conf": {
-      "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-      "tipoOrdenie": "MECANICO",
-      "promLitros": "24.50",
-      "cantOrdenies": 2
-    },
-    "establecimiento": {
-      "idEstablecimiento": "550e8400-e29b-41d4-a716-446655440002",
-      "nombre": "Tambo La Esperanza",
-      "provincia": "Buenos Aires",
-      "localidad": "Chivilcoy"
-    }
-  }
-}
-```
+## 2. Registrar ingreso de animales
 
-### Posibles Errores
+**POST** `/api/conf/animal`
 
-| Código | Mensaje |
-|---|---|
-| 400 | Datos inválidos o el establecimiento no existe |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
+El `tipoSeguimiento` debe coincidir con la configuración del establecimiento.
 
----
-
-## 5. Dar de Alta Animales
-
-**Método:** `POST`  
-**Ruta:** `/conf/animal`
-
-Permite registrar la incorporación de animales al establecimiento. Soporta dos modos según el tipo de seguimiento configurado:
-- `RODEO` o `RODEO_UNICO`: incrementa la cantidad en un rodeo específico
-- `INDIVIDUAL`: crea nuevos registros de animales en el sistema
-
-### Request Body
-
-#### Campos comunes
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `tipoSeguimiento` | enum | Sí | Tipo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
-| `tipo` | enum | Sí | Tipo de movimiento: `INGRESO` |
-| `motivo` | enum | Sí | Motivo del ingreso: `INGRESO_COMPRA` o `INGRESO_NACIMIENTO` |
-| `cantidad` | integer | Sí | Cantidad de animales a ingresar (debe ser > 0) |
-| `observacion` | string | No | Observación opcional de hasta 255 caracteres |
-
-#### Campos adicionales si `tipoSeguimiento = RODEO` o `RODEO_UNICO`
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `rodeoDestino` | string (UUID) | Sí | ID del rodeo destino |
-
-#### Campos adicionales si `tipoSeguimiento = INDIVIDUAL`
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `animales` | array | Sí | Array de animales a crear (min 1 elemento) |
-| `animales[].codigo` | string | No | Código identificador del animal |
-| `animales[].nombre` | string | No | Nombre del animal |
-| `animales[].categoria` | enum | Sí | Categoría: `ORDENE`, `SECAS` o `PREPARTO` |
-| `animales[].estado` | enum | Sí | Estado: `MATITIS`, `TRATAMIENTO`, `PREPARTO` o `DESCARTE` |
-| `animales[].fechaNacimiento` | string (ISO) | No | Fecha de nacimiento en formato ISO 8601 |
-
-### Ejemplo de Request (RODEO)
-
-```bash
-POST /api/conf/animal
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-Content-Type: application/json
-```
+### RODEO o RODEO_UNICO
 
 ```json
 {
   "tipoSeguimiento": "RODEO",
-  "rodeoDestino": "550e8400-e29b-41d4-a716-446655440010",
+  "tipo": "INGRESO",
   "motivo": "INGRESO_COMPRA",
-  "cantidad": 5,
-  "observacion": "Compra de vacas de lechería"
+  "destino": "uuid-rodeo-destino",
+  "razas": [
+    { "raza": "HOLANDO_ARGENTINO", "cantVacas": 10 },
+    { "raza": "JERSEY", "cantVacas": 5 }
+  ],
+  "observacion": "Compra de animales"
 }
 ```
 
-### Ejemplo de Request (INDIVIDUAL)
+Incrementa el rodeo y realiza upsert de cada raza. La cantidad registrada es la suma de `razas[].cantVacas`. `razas` requiere al menos un elemento.
+
+### INDIVIDUAL
 
 ```json
 {
   "tipoSeguimiento": "INDIVIDUAL",
+  "tipo": "INGRESO",
   "motivo": "INGRESO_NACIMIENTO",
-  "cantidad": 2,
   "animales": [
     {
       "codigo": "A-001",
       "nombre": "Vaca Rosa",
       "categoria": "ORDENE",
-      "estado": "PREPARTO",
+      "estado": "SANO",
+      "raza": "HOLANDO_ARGENTINO",
       "fechaNacimiento": "2024-01-15T00:00:00.000Z"
-    },
-    {
-      "codigo": "A-002",
-      "nombre": "Vaca Negra",
-      "categoria": "ORDENE",
-      "estado": "MATITIS"
     }
-  ],
-  "observacion": "Nacimientos en el rodeo"
+  ]
 }
 ```
 
-### Response (200 - OK)
+Cada animal requiere `categoria`, `estado`, `raza` y código o nombre. Un animal `ORDENE` solo puede tener estado `SANO`. El establecimiento no puede superar 70 animales activos.
 
-```json
-{
-  "success": true,
-  "message": "Alta de animales realizada correctamente",
-  "data": {
-    "idMovimiento": "550e8400-e29b-41d4-a716-446655440100",
-    "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-    "tipo": "INGRESO",
-    "motivo": "INGRESO_COMPRA",
-    "cantidad": 5,
-    "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-    "observacion": "Compra de vacas de lechería",
-    "fechaCreacion": "2026-08-17T12:00:00.000Z",
-    "rodeoDestino": "550e8400-e29b-41d4-a716-446655440010"
-  }
-}
-```
+Motivos: `INGRESO_COMPRA`, `INGRESO_NACIMIENTO`. Responde `200`. Errores: `400`, `401`, `403` y `404`.
 
-### Response (200 - OK) para INDIVIDUAL
+## 3. Dar de baja animales
 
-```json
-{
-  "success": true,
-  "message": "Alta de animales realizada correctamente",
-  "data": {
-    "idMovimiento": "550e8400-e29b-41d4-a716-446655440100",
-    "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-    "tipo": "INGRESO",
-    "motivo": "INGRESO_NACIMIENTO",
-    "cantidad": 2,
-    "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-    "observacion": "Nacimientos en el rodeo",
-    "fechaCreacion": "2026-08-17T12:00:00.000Z",
-    "animales": [
-      {
-        "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
-        "codigo": "A-001",
-        "nombre": "Vaca Rosa",
-        "categoria": "ORDENE",
-        "estado": "PREPARTO",
-        "fechaNacimiento": "2024-01-15T00:00:00.000Z"
-      },
-      {
-        "idAnimal": "550e8400-e29b-41d4-a716-446655440402",
-        "codigo": "A-002",
-        "nombre": "Vaca Negra",
-        "categoria": "ORDENE",
-        "estado": "MATITIS"
-      }
-    ]
-  }
-}
-```
+**DELETE** `/api/conf/animal`
 
-### Posibles Errores
-
-| Código | Mensaje |
-|--------|---------|
-| 400 | Datos de ingreso inválidos |
-| 400 | La cantidad de animales ingresada no coincide |
-| 400 | No se puede superar el límite de animales para el establecimiento |
-| 400 | Rodeo de destino no encontrado |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-| 404 | Configuración no encontrada |
-
----
-
-## 6. Dar de Baja Animales
-
-**Método:** `DELETE`  
-**Ruta:** `/conf/animal`
-
-Permite registrar la salida de animales del establecimiento. Soporta dos modos según el tipo de seguimiento configurado:
-- `RODEO` o `RODEO_UNICO`: decrementa la cantidad en un rodeo específico
-- `INDIVIDUAL`: marca animales como inactivos
-
-### Request Body
-
-#### Campos comunes
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `tipoSeguimiento` | enum | Sí | Tipo de seguimiento: `RODEO`, `RODEO_UNICO` o `INDIVIDUAL` |
-| `tipo` | enum | Sí | Tipo de movimiento: `EGRESO` |
-| `motivo` | enum | Sí | Motivo de egreso: `EGRESO_VENTA`, `EGRESO_DESCARTE` o `EGRESO_MUERTE` |
-| `cantidad` | integer | Sí | Cantidad de animales a dar de baja (debe ser > 0) |
-| `observacion` | string | No | Observación opcional de hasta 255 caracteres |
-
-#### Campos adicionales si `tipoSeguimiento = RODEO` o `RODEO_UNICO`
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `rodeoOrigen` | string (UUID) | Sí | ID del rodeo origen |
-
-#### Campos adicionales si `tipoSeguimiento = INDIVIDUAL`
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `animales` | array | Sí | Array de IDs de animales a dar de baja (min 1 elemento) |
-
-### Ejemplo de Request (RODEO)
-
-```bash
-DELETE /api/conf/animal
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-Content-Type: application/json
-```
+### RODEO o RODEO_UNICO
 
 ```json
 {
   "tipoSeguimiento": "RODEO",
-  "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010",
+  "tipo": "EGRESO",
   "motivo": "EGRESO_VENTA",
   "cantidad": 2,
-  "observacion": "Venta a feria de ganado"
+  "origen": "uuid-rodeo-origen",
+  "observacion": "Venta"
 }
 ```
 
-### Ejemplo de Request (INDIVIDUAL)
+### INDIVIDUAL
 
 ```json
 {
   "tipoSeguimiento": "INDIVIDUAL",
+  "tipo": "EGRESO",
   "motivo": "EGRESO_DESCARTE",
   "cantidad": 1,
-  "animales": ["550e8400-e29b-41d4-a716-446655440401"],
-  "observacion": "Descarte por edad"
+  "animales": ["uuid-animal"]
 }
 ```
 
-### Response (200 - OK)
+Motivos: `EGRESO_VENTA`, `EGRESO_DESCARTE`, `EGRESO_MUERTE`. En individual, `cantidad` debe coincidir con la cantidad de IDs y los animales se marcan como inactivos. Responde `200`. Errores: `400`, `401`, `403` y `404`.
+
+## 4. Listar animales
+
+**GET** `/api/conf/animal/listar`
+
+Disponible únicamente con seguimiento `INDIVIDUAL`. Query opcional:
+
+| Parámetro | Tipo | Default | Restricción |
+|---|---|---:|---|
+| `codigo` | string | - | Coincidencia parcial |
+| `nombre` | string | - | Coincidencia parcial |
+| `estado` | enum | - | `MASTITIS`, `TRATAMIENTO`, `PREPARTO`, `SANO` |
+| `orden` | enum | `asc` | `asc` o `desc` |
+| `page` | integer | `1` | Mayor que 0 |
+| `limit` | integer | `10` | Entre 1 y 100 |
+
+Devuelve animales activos con `DEL`, `situacion`, género, observación y producción del día (`litros_hoy`, `litros_totales`). Errores: `400` si no es seguimiento individual, filtros inválidos o establecimiento no determinado; `401` y `403`.
+
+## 5. Obtener movimientos
+
+**GET** `/api/conf/movimiento`
+
+No recibe query ni body. Devuelve movimientos de la configuración actual, con `tipo`, motivo normalizado, origen/destino, cantidad, observación, fecha, usuario y detalles de animales.
+
+> El controlador conserva actualmente el mensaje de éxito `Animal actualizado correctamente`, aunque la operación obtiene movimientos.
+>
+> Advertencia de implementación: el controlador valida `listaMovimientosSchema` contra el string del establecimiento en lugar de `{ idEst: string }`; por ese motivo la ruta puede responder `400` antes de consultar el servicio.
+
+Errores: `400`, `401`, `403` y `404`.
+
+## 6. Actualizar animal
+
+**PATCH** `/api/conf/animal`
+
+Disponible únicamente con seguimiento `INDIVIDUAL`. Actualmente el controlador lee los datos desde query parameters, no desde JSON:
+
+```text
+/api/conf/animal?id=uuid&codigo=A-001&nombre=Vaca%20Rosa&observacion=Seguimiento&fechaNacimiento=2024-01-15&fechaParto=2026-07-20
+```
+
+Parámetros:
+
+| Parámetro | Obligatorio | Descripción |
+|---|---:|---|
+| `id` | Sí | UUID del animal |
+| `codigo` | Condicional | Debe existir `codigo` o `nombre` |
+| `nombre` | Condicional | Debe existir `codigo` o `nombre` |
+| `observacion` | No | Nueva observación |
+| `fechaNacimiento` | No | Fecha |
+| `fechaParto` | No | Se guarda como `fechaUltimoParto` |
+
+No actualiza categoría, estado ni raza. Responde `200`. Errores: `400`, `401` y `403`.
+
+## 7. Transferir animales
+
+**POST** `/api/conf/animal/transferir`
+
+### RODEO o RODEO_UNICO
 
 ```json
 {
-  "success": true,
-  "message": "Baja de animales realizada correctamente",
-  "data": {
-    "idMovimiento": "550e8400-e29b-41d4-a716-446655440110",
-    "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-    "tipo": "EGRESO",
-    "motivo": "EGRESO_VENTA",
-    "cantidad": 2,
-    "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-    "observacion": "Venta a feria de ganado",
-    "fechaCreacion": "2026-08-17T12:00:00.000Z",
-    "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010"
-  }
+  "tipo": "TRANSFERENCIA",
+  "motivo": "TRANSFERENCIA_SANITARIA",
+  "causa": "MASTITIS",
+  "tipoSeguimiento": "RODEO",
+  "origen": "uuid-rodeo-origen",
+  "destino": "uuid-rodeo-destino",
+  "animal": {
+    "raza": "uuid-raza",
+    "cantVacas": 3
+  },
+  "retorno": "2026-10-01T00:00:00.000Z",
+  "observacion": "Tratamiento sanitario"
 }
 ```
 
-### Response (200 - OK) para INDIVIDUAL
+Mueve la cantidad de la raza indicada entre rodeos y actualiza sus existencias. `origen` y `destino` deben ser diferentes.
+
+### INDIVIDUAL
 
 ```json
 {
-  "success": true,
-  "message": "Baja de animales realizada correctamente",
-  "data": {
-    "idMovimiento": "550e8400-e29b-41d4-a716-446655440110",
-    "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-    "tipo": "EGRESO",
-    "motivo": "EGRESO_DESCARTE",
-    "cantidad": 1,
-    "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-    "observacion": "Descarte por edad",
-    "fechaCreacion": "2026-08-17T12:00:00.000Z",
-    "animales": [
-      {
-        "idAnimal": "550e8400-e29b-41d4-a716-446655440401",
-        "codigo": "A-001",
-        "nombre": "Vaca Rosa",
-        "categoria": "ORDENE",
-        "estado": "PREPARTO",
-        "fechaNacimiento": "2024-01-15T00:00:00.000Z"
-      }
-    ]
-  }
+  "tipo": "TRANSFERENCIA",
+  "motivo": "TRANSFERENCIA_CICLO_PRODUCTIVO",
+  "causa": "SECADA_PROGRAMADA",
+  "tipoSeguimiento": "INDIVIDUAL",
+  "origen": "ORDENE",
+  "destino": "SECAS",
+  "animal": "uuid-animal",
+  "retorno": null
 }
 ```
 
-### Posibles Errores
+En individual cambia la categoría y el estado según la causa. Motivos: `TRANSFERENCIA_SANITARIA`, `TRANSFERENCIA_CICLO_PRODUCTIVO`, `TRANSFERENCIA_RECUPERACION`.
 
-| Código | Mensaje |
-|--------|---------|
-| 400 | Datos de egreso inválidos |
-| 400 | La cantidad de animales ingresada no coincide |
-| 400 | Cantidad a dar de baja mayor a la cantidad disponible |
-| 400 | Rodeo de origen no encontrado |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-| 404 | Configuración no encontrada o animales no encontrados |
+Causas válidas por motivo:
 
----
+- Sanitaria: `MASTITIS`, `PROBLEMA_PODAL`, `PROBLEMA_UTERINO`, `ENFERMEDAD_GENERAL`.
+- Ciclo productivo: `SECADA_PROGRAMADA`, `PARTO`, `ABORTO`.
+- Recuperación: `ALTA_MEDICA`.
 
-## 7. Transferir Animales entre Rodeos
-
-**Método:** `POST`  
-**Ruta:** `/conf/rodeo/transferir`
-
-Permite transferir animales de un rodeo a otro. Solo está disponible para establecimientos con seguimiento por `RODEO`; el servicio rechaza configuraciones `RODEO_UNICO` e `INDIVIDUAL`.
-
-### Request Body
-
-| Campo | Tipo | Obligatorio | Descripción |
-|-------|------|-------------|-------------|
-| `rodeoOrigen` | string (UUID) | Sí | ID del rodeo origen |
-| `rodeoDestino` | string (UUID) | Sí | ID del rodeo destino (debe ser diferente al origen) |
-| `motivo` | enum | Sí | Motivo de la transferencia. Valores permitidos: `TRANSFERENCIA_BAJA_PRODUCCION`, `TRANSFERENCIA_ALTA_PRODUCCION`, `TRANSFERENCIA_SECADO`, `TRANSFERENCIA_CAMBIO_ESTADO`, `TRANSFERENCIA_OTRO` |
-| `cantidad` | integer | Sí | Cantidad de animales a transferir (debe ser > 0) |
-| `observacion` | string | No | Observación opcional de hasta 255 caracteres |
-
-### Ejemplo de Request
-
-```bash
-POST /api/conf/rodeo/transferir
-Authorization: Bearer jwt_token_here
-x-organizacion-id: 550e8400-e29b-41d4-a716-446655440001
-x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440002
-Content-Type: application/json
-```
-
-```json
-{
-  "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010",
-  "rodeoDestino": "550e8400-e29b-41d4-a716-446655440011",
-  "motivo": "TRANSFERENCIA_BAJA_PRODUCCION",
-  "cantidad": 3,
-  "observacion": "Transferencia por baja producción"
-}
-```
-
-### Response (200 - OK)
-
-```json
-{
-  "success": true,
-  "message": "Transferencia de rodeo realizada correctamente",
-  "data": {
-    "idMovimiento": "550e8400-e29b-41d4-a716-446655440120",
-    "idConfiguracion": "550e8400-e29b-41d4-a716-446655440200",
-    "tipo": "TRANSFERENCIA",
-    "motivo": "TRANSFERENCIA_BAJA_PRODUCCION",
-    "rodeoOrigen": "550e8400-e29b-41d4-a716-446655440010",
-    "rodeoDestino": "550e8400-e29b-41d4-a716-446655440011",
-    "cantidad": 3,
-    "usuarioId": "550e8400-e29b-41d4-a716-446655440300",
-    "observacion": "Transferencia por baja producción",
-    "fechaCreacion": "2026-08-17T12:00:00.000Z"
-  }
-}
-```
-
-### Posibles Errores
-
-| Código | Mensaje |
-|--------|---------|
-| 400 | Datos de transferencia inválidos |
-| 400 | El rodeo de origen y destino no pueden ser el mismo |
-| 400 | Cantidad a transferir mayor a la cantidad disponible en el rodeo de origen |
-| 400 | El establecimiento no tiene habilitado el seguimiento por rodeo |
-| 401 | Usuario no autenticado |
-| 403 | Establecimiento no autorizado |
-| 404 | Rodeo de origen, rodeo de destino o configuración no encontrados |
-
----
-
-## Motivos Válidos
-
-### Ingreso
-- `INGRESO_COMPRA` - Compra de animales
-- `INGRESO_NACIMIENTO` - Nacimiento de terneros
-
-### Egreso
-- `EGRESO_VENTA` - Venta de animales
-- `EGRESO_DESCARTE` - Descarte de animales
-- `EGRESO_MUERTE` - Muerte de animales
-
-### Transferencia
-- `TRANSFERENCIA_BAJA_PRODUCCION` - Transferencia a rodeo de baja producción
-- `TRANSFERENCIA_ALTA_PRODUCCION` - Transferencia a rodeo de alta producción
-- `TRANSFERENCIA_SECADO` - Transferencia a rodeo de secado
-- `TRANSFERENCIA_CAMBIO_ESTADO` - Transferencia por cambio de estado
-- `TRANSFERENCIA_OTRO` - Otra razón de transferencia
+Responde `200`. Errores: `400`, `401`, `403` y `404`.
