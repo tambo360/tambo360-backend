@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, CategoriaAnimal, Razas } from "@prisma/client";
+import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, CausaMovimientoAnimal, Razas, CategoriaAnimal } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
 export const motivosPorTipo = {
     INGRESO: [
@@ -14,11 +14,9 @@ export const motivosPorTipo = {
     ],
 
     TRANSFERENCIA: [
-        "TRANSFERENCIA_BAJA_PRODUCCION",
-        "TRANSFERENCIA_ALTA_PRODUCCION",
-        "TRANSFERENCIA_SECADO",
-        "TRANSFERENCIA_CAMBIO_ESTADO",
-        "TRANSFERENCIA_OTRO"
+        "TRANSFERENCIA_SANITARIA",
+        "TRANSFERENCIA_CICLO_PRODUCTIVO",
+        "TRANSFERENCIA_RECUPERACION"
     ],
 } as const;
 
@@ -28,14 +26,74 @@ const motivoSchema = z.enum([
     ...motivosPorTipo.TRANSFERENCIA
 ], "Motivo inválido");
 
-export const transferenciaRodeoSchema = z.object({
-    rodeoOrigen: z.string().uuid("Id de rodeo origen inválido"),
-    rodeoDestino: z.string().uuid("Id de rodeo destino inválido"),
+export const causasPorMotivo = {
+    TRANSFERENCIA_SANITARIA: [
+        "MASTITIS",
+        "PROBLEMA_PODAL",
+        "PROBLEMA_UTERINO",
+        "ENFERMEDAD_GENERAL",
+    ],
+    TRANSFERENCIA_CICLO_PRODUCTIVO: [
+        "SECADA_PROGRAMADA",
+        "PARTO",
+        "ABORTO",
+    ],
+    TRANSFERENCIA_RECUPERACION: [
+        "ALTA_MEDICA",
+    ],
+}
+
+
+
+
+const transferenciaBaseSchema = z.object({
+    tipo: z.enum([TipoMovimientoAnimal.TRANSFERENCIA]),
     motivo: z.enum(motivosPorTipo.TRANSFERENCIA, "Motivo de transferencia inválido"),
-    cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
+    causa: z.enum(CausaMovimientoAnimal, "Causa de transferencia inválida"),
     retorno: z.date().optional(),
-    observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
+    observacion: z.string().max(255).optional(),
+}).superRefine((data, ctx) => {
+    const causasPermitidas = causasPorMotivo[data.motivo];
+
+    if (!causasPermitidas.includes(data.causa)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["causa"],
+            message: "La causa no corresponde al motivo seleccionado",
+        });
+    }
+});
+
+const transferenciaRodeoSchema = transferenciaBaseSchema.extend({
+    tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
+    origen: z.string().uuid("Id de rodeo origen inválido"),
+    destino: z.string().uuid("Id de rodeo destino inválido"),
+    animal: z.object({
+        raza: z.uuid("Id de raza inválido"),
+        cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
+    })
+}).refine((data) => data.origen !== data.destino, {
+    message: "El origen y destino no pueden ser iguales",
 })
+
+const transferenciaAnimalSchema = transferenciaBaseSchema.extend({
+    tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
+    origen: z.enum(CategoriaAnimal, "Categoría de animal inválida"),
+    destino: z.enum(CategoriaAnimal, "Categoría de animal inválida"),
+    animal: z.uuid("Id de animal inválido"),
+}).refine((data) => data.origen !== data.destino, {
+    message: "El origen y destino no pueden ser iguales",
+})
+
+
+export const transferenciaSchema = z.discriminatedUnion(
+    "tipoSeguimiento",
+    [
+        transferenciaRodeoSchema,
+        transferenciaAnimalSchema
+    ]
+);
+
 
 const altaAnimalBaseSchema = z.object({
     observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
@@ -45,7 +103,7 @@ const altaAnimalBaseSchema = z.object({
 
 const altaAnimalRodeoSchema = altaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
-    rodeoDestino: z.string().uuid("Id de rodeo destino inválido"),
+    destino: z.string().uuid("Id de rodeo destino inválido"),
     razas: z.array(z.object({
         raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
         cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
@@ -68,6 +126,7 @@ export const altaAnimalSchema = z.discriminatedUnion(
 );
 
 
+
 const bajaAnimalBaseSchema = z.object({
     cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
     observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
@@ -77,7 +136,7 @@ const bajaAnimalBaseSchema = z.object({
 
 const bajaAnimalRodeoSchema = bajaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
-    rodeoOrigen: z.string().uuid("Id de rodeo origen inválido"),
+    origen: z.string().uuid("Id de rodeo origen inválido"),
 })
 
 const bajaAnimalIndividualSchema = bajaAnimalBaseSchema.extend({
@@ -120,10 +179,8 @@ export const listarAnimalesFiltrosSchema = z.object({
 
 export const actualizarAnimalSchema = z.object({
     id: z.string().uuid("Formato de ID inválido"),
-    codigo: z.string(),
-    nombre: z.string(),
-    Categoria: z.enum(CategoriaAnimal, "Formato de categoria inválido"),
-    estado: z.enum(EstadoSanitarioAnimal, "Formato de estado inválido"),
+    codigo: z.string().optional(),
+    nombre: z.string().optional(),
     observacion: z.string().optional(),
     fechaNacimiento: z.date().optional(),
     fechaParto: z.date().optional()
@@ -137,7 +194,7 @@ export const listaMovimientosSchema = z.object({
     idEst: z.string().uuid("Formato de ID inválido")
 })
 
-export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
+
 
 export type BajaAnimal = z.infer<typeof bajaAnimalSchema>;
 export type BajaAnimalRodeo = z.infer<typeof bajaAnimalRodeoSchema>;
@@ -149,6 +206,10 @@ export type AltaAnimalIndividual = z.infer<typeof altaAnimalIndividualSchema>;
 
 export type ListarAnimalesFiltros = z.infer<typeof listarAnimalesFiltrosSchema>
 export type ActualizarAnimal = z.infer<typeof actualizarAnimalSchema>
+
+export type Transferencia = z.infer<typeof transferenciaSchema>
+export type TransferenciaRodeo = z.infer<typeof transferenciaRodeoSchema>;
+export type TransferenciaAnimal = z.infer<typeof transferenciaAnimalSchema>;
 //Establecimiento -------------------------------------------------
 
 

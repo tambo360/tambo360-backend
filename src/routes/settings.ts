@@ -15,13 +15,13 @@ router.use(estContext);
 router.patch("/establecimiento", SettingController.actualizarEstablecimiento);
 router.post("/animal", SettingController.crearAnimal);
 router.delete("/animal", SettingController.eliminarAnimal);
-
-
-router.patch("/animal", SettingController.actualizarAnimal)
-router.post("/rodeo/transferir", SettingController.transferirRodeo);
-
 router.get("/animal/listar", SettingController.listarAnimales)
-
 router.get("/movimiento", SettingController.obtenerMovimientos)
+router.patch("/animal", SettingController.actualizarAnimal)
+router.post("/animal/transferir", SettingController.transferirAnimal);
+
+
+
+
 
 export default router;

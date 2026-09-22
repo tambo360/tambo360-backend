@@ -1,10 +1,10 @@
 import { prisma, } from "../lib/prisma";
-import { ActualizarAnimal, ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, motivosPorTipo, TransferenciaRodeo } from "../schemas/settingSchema";
+import { ActualizarAnimal, ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, Transferencia, TransferenciaRodeo, TransferenciaAnimal } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
 import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
 import { Decimal } from "@prisma/client/runtime/library";
-import { formatDate, normalizarMotivo } from "../utils";
+import { estadoPorCausa, estadoTratamientoPorEstado, formatDate, normalizarMotivo } from "../utils";
 
 
 class SettingService {
@@ -12,7 +12,7 @@ class SettingService {
     private async altaAnimalRodeo(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: AltaAnimalRodeo) {
         const rodeoDestino = await tx.rodeo.findFirst({
             where: {
-                idRodeo: body.rodeoDestino,
+                idRodeo: body.destino,
                 idConfiguracion: idConfiguracion,
             },
         })
@@ -25,7 +25,7 @@ class SettingService {
 
         const nuevoRodeoDestino = await tx.rodeo.update({
             where: {
-                idRodeo: body.rodeoDestino,
+                idRodeo: body.destino,
             },
             data: {
                 cantVacas: {
@@ -39,12 +39,12 @@ class SettingService {
                 tx.raza.upsert({
                     where: {
                         idRodeo_nombre: {
-                            idRodeo: body.rodeoDestino,
+                            idRodeo: body.destino,
                             nombre: raza.raza,
                         },
                     },
                     create: {
-                        idRodeo: body.rodeoDestino,
+                        idRodeo: body.destino,
                         nombre: raza.raza,
                         cantVacas: raza.cantVacas,
                     },
@@ -63,7 +63,7 @@ class SettingService {
             data: {
                 usuarioId: userId,
                 idConfiguracion: idConfiguracion,
-                rodeoDestino: body.rodeoDestino,
+                rodeoDestino: body.destino,
                 cantidad: cantAnimales,
                 motivo: body.motivo,
                 observacion: body.observacion,
@@ -138,7 +138,7 @@ class SettingService {
     private async bajaAnimalRodeo(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: BajaAnimalRodeo) {
         const rodeoOrigen = await tx.rodeo.findFirst({
             where: {
-                idRodeo: body.rodeoOrigen,
+                idRodeo: body.origen,
                 idConfiguracion: idConfiguracion,
             },
         })
@@ -153,7 +153,7 @@ class SettingService {
 
         const nuevoRodeoOrigen = await tx.rodeo.update({
             where: {
-                idRodeo: body.rodeoOrigen,
+                idRodeo: body.origen,
             },
             data: {
                 cantVacas: {
@@ -166,7 +166,7 @@ class SettingService {
             data: {
                 usuarioId: userId,
                 idConfiguracion: idConfiguracion,
-                rodeoOrigen: body.rodeoOrigen,
+                rodeoOrigen: body.origen,
                 cantidad: body.cantidad,
                 motivo: body.motivo,
                 observacion: body.observacion,
@@ -233,15 +233,158 @@ class SettingService {
 
     }
 
+    private async transferirRodeo(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: TransferenciaRodeo) {
 
-    async transferirRodeo(userId: string, idEstablecimiento: string, body: TransferenciaRodeo) {
-        if (body.rodeoOrigen === body.rodeoDestino) {
+        const [rodeoOrigen, rodeoDestino] = await Promise.all([
+            tx.rodeo.findFirst({
+                where: {
+                    idRodeo: body.origen,
+                    idConfiguracion: idConfiguracion
+                },
+                include: {
+                    razas: {
+                        where: {
+                            idRaza: body.animal.raza
+                        }
+                    }
+                }
+            }),
+            tx.rodeo.findFirst({
+                where: {
+                    idRodeo: body.destino,
+                    idConfiguracion: idConfiguracion,
+                },
+                include: {
+                    razas: true
+                }
+            })
+        ])
+
+        if (!rodeoOrigen || !rodeoDestino) {
+            throw new AppError("Rodeo de origen o destino no encontrado", 404);
+        }
+
+        const raza = rodeoOrigen.razas[0];
+        if (!raza) {
+            throw new AppError("Raza no encontrada en el rodeo de origen", 404);
+        }
+
+
+        if (raza.cantVacas < body.animal.cantVacas) {
+            throw new AppError("Cantidad a transferir mayor a la cantidad disponible en la raza del rodeo de origen", 400);
+        }
+
+        await tx.raza.update({
+            where: {
+                idRaza: raza.idRaza,
+            },
+            data: {
+                cantVacas: { decrement: body.animal.cantVacas },
+            },
+        });
+
+        await tx.rodeo.update({
+            where: {
+                idRodeo: body.origen,
+            },
+            data: {
+                cantVacas: { decrement: body.animal.cantVacas },
+            },
+        });
+
+        await tx.rodeo.update({
+            where: {
+                idRodeo: body.destino,
+            },
+            data: {
+                cantVacas: { increment: body.animal.cantVacas }
+            },
+        });
+
+        await tx.raza.upsert({
+            where: {
+                idRodeo_nombre: {
+                    idRodeo: body.destino,
+                    nombre: raza.nombre
+                }
+            },
+            create: {
+                idRodeo: body.destino,
+                nombre: raza.nombre,
+                cantVacas: body.animal.cantVacas
+            },
+            update: {
+                cantVacas: { increment: body.animal.cantVacas }
+            }
+
+        })
+
+        const transferencia = await tx.movimientoAnimal.create({
+            data: {
+                usuarioId: userId,
+                idConfiguracion: idConfiguracion,
+                rodeoOrigen: body.origen,
+                rodeoDestino: body.destino,
+                cantidad: body.animal.cantVacas,
+                motivo: body.motivo,
+                causa: body.causa,
+                retorno: body.retorno,
+                observacion: body.observacion,
+                tipo: TipoMovimientoAnimal.TRANSFERENCIA,
+            }
+        });
+
+        return transferencia;
+
+    }
+
+    private async transferirAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: TransferenciaAnimal, idEstablecimiento: string) {
+        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, [body.animal])
+
+        if (animales.length === 0) {
+            throw new AppError("Animal no encontrado o no pertenece al establecimiento", 404)
+        }
+
+        const transferencia = await tx.movimientoAnimal.create({
+            data: {
+                usuarioId: userId,
+                idConfiguracion: idConfiguracion,
+                cantidad: 1,
+                motivo: body.motivo,
+                causa: body.causa,
+                retorno: body.retorno,
+                observacion: body.observacion,
+                tipo: TipoMovimientoAnimal.TRANSFERENCIA,
+
+            }
+        });
+
+        await tx.movimientoAnimalDetalle.create({
+            data: {
+                idMovimiento: transferencia.idMovimiento,
+                idAnimal: body.animal,
+            }
+        });
+
+        await tx.animal.update({
+            where: {
+                idAnimal: body.animal
+            },
+            data: {
+                categoria: body.destino,
+                estado: estadoPorCausa[body.causa] || animales[0].estado
+            }
+        })
+
+        return transferencia;
+    }
+
+    async transferirAnimal(userId: string, idEstablecimiento: string, body: Transferencia) {
+        if (body.origen === body.destino) {
             throw new AppError("El rodeo de origen y destino no pueden ser el mismo", 400);
         }
 
-        if (!motivosPorTipo.TRANSFERENCIA.includes(body.motivo)) {
-            throw new AppError("Motivo de transferencia inválido", 400);
-        }
+
 
         const transferencia = await prisma.$transaction(async (tx) => {
 
@@ -255,71 +398,22 @@ class SettingService {
                 throw new AppError("Configuración no encontrada", 404);
             }
 
-            if (configuracion.tipoSeguimiento !== TipoSeguimiento.RODEO) {
-                throw new AppError("El establecimiento no tiene habilitado el seguimiento por rodeo", 400);
+            if (configuracion.tipoSeguimiento !== body.tipoSeguimiento) {
+                throw new AppError("El tipo de seguimiento no es válido para este establecimiento", 400);
             }
 
-            const [rodeoOrigen, rodeoDestino] = await Promise.all([
-                tx.rodeo.findFirst({
-                    where: {
-                        idRodeo: body.rodeoOrigen,
-                        idConfiguracion: configuracion.idConfiguracion,
-                    },
-                }),
-                tx.rodeo.findFirst({
-                    where: {
-                        idRodeo: body.rodeoDestino,
-                        idConfiguracion: configuracion.idConfiguracion,
-                    },
-                })
-            ])
-
-            if (!rodeoOrigen) {
-                throw new AppError("Rodeo de origen no encontrado", 404);
-            }
-            if (!rodeoDestino) {
-                throw new AppError("Rodeo de destino no encontrado", 404);
-            }
-
-            if (rodeoOrigen.cantVacas < body.cantidad) {
-                throw new AppError("Cantidad a transferir mayor a la cantidad disponible en el rodeo de origen", 400);
+            switch (body.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    return await this.transferirRodeo(tx, userId, configuracion.idConfiguracion, body);
+                case TipoSeguimiento.INDIVIDUAL:
+                    return await this.transferirAnimalIndividual(tx, userId, configuracion.idConfiguracion, body, idEstablecimiento);
+                default:
+                    throw new AppError("Tipo de seguimiento invalido", 400);
             }
 
 
-            const nuevoRodeoOrigen = await tx.rodeo.update({
-                where: {
-                    idRodeo: body.rodeoOrigen,
-                },
-                data: {
-                    cantVacas: rodeoOrigen.cantVacas - body.cantidad,
-                },
-            });
-
-            const nuevoRodeoDestino = await tx.rodeo.update({
-                where: {
-                    idRodeo: body.rodeoDestino,
-                },
-                data: {
-                    cantVacas: rodeoDestino.cantVacas + body.cantidad,
-                },
-            });
-
-            const transferencia = await tx.movimientoAnimal.create({
-                data: {
-                    usuarioId: userId,
-                    idConfiguracion: configuracion.idConfiguracion,
-                    rodeoOrigen: body.rodeoOrigen,
-                    rodeoDestino: body.rodeoDestino,
-                    cantidad: body.cantidad,
-                    motivo: body.motivo,
-                    observacion: body.observacion,
-                    tipo: TipoMovimientoAnimal.TRANSFERENCIA,
-                }
-            });
-
-            return transferencia;
-
-        });
+        })
 
         return transferencia;
     }
@@ -420,6 +514,14 @@ class SettingService {
     }
 
     async listarAnimales(idEstablecimiento: string, params: ListarAnimalesFiltros) {
+
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        if (tipoSeguimiento !== TipoSeguimiento.INDIVIDUAL) {
+            throw new AppError("Disponible unicamente para el seguimiento individual", 400);
+        }
+
         const where: any = {};
         const fecha = new Date();
         const inicioDia = new Date(fecha.setHours(0, 0, 0, 0));
@@ -481,6 +583,7 @@ class SettingService {
                 codigo: a.codigo,
                 categoria: a.categoria,
                 estado: a.estado,
+                situacion: estadoTratamientoPorEstado(a.estado),
                 genero: a.genero,
                 observacion: a.observacion,
                 fechaNacimiento: a.fechaNacimiento,
@@ -496,6 +599,14 @@ class SettingService {
     }
 
     async actualizarAnimal(idEstablecimiento: string, data: ActualizarAnimal) {
+
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        if (tipoSeguimiento !== TipoSeguimiento.INDIVIDUAL) {
+            throw new AppError("Disponible unicamente para el seguimiento individual", 400);
+        }
+
         const res = await prisma.$transaction(async tx => {
             const animal = await tx.animal.findUnique({
                 where: {
@@ -516,8 +627,6 @@ class SettingService {
                 data: {
                     codigo: data.codigo,
                     nombre: data.nombre,
-                    categoria: data.Categoria,
-                    estado: data.estado,
                     observacion: data.observacion,
                     fechaNacimiento: data.fechaNacimiento,
                     fechaUltimoParto: data.fechaParto

@@ -134,10 +134,13 @@ enum CategoriaAnimal {
 
 enum EstadoSanitarioAnimal {
   MASTITIS
-  TRATAMIENTO
   PREPARTO
   SANO
+  PROBLEMA_PODAL
+  PROBLEMA_UTERINO
+  ENFERMEDAD_GENERAL
 }
+
 
 enum DestinoProduccion {
   TANQUE
@@ -156,11 +159,20 @@ enum MotivoMovimientoAnimal {
   EGRESO_VENTA
   EGRESO_DESCARTE
   EGRESO_MUERTE
-  TRANSFERENCIA_BAJA_PRODUCCION
-  TRANSFERENCIA_ALTA_PRODUCCION
-  TRANSFERENCIA_SECADO
-  TRANSFERENCIA_CAMBIO_ESTADO
-  TRANSFERENCIA_OTRO
+  TRANSFERENCIA_SANITARIA
+  TRANSFERENCIA_CICLO_PRODUCTIVO
+  TRANSFERENCIA_RECUPERACION
+}
+
+enum CausaMovimientoAnimal {
+  MASTITIS
+  PROBLEMA_PODAL
+  PROBLEMA_UTERINO
+  ENFERMEDAD_GENERAL
+  SECADA_PROGRAMADA
+  PARTO
+  ABORTO
+  ALTA_MEDICA
 }
 
 enum NivelAlerta {
@@ -350,25 +362,29 @@ model Raza {
   cantVacas Int
   idRodeo   String
   rodeo     Rodeo  @relation(fields: [idRodeo], references: [idRodeo])
+
   @@unique([idRodeo, nombre])
 }
 
 //Solo guarda altas, bajas y transferencias (impactan en stock).
 model MovimientoAnimal {
-  idMovimiento    String                    @id @default(uuid(7))
-  idConfiguracion String
-  tipo            TipoMovimientoAnimal
-  motivo          MotivoMovimientoAnimal
-  rodeoOrigen     String?
-  rodeoDestino    String?
-  cantidad        Int
-  usuarioId       String?
-  observacion     String?
-  fechaCreacion   DateTime                  @default(now())
-  retorno         DateTime?
-  configuracion   configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
-  usuario         Usuario?                  @relation(fields: [usuarioId], references: [idUsuario])
-  detalles        MovimientoAnimalDetalle[]
+  idMovimiento     String                    @id @default(uuid(7))
+  idConfiguracion  String
+  tipo             TipoMovimientoAnimal
+  motivo           MotivoMovimientoAnimal
+  causa            CausaMovimientoAnimal?
+  rodeoOrigen      String?
+  rodeoDestino     String?
+  categoriaOrigen  CategoriaAnimal?
+  categoriaDestino CategoriaAnimal?
+  cantidad         Int
+  usuarioId        String?
+  observacion      String?
+  fechaCreacion    DateTime                  @default(now())
+  retorno          DateTime?
+  configuracion    configuracion             @relation(fields: [idConfiguracion], references: [idConfiguracion])
+  usuario          Usuario?                  @relation(fields: [usuarioId], references: [idUsuario])
+  detalles         MovimientoAnimalDetalle[]
 }
 
 model MovimientoAnimalDetalle {

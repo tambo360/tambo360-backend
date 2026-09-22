@@ -1,4 +1,4 @@
-import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo } from "@prisma/client";
+import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -138,3 +138,43 @@ export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string => {
         .toLowerCase()
         .replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+export const estadoPorCausa: Record<CausaMovimientoAnimal, EstadoSanitarioAnimal> = {
+    [CausaMovimientoAnimal.MASTITIS]:
+        EstadoSanitarioAnimal.MASTITIS,
+
+    [CausaMovimientoAnimal.PROBLEMA_PODAL]:
+        EstadoSanitarioAnimal.PROBLEMA_PODAL,
+
+    [CausaMovimientoAnimal.PROBLEMA_UTERINO]:
+        EstadoSanitarioAnimal.PROBLEMA_UTERINO,
+
+    [CausaMovimientoAnimal.ENFERMEDAD_GENERAL]:
+        EstadoSanitarioAnimal.ENFERMEDAD_GENERAL,
+
+    [CausaMovimientoAnimal.SECADA_PROGRAMADA]:
+        EstadoSanitarioAnimal.PREPARTO,
+
+    [CausaMovimientoAnimal.PARTO]:
+        EstadoSanitarioAnimal.SANO,
+
+    [CausaMovimientoAnimal.ABORTO]:
+        EstadoSanitarioAnimal.SANO,
+
+    [CausaMovimientoAnimal.ALTA_MEDICA]:
+        EstadoSanitarioAnimal.SANO,
+};
+
+
+export const estadoTratamientoPorEstado = (
+    estado: EstadoSanitarioAnimal
+): "Sana" | "En Tratamiento" => {
+    const estadosEnTratamiento: EstadoSanitarioAnimal[] = [
+        EstadoSanitarioAnimal.MASTITIS,
+        EstadoSanitarioAnimal.PROBLEMA_PODAL,
+        EstadoSanitarioAnimal.PROBLEMA_UTERINO,
+        EstadoSanitarioAnimal.ENFERMEDAD_GENERAL,
+    ];
+
+    return estadosEnTratamiento.includes(estado) ? "En Tratamiento" : "Sana";
+};
