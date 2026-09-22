@@ -252,11 +252,6 @@ Solo pueden registrar el cuestionario:
 | `promLitros` | number | Sí | Promedio de litros por día (positivo) |
 | `ventaLeche` | enum | Sí | Tipo de venta de leche (`USINA`, `COOPERTIVA`, `ELABORACION_PROPIA`, `VENTA_DIRECTA_MERCADO_LOCAL`) |
 | `precioLitro` | number | Sí | Precio por litro, mayor que 0 |
-| `productos` | array | No | Productos asociados al establecimiento |
-| `productos[].tipo` | string | Sí | `existente` o `nuevo` |
-| `productos[].idProducto` | string (UUID) | No | ID del producto cuando `tipo` es `existente` |
-| `productos[].nombre` | string | Sí | Nombre del producto |
-| `productos[].categoria` | string | No | Categoría del producto cuando `tipo` es `nuevo`: `quesos`, `leches`, `yogures` u `otros` |
 | `rodeos` | array | Sí si `TipoSeguimiento = RODEO` o `RODEO_UNICO` | Rodeos por tipo de producción |
 | `rodeos[].tipoRodeo` | enum | Sí | `ALTA_PRODUCCION`, `BAJA_PRODUCCION`, `VACAS_SECAS`, `UNICO_ORDENIE` o `UNICO_SECA` |
 | `rodeos[].costoRacion` | number | Sí | Costo de la ración diaria por vaca |
@@ -297,18 +292,6 @@ Solo pueden registrar el cuestionario:
   "promLitros": 25.5,
   "ventaLeche": "USINA",
   "precioLitro": 42.5,
-  "productos": [
-    {
-      "tipo": "existente",
-      "idProducto": "uuid-producto",
-      "nombre": "Leche Fresca"
-    },
-    {
-      "tipo": "nuevo",
-      "nombre": "Yogur Natural",
-      "categoria": "yogures"
-    }
-  ],
   "rodeos": [
     {
       "tipoRodeo": "ALTA_PRODUCCION",
@@ -330,6 +313,41 @@ Solo pueden registrar el cuestionario:
       "costoRacion": 80.00,
       "razas": [
         { "raza": "HOLANDO_ARGENTINO", "cantVacas": 20 }
+      ]
+    }
+  ],
+  "ubicacion": {
+    "provincia": "Córdoba",
+    "localidad": "Villa María"
+  }
+}
+```
+
+#### Ejemplo de Request (seguimiento por rodeo_unico)
+
+```json
+{
+  "TipoSeguimiento": "RODEO_UNICO",
+  "cantOrdenie": 2,
+  "tipoOrdenie": "linea",
+  "promDEL": 120,
+  "promLitros": 25.5,
+  "ventaLeche": "USINA",
+  "precioLitro": 42.5,
+  "rodeos": [
+    {
+      "tipoRodeo": "UNICO_ORDENIE",
+      "costoRacion": 150.50,
+      "razas": [
+        { "raza": "HOLANDO_ARGENTINO", "cantVacas": 20 },
+        { "raza": "JERSEY", "cantVacas": 8 }
+      ]
+    },
+    {
+      "tipoRodeo": "UNICO_SECA",
+      "costoRacion": 120.00,
+      "razas": [
+        { "raza": "HOLANDO_ARGENTINO", "cantVacas": 50 }
       ]
     }
   ],
