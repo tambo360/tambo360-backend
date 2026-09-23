@@ -1,10 +1,10 @@
 import { prisma, } from "../lib/prisma";
 import { ActualizarAnimal, ActualizarEst, AltaAnimal, AltaAnimalIndividual, AltaAnimalRodeo, BajaAnimal, BajaAnimalIndividual, BajaAnimalRodeo, ListarAnimalesFiltros, Transferencia, TransferenciaRodeo, TransferenciaAnimal } from "../schemas/settingSchema";
 import { AppError } from "../utils/AppError";
-import { Prisma, TipoMovimientoAnimal, TipoSeguimiento } from "@prisma/client";
+import { CategoriaAnimal, EstadoSanitarioAnimal, Prisma, Razas, TipoMovimientoAnimal, TipoRodeo, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
 import { Decimal } from "@prisma/client/runtime/library";
-import { estadoPorCausa, estadoTratamientoPorEstado, formatDate, normalizarMotivo } from "../utils";
+import { CategoriaAnimalMetaData, estadoPorCausa, EstadoSanitarioAnimalMetaData, estadoTratamientoPorEstado, formatDate, normalizarMotivo, RazasMetaData, TipoRodeoMetaData } from "../utils";
 
 
 class SettingService {
@@ -682,6 +682,55 @@ class SettingService {
             fechaCreacion: formatDate(m.fechaCreacion)
         }))
         return res
+    }
+
+    async obtenerAltaFormData(idEstablecimiento: string) {
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+        const idConfiguracion = establecimiento.configuracions[0].idConfiguracion
+
+        const formData = await prisma.$transaction(async (tx) => {
+            switch (tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    const rodeos = await tx.rodeo.findMany({
+                        where: {
+                            idConfiguracion
+                        }
+                    })
+
+                    return {
+                        tipoSeguimiento,
+                        rodeos: rodeos.map(r => (
+                            {
+                                idRodeo: r.idRodeo,
+                                TipoRodeo: TipoRodeoMetaData[r.tipoRodeo]
+                            }
+                        )),
+                        razas: Object.values(Razas).map(r => (
+                            RazasMetaData[r]
+                        ))
+                    }
+
+                case TipoSeguimiento.INDIVIDUAL:
+                    return {
+                        tipoSeguimiento,
+                        EstadoSanitarios: Object.values(EstadoSanitarioAnimal).map(e => (
+                            EstadoSanitarioAnimalMetaData[e]
+                        )),
+                        Categorias: Object.values(CategoriaAnimal).map(c => (
+                            CategoriaAnimalMetaData[c]
+                        )),
+                        razas: Object.values(Razas).map(r => (
+                            RazasMetaData[r]
+                        ))
+                    }
+                default:
+                    throw new AppError("Tipo de seguimiento invalido", 400);
+            }
+        })
+
+        return formData;
     }
 }
 

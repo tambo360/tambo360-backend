@@ -117,14 +117,14 @@ Motivos: `EGRESO_VENTA`, `EGRESO_DESCARTE`, `EGRESO_MUERTE`. En individual, `can
 
 Disponible únicamente con seguimiento `INDIVIDUAL`. Query opcional:
 
-| Parámetro | Tipo | Default | Restricción |
-|---|---|---:|---|
-| `codigo` | string | - | Coincidencia parcial |
-| `nombre` | string | - | Coincidencia parcial |
-| `estado` | enum | - | `MASTITIS`, `TRATAMIENTO`, `PREPARTO`, `SANO` |
-| `orden` | enum | `asc` | `asc` o `desc` |
-| `page` | integer | `1` | Mayor que 0 |
-| `limit` | integer | `10` | Entre 1 y 100 |
+| Parámetro | Tipo    | Default | Restricción                                   |
+| --------- | ------- | ------: | --------------------------------------------- |
+| `codigo`  | string  |       - | Coincidencia parcial                          |
+| `nombre`  | string  |       - | Coincidencia parcial                          |
+| `estado`  | enum    |       - | `MASTITIS`, `TRATAMIENTO`, `PREPARTO`, `SANO` |
+| `orden`   | enum    |   `asc` | `asc` o `desc`                                |
+| `page`    | integer |     `1` | Mayor que 0                                   |
+| `limit`   | integer |    `10` | Entre 1 y 100                                 |
 
 Devuelve animales activos con `DEL`, `situacion`, género, observación y producción del día (`litros_hoy`, `litros_totales`). Errores: `400` si no es seguimiento individual, filtros inválidos o establecimiento no determinado; `401` y `403`.
 
@@ -152,14 +152,14 @@ Disponible únicamente con seguimiento `INDIVIDUAL`. Actualmente el controlador 
 
 Parámetros:
 
-| Parámetro | Obligatorio | Descripción |
-|---|---:|---|
-| `id` | Sí | UUID del animal |
-| `codigo` | Condicional | Debe existir `codigo` o `nombre` |
-| `nombre` | Condicional | Debe existir `codigo` o `nombre` |
-| `observacion` | No | Nueva observación |
-| `fechaNacimiento` | No | Fecha |
-| `fechaParto` | No | Se guarda como `fechaUltimoParto` |
+| Parámetro         | Obligatorio | Descripción                       |
+| ----------------- | ----------: | --------------------------------- |
+| `id`              |          Sí | UUID del animal                   |
+| `codigo`          | Condicional | Debe existir `codigo` o `nombre`  |
+| `nombre`          | Condicional | Debe existir `codigo` o `nombre`  |
+| `observacion`     |          No | Nueva observación                 |
+| `fechaNacimiento` |          No | Fecha                             |
+| `fechaParto`      |          No | Se guarda como `fechaUltimoParto` |
 
 No actualiza categoría, estado ni raza. Responde `200`. Errores: `400`, `401` y `403`.
 
@@ -210,5 +210,55 @@ Causas válidas por motivo:
 - Sanitaria: `MASTITIS`, `PROBLEMA_PODAL`, `PROBLEMA_UTERINO`, `ENFERMEDAD_GENERAL`.
 - Ciclo productivo: `SECADA_PROGRAMADA`, `PARTO`, `ABORTO`.
 - Recuperación: `ALTA_MEDICA`.
+
+Responde `200`. Errores: `400`, `401`, `403` y `404`.
+
+## 8. Obtener informacion para el formulario de Alta animal
+
+**GET** `/api/conf/animal/alta/form-data`
+
+No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
+
+- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value), Razas disponibles (label, value).
+- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, EstadoSanitarios disponibles (label, value), Categorias de animal disponibles (label, value), Razas disponibles (label, value).
+
+### RODEO o RODEO_UNICO
+
+```json
+{
+  "tipoSeguimiento": "RODEO" | "RODEO_UNICO",
+  "rodeos": {
+        "idRodeo": "uuid del rodeo",
+        "TipoRodeo": {
+            "label": "Rodeo Alta Producción",
+            "value": "ALTA_PRODUCCION"
+        },
+    }[],
+    "razas": {
+        "label": "Jersey",
+        "value": "JERSEY"
+    }[]
+}
+```
+
+### INDIVIDUAL
+
+```json
+{
+    "tipoSeguimiento": "INDIVIDUAL",
+    "EstadoSanitarios": {
+        "label": "Problema Podal",
+        "value": "PROBLEMA_PODAL"
+    }[],
+    "Categorias": {
+        "label": "Ordeñe",
+        "value": "ORDENE"
+    }[],
+    "razas": {
+        "label": "Jersey",
+        "value": "JERSEY"
+    }[]
+}
+```
 
 Responde `200`. Errores: `400`, `401`, `403` y `404`.

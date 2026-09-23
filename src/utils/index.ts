@@ -1,4 +1,4 @@
-import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal } from "@prisma/client";
+import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal, CategoriaAnimal } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -70,6 +70,44 @@ export const TipoRodeoMetaData: Record<TipoRodeo, { label: string, value: string
         value: TipoRodeo.UNICO_SECA
     },
 };
+
+export const EstadoSanitarioAnimalMetaData: Record<EstadoSanitarioAnimal, {label: string, value: string}> = {
+    [EstadoSanitarioAnimal.ENFERMEDAD_GENERAL]: {
+        label: "Enfermedad General",
+        value: EstadoSanitarioAnimal.ENFERMEDAD_GENERAL
+    },
+    [EstadoSanitarioAnimal.MASTITIS]: {
+        label: "Mastitis",
+        value: EstadoSanitarioAnimal.MASTITIS
+    },
+    [EstadoSanitarioAnimal.PREPARTO]: {
+        label: "Preparto",
+        value: EstadoSanitarioAnimal.PREPARTO
+    },
+    [EstadoSanitarioAnimal.PROBLEMA_PODAL]: {
+        label: "Problema Podal",
+        value: EstadoSanitarioAnimal.PROBLEMA_PODAL
+    },
+    [EstadoSanitarioAnimal.PROBLEMA_UTERINO]: {
+        label: "Problema Uterino",
+        value: EstadoSanitarioAnimal.PROBLEMA_UTERINO
+    },
+    [EstadoSanitarioAnimal.SANO]: {
+        label: "Sano",
+        value: EstadoSanitarioAnimal.SANO
+    }
+}
+
+export const CategoriaAnimalMetaData: Record<CategoriaAnimal, {label: string, value: string}> = {
+    [CategoriaAnimal.ORDENE]: {
+        label: "Ordeñe",
+        value: CategoriaAnimal.ORDENE
+    },
+    [CategoriaAnimal.SECAS]: {
+        label: "Secas",
+        value: CategoriaAnimal.SECAS
+    }
+}
 
 export const RazasMetaData: Record<Razas, { label: string; value: string }> = {
     [Razas.HOLANDO_ARGENTINO]: {

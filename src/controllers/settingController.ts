@@ -173,7 +173,25 @@ class SettingController {
 
             const animal = await settingService.obtenerMovimientos(idEstablecimiento);
 
-            return res.status(200).json(ApiResponse.success(animal, "Animal actualizado correctamente"));
+            return res.status(200).json(ApiResponse.success(animal, "Movimientos obtenidos correctamente"));
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    async obtenerAltaFormdata(req: Request, res: Response, next: NextFunction) {
+        try {
+
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+            
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+            const formData = await settingService.obtenerAltaFormData(idEstablecimiento)
+
+            return res.status(200).json(ApiResponse.success(formData, "Información de formulario obteniada correctamente"))
+            
         } catch (error) {
             next(error)
         }
