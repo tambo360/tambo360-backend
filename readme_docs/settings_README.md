@@ -278,7 +278,7 @@ Responde `200`. Errores: `400`, `401`, `403` y `404`.
 
 ## 9. Obtener informacion para el formulario de Baja animal
 
-**GET** `/api/conf/animal/alta/form-data`
+**GET** `/api/conf/animal/baja/form-data`
 
 No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
 
