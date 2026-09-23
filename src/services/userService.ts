@@ -25,6 +25,7 @@ class UserService {
               select: {
                 idEstablecimiento: true,
                 nombre: true,
+                cuestionarioCompletado: true
               }
             }
           }
