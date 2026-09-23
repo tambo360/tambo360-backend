@@ -4,7 +4,7 @@ import { AppError } from "../utils/AppError";
 import { CategoriaAnimal, EstadoSanitarioAnimal, Prisma, Razas, TipoMovimientoAnimal, TipoRodeo, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
 import { Decimal } from "@prisma/client/runtime/library";
-import { CategoriaAnimalMetaData, estadoPorCausa, EstadoSanitarioAnimalMetaData, estadoTratamientoPorEstado, formatDate, normalizarMotivo, RazasMetaData, TipoRodeoMetaData } from "../utils";
+import { CategoriaAnimalMetaData, estadoPorCausa, EstadoSanitarioAnimalMetaData, estadoTratamientoPorEstado, formatDate, MotivosPorTipoMetaData, normalizarMotivo, RazasMetaData, TipoRodeoMetaData } from "../utils";
 
 
 class SettingService {
@@ -690,6 +690,11 @@ class SettingService {
         const idConfiguracion = establecimiento.configuracions[0].idConfiguracion
 
         const formData = await prisma.$transaction(async (tx) => {
+            const data = {
+                tipoMovimiento: TipoMovimientoAnimal.INGRESO,
+                Motivos: MotivosPorTipoMetaData.INGRESO
+            }
+            
             switch (tipoSeguimiento) {
                 case TipoSeguimiento.RODEO_UNICO:
                 case TipoSeguimiento.RODEO:
@@ -700,6 +705,7 @@ class SettingService {
                     })
 
                     return {
+                        ...data,
                         tipoSeguimiento,
                         rodeos: rodeos.map(r => (
                             {
@@ -714,6 +720,7 @@ class SettingService {
 
                 case TipoSeguimiento.INDIVIDUAL:
                     return {
+                        ...data,
                         tipoSeguimiento,
                         EstadoSanitarios: Object.values(EstadoSanitarioAnimal).map(e => (
                             EstadoSanitarioAnimalMetaData[e]
