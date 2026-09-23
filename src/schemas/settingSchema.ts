@@ -128,7 +128,6 @@ export const altaAnimalSchema = z.discriminatedUnion(
 
 
 const bajaAnimalBaseSchema = z.object({
-    cantidad: z.number().int().positive("La cantidad debe ser un número entero positivo"),
     observacion: z.string().max(255, "El detalle del motivo no puede superar los 255 caracteres").optional(),
     tipo: z.enum([TipoMovimientoAnimal.EGRESO], "Tipo de movimiento inválido"),
     motivo: z.enum(motivosPorTipo.EGRESO, "Motivo de egreso inválido"),
@@ -137,11 +136,16 @@ const bajaAnimalBaseSchema = z.object({
 const bajaAnimalRodeoSchema = bajaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.RODEO, TipoSeguimiento.RODEO_UNICO], "Tipo de seguimiento inválido"),
     origen: z.string().uuid("Id de rodeo origen inválido"),
+    raza: z.object({
+        idRaza: z.string().uuid("Id de rodeo origen inválido"),
+        raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
+        cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
+    })
 })
 
 const bajaAnimalIndividualSchema = bajaAnimalBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
-    animales: z.array(z.uuid("Id de animal inválido")).min(1, { message: "Debe existir al menos un animal", }),
+    animal: z.uuid("Id de animal inválido")
 })
 
 export const bajaAnimalSchema = z.discriminatedUnion(

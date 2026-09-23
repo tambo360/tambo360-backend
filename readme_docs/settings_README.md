@@ -91,8 +91,12 @@ Motivos: `INGRESO_COMPRA`, `INGRESO_NACIMIENTO`. Responde `200`. Errores: `400`,
   "tipoSeguimiento": "RODEO",
   "tipo": "EGRESO",
   "motivo": "EGRESO_VENTA",
-  "cantidad": 2,
   "origen": "uuid-rodeo-origen",
+  "raza": {
+        "idRaza": "uuid-raza-origen",
+        "raza": "HOLANDO_ARGENTINO",
+        "cantVacas": 2;
+  },
   "observacion": "Venta"
 }
 ```
@@ -104,8 +108,7 @@ Motivos: `INGRESO_COMPRA`, `INGRESO_NACIMIENTO`. Responde `200`. Errores: `400`,
   "tipoSeguimiento": "INDIVIDUAL",
   "tipo": "EGRESO",
   "motivo": "EGRESO_DESCARTE",
-  "cantidad": 1,
-  "animales": ["uuid-animal"]
+  "animales": "uuid-animal"
 }
 ```
 
@@ -267,6 +270,76 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
     "razas": {
         "label": "Jersey",
         "value": "JERSEY"
+    }[]
+}
+```
+
+Responde `200`. Errores: `400`, `401`, `403` y `404`.
+
+## 9. Obtener informacion para el formulario de Baja animal
+
+**GET** `/api/conf/animal/alta/form-data`
+
+No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
+
+- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value, cantidades), Razas disponibles (label, value, idRaza, cantidades), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
+- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, animales disponibles (idAnimal, nombre, codigo, raza), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
+
+### RODEO o RODEO_UNICO
+
+```json
+{
+  "tipoMovimiento": "EGRESO",
+  "Motivos": {
+      "label": "Egreso Muerte",
+      "value": "EGRESO_MUERTE";
+  }[],
+  "tipoSeguimiento": "RODEO" | "RODEO_UNICO",
+  "rodeos": {
+        "idRodeo": "uuid del rodeo",
+        "TipoRodeo": {
+            "label": "Rodeo Alta Producción",
+            "value": "ALTA_PRODUCCION"
+        },
+        "cantVacas": 20,
+        "razas": {
+            "idRaza": "uuid-raza",
+            "cantVacas": 8,
+            "nombre": {
+              "label": "Jersey",
+              "value": "JERSEY"
+            }
+        }[]
+    }[],
+    "razas": {
+        "label": "Jersey",
+        "value": "JERSEY"
+    }[]
+}
+```
+
+### INDIVIDUAL
+
+```json
+{
+    "tipoMovimiento": "EGRESO",
+    "Motivos": {
+      "label": "Egreso Muerte",
+      "value": "EGRESO_MUERTE";
+    }[],
+    "tipoSeguimiento": "INDIVIDUAL",
+    "EstadoSanitarios": {
+        "label": "Problema Podal",
+        "value": "PROBLEMA_PODAL"
+    }[],
+    "animales": {
+      "idAnimal": "uuid-animal",
+      "nombre": "Lola",
+      "codigo": "A-H320",
+      "razas": {
+        "label": "Jersey",
+        "value": "JERSEY"
+      }
     }[]
 }
 ```

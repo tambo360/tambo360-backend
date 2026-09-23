@@ -141,33 +141,57 @@ class SettingService {
                 idRodeo: body.origen,
                 idConfiguracion: idConfiguracion,
             },
+            include: {
+                razas: {
+                    where: {
+                        idRaza: body.raza.idRaza
+                    }
+                }
+            }
         })
 
         if (!rodeoOrigen) {
             throw new AppError("Rodeo de origen no encontrado", 404);
         }
 
-        if (rodeoOrigen.cantVacas < body.cantidad) {
+        if (rodeoOrigen.razas.length < 1) {
+            throw new AppError("Raza de origen no encontrado", 404);
+        }
+
+        const cantAnimales = body.raza.cantVacas
+
+        if (rodeoOrigen.razas[0].cantVacas < cantAnimales) {
             throw new AppError("Cantidad a dar de baja mayor a la cantidad disponible en el rodeo de origen", 400);
         }
 
-        const nuevoRodeoOrigen = await tx.rodeo.update({
+        await tx.rodeo.update({
             where: {
                 idRodeo: body.origen,
             },
             data: {
                 cantVacas: {
-                    decrement: body.cantidad
+                    decrement: cantAnimales
                 }
             },
         });
+
+        await tx.raza.update({
+            where: {
+                idRaza: rodeoOrigen.razas[0].idRaza
+            },
+            data: {
+                cantVacas: {
+                    decrement: cantAnimales
+                }
+            }
+        })
 
         const bajaAnimal = await tx.movimientoAnimal.create({
             data: {
                 usuarioId: userId,
                 idConfiguracion: idConfiguracion,
                 rodeoOrigen: body.origen,
-                cantidad: body.cantidad,
+                cantidad: cantAnimales,
                 motivo: body.motivo,
                 observacion: body.observacion,
                 tipo: TipoMovimientoAnimal.EGRESO,
@@ -178,21 +202,13 @@ class SettingService {
     }
 
     private async bajaAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: BajaAnimalIndividual, idEstablecimiento: string) {
-        if (body.cantidad !== body.animales.length) {
-            throw new AppError("La cantidad de animles ingresada no coincide", 400)
-        }
-        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, body.animales)
-
-        if (animales.length < body.cantidad) {
-            throw new AppError("Cantidad a dar de baja mayor a la cantidad disponible", 400)
-        }
-
+        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, [body.animal])
 
         const bajaAnimal = await tx.movimientoAnimal.create({
             data: {
                 usuarioId: userId,
                 idConfiguracion: idConfiguracion,
-                cantidad: body.animales.length,
+                cantidad: 1,
                 motivo: body.motivo,
                 observacion: body.observacion,
                 tipo: TipoMovimientoAnimal.EGRESO,
@@ -200,36 +216,34 @@ class SettingService {
         });
 
 
-        const animalesDescartados = await Promise.all(
-            body.animales.map(animal =>
-                tx.animal.update({
-                    where: {
-                        idAnimal: animal
-                    },
-                    data: {
-                        activo: false
-                    },
-                    select: {
-                        idAnimal: true,
-                        categoria: true,
-                        estado: true,
-                        codigo: true,
-                        nombre: true,
-                        raza: true,
-                        fechaNacimiento: true,
-                    },
-                })
-            )
-        );
+        const animalDescartado = await
+            tx.animal.update({
+                where: {
+                    idAnimal: body.animal
+                },
+                data: {
+                    activo: false
+                },
+                select: {
+                    idAnimal: true,
+                    categoria: true,
+                    estado: true,
+                    codigo: true,
+                    nombre: true,
+                    raza: true,
+                    fechaNacimiento: true,
+                },
+            })
 
-        await tx.movimientoAnimalDetalle.createMany({
-            data: animalesDescartados.map(animal => ({
+
+        await tx.movimientoAnimalDetalle.create({
+            data: {
                 idMovimiento: bajaAnimal.idMovimiento,
-                idAnimal: animal.idAnimal,
-            })),
+                idAnimal: animalDescartado.idAnimal,
+            },
         });
 
-        return { ...bajaAnimal, animales: animalesDescartados };
+        return { ...bajaAnimal, animales: animalDescartado };
 
     }
 
@@ -694,7 +708,7 @@ class SettingService {
                 tipoMovimiento: TipoMovimientoAnimal.INGRESO,
                 Motivos: MotivosPorTipoMetaData.INGRESO
             }
-            
+
             switch (tipoSeguimiento) {
                 case TipoSeguimiento.RODEO_UNICO:
                 case TipoSeguimiento.RODEO:
@@ -730,6 +744,83 @@ class SettingService {
                         )),
                         razas: Object.values(Razas).map(r => (
                             RazasMetaData[r]
+                        ))
+                    }
+                default:
+                    throw new AppError("Tipo de seguimiento invalido", 400);
+            }
+        })
+
+        return formData;
+    }
+
+    async obtenerBajaFormData(idEstablecimiento: string) {
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+        const idConfiguracion = establecimiento.configuracions[0].idConfiguracion
+
+        const formData = await prisma.$transaction(async (tx) => {
+            const data = {
+                tipoMovimiento: TipoMovimientoAnimal.EGRESO,
+                Motivos: MotivosPorTipoMetaData.EGRESO
+            }
+
+            switch (tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    const rodeos = await tx.rodeo.findMany({
+                        where: {
+                            idConfiguracion
+                        },
+                        include: {
+                            razas: true
+                        }
+                    })
+
+                    return {
+                        ...data,
+                        tipoSeguimiento,
+                        rodeos: rodeos.map(r => (
+                            {
+                                idRodeo: r.idRodeo,
+                                TipoRodeo: TipoRodeoMetaData[r.tipoRodeo],
+                                cantVacas: r.cantVacas,
+                                razas: r.razas.map(r => (
+                                    {
+                                        idRaza: r.idRaza,
+                                        cantVacas: r.cantVacas,
+                                        nombre: RazasMetaData[r.nombre]
+                                    }
+                                ))
+                            }
+                        ))
+                    }
+
+                case TipoSeguimiento.INDIVIDUAL:
+
+                    const animales = await tx.animal.findMany({
+                        where: {
+                            idEstablecimiento,
+                            activo: true
+                        },
+                        select: {
+                            idAnimal: true,
+                            nombre: true,
+                            codigo: true,
+                            raza: true
+                        }
+                    })
+
+                    return {
+                        ...data,
+                        tipoSeguimiento,
+                        animales: animales.map(a => (
+                            {
+                                nombre: a.nombre,
+                                idAnimal: a.idAnimal,
+                                codigo: a.codigo,
+                                raza: RazasMetaData[a.raza]
+                            }
                         ))
                     }
                 default:
