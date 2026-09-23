@@ -21,7 +21,7 @@ router.patch("/animal", SettingController.actualizarAnimal)
 router.post("/animal/transferir", SettingController.transferirAnimal);
 
 
-router.get("/animal/alta/form-data")
+router.get("/animal/alta/form-data", SettingController.obtenerAltaFormdata)
 router.get("/animal/baja/form-data")
 router.get("/animal/transferir/form-data")
 
