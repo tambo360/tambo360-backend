@@ -1,4 +1,4 @@
-import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal, CategoriaAnimal } from "@prisma/client";
+import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal, CategoriaAnimal, TipoMovimientoAnimal } from "@prisma/client";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -7,6 +7,12 @@ export const formatDate = (date: Date): string => {
     return soloFecha;
 }
 
+export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string => {
+    const sinPrefijo = motivo.split("_").slice(1).join(" ");
+    return sinPrefijo
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export const TipoMermaMetadata: Record<TipoMerma, { label: string; }> = {
     MASTITIS: {
@@ -71,7 +77,7 @@ export const TipoRodeoMetaData: Record<TipoRodeo, { label: string, value: string
     },
 };
 
-export const EstadoSanitarioAnimalMetaData: Record<EstadoSanitarioAnimal, {label: string, value: string}> = {
+export const EstadoSanitarioAnimalMetaData: Record<EstadoSanitarioAnimal, { label: string, value: string }> = {
     [EstadoSanitarioAnimal.ENFERMEDAD_GENERAL]: {
         label: "Enfermedad General",
         value: EstadoSanitarioAnimal.ENFERMEDAD_GENERAL
@@ -98,7 +104,8 @@ export const EstadoSanitarioAnimalMetaData: Record<EstadoSanitarioAnimal, {label
     }
 }
 
-export const CategoriaAnimalMetaData: Record<CategoriaAnimal, {label: string, value: string}> = {
+
+export const CategoriaAnimalMetaData: Record<CategoriaAnimal, { label: string, value: string }> = {
     [CategoriaAnimal.ORDENE]: {
         label: "Ordeñe",
         value: CategoriaAnimal.ORDENE
@@ -107,6 +114,48 @@ export const CategoriaAnimalMetaData: Record<CategoriaAnimal, {label: string, va
         label: "Secas",
         value: CategoriaAnimal.SECAS
     }
+}
+
+export const MotivosPorTipoMetaData: Record<TipoMovimientoAnimal, { label: string, value: string }[]> = {
+    [TipoMovimientoAnimal.INGRESO]: [
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.INGRESO_COMPRA),
+            value: MotivoMovimientoAnimal.INGRESO_COMPRA
+        },
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.INGRESO_NACIMIENTO),
+            value: MotivoMovimientoAnimal.INGRESO_NACIMIENTO
+        }
+    ],
+    [TipoMovimientoAnimal.EGRESO]: [
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.EGRESO_DESCARTE),
+            value: MotivoMovimientoAnimal.EGRESO_DESCARTE
+        },
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.EGRESO_MUERTE),
+            value: MotivoMovimientoAnimal.EGRESO_MUERTE
+        },
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.EGRESO_VENTA),
+            value: MotivoMovimientoAnimal.EGRESO_VENTA
+        }
+    ],
+    [TipoMovimientoAnimal.TRANSFERENCIA]: [
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.TRANSFERENCIA_CICLO_PRODUCTIVO),
+            value: MotivoMovimientoAnimal.TRANSFERENCIA_CICLO_PRODUCTIVO
+        },
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.TRANSFERENCIA_RECUPERACION),
+            value: MotivoMovimientoAnimal.TRANSFERENCIA_RECUPERACION
+        },
+        {
+            label: normalizarMotivo(MotivoMovimientoAnimal.TRANSFERENCIA_SANITARIA),
+            value: MotivoMovimientoAnimal.TRANSFERENCIA_SANITARIA
+        }
+
+    ],
 }
 
 export const RazasMetaData: Record<Razas, { label: string; value: string }> = {
@@ -170,12 +219,7 @@ export const obtenerTurno = (fechaProduccion: Date): "mañana" | "tarde" => {
     return hora < 13 ? "mañana" : "tarde";
 }
 
-export const normalizarMotivo = (motivo: MotivoMovimientoAnimal): string => {
-    const sinPrefijo = motivo.split("_").slice(1).join(" ");
-    return sinPrefijo
-        .toLowerCase()
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+
 
 export const estadoPorCausa: Record<CausaMovimientoAnimal, EstadoSanitarioAnimal> = {
     [CausaMovimientoAnimal.MASTITIS]:

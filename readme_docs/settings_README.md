@@ -219,13 +219,18 @@ Responde `200`. Errores: `400`, `401`, `403` y `404`.
 
 No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
 
-- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value), Razas disponibles (label, value).
-- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, EstadoSanitarios disponibles (label, value), Categorias de animal disponibles (label, value), Razas disponibles (label, value).
+- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value), Razas disponibles (label, value), TipoMovimiento (necesario para el alta), motivos disponibles (label, value).
+- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, EstadoSanitarios disponibles (label, value), Categorias de animal disponibles (label, value), Razas disponibles (label, value), TipoMovimiento (necesario para el alta), motivos disponibles (label, value)..
 
 ### RODEO o RODEO_UNICO
 
 ```json
 {
+  "tipoMovimiento": "INGRESO",
+  "Motivos": {
+      "label": "Ingreso Nacimiento",
+      "value": "INGRESO_NACIMIENTO";
+  }[],
   "tipoSeguimiento": "RODEO" | "RODEO_UNICO",
   "rodeos": {
         "idRodeo": "uuid del rodeo",
@@ -245,6 +250,11 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 
 ```json
 {
+    "tipoMovimiento": "INGRESO",
+    "Motivos": {
+      "label": "Ingreso Nacimiento",
+      "value": "INGRESO_NACIMIENTO";
+    }[],
     "tipoSeguimiento": "INDIVIDUAL",
     "EstadoSanitarios": {
         "label": "Problema Podal",

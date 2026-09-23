@@ -160,7 +160,7 @@ class SettingController {
     async obtenerMovimientos(req: Request, res: Response, next: NextFunction) {
         try {
             const idEstablecimiento = req.estAccess?.idEstablecimiento;
-            
+
             if (!idEstablecimiento) {
                 throw new AppError("No se pudo determinar el establecimiento", 400);
             }
@@ -183,7 +183,7 @@ class SettingController {
         try {
 
             const idEstablecimiento = req.estAccess?.idEstablecimiento;
-            
+
             if (!idEstablecimiento) {
                 throw new AppError("No se pudo determinar el establecimiento", 400);
             }
@@ -191,11 +191,30 @@ class SettingController {
             const formData = await settingService.obtenerAltaFormData(idEstablecimiento)
 
             return res.status(200).json(ApiResponse.success(formData, "Información de formulario obteniada correctamente"))
-            
+
+        } catch (error) {
+            next(error)
+        }
+    }
+
+    async obtenerBajaFormdata(req: Request, res: Response, next: NextFunction) {
+        try {
+
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+            const formData = await settingService.obtenerAltaFormData(idEstablecimiento)
+
+            return res.status(200).json(ApiResponse.success(formData, "Información de formulario obteniada correctamente"))
+
         } catch (error) {
             next(error)
         }
     }
 }
+
 
 export default new SettingController();
