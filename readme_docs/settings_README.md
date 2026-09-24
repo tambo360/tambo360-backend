@@ -347,8 +347,8 @@ Responde `200`. Errores: `400`, `401`, `403` y `404`.
 
 No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
 
-- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value, cantidades), Razas disponibles (label, value, idRaza, cantidades), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
-- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, animales disponibles (idAnimal, nombre, codigo, raza), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
+- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value, cantidades), Razas disponibles (label, value, idRaza, cantidades), TipoMovimiento (necesario para la transferencia), motivos disponibles (label, value), causas agrupadas por motivos.
+- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, animales disponibles (idAnimal, nombre, codigo, raza, categoria), TipoMovimiento (necesario para la transferencia), motivos disponibles (label, value), causas agrupadas por motivos.
 
 ### RODEO o RODEO_UNICO
 
