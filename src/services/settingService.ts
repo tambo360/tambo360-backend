@@ -4,7 +4,7 @@ import { AppError } from "../utils/AppError";
 import { CategoriaAnimal, EstadoSanitarioAnimal, Prisma, Razas, TipoMovimientoAnimal, TipoRodeo, TipoSeguimiento } from "@prisma/client";
 import EstablishmentsService from "./establishmentsService";
 import { Decimal } from "@prisma/client/runtime/library";
-import { CategoriaAnimalMetaData, estadoPorCausa, EstadoSanitarioAnimalMetaData, estadoTratamientoPorEstado, formatDate, MotivosPorTipoMetaData, normalizarMotivo, RazasMetaData, TipoRodeoMetaData } from "../utils";
+import { CategoriaAnimalMetaData, causasPorMotivo, estadoPorCausa, EstadoSanitarioAnimalMetaData, estadoTratamientoPorEstado, formatDate, MotivosPorTipoMetaData, normalizarMotivo, RazasMetaData, TipoRodeoMetaData } from "../utils";
 
 
 class SettingService {
@@ -353,7 +353,7 @@ class SettingService {
     }
 
     private async transferirAnimalIndividual(tx: Prisma.TransactionClient, userId: string, idConfiguracion: string, body: TransferenciaAnimal, idEstablecimiento: string) {
-        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, [body.animal])
+        const animales = await EstablishmentsService.validateAnimals(idEstablecimiento, [body.animal.id])
 
         if (animales.length === 0) {
             throw new AppError("Animal no encontrado o no pertenece al establecimiento", 404)
@@ -376,13 +376,13 @@ class SettingService {
         await tx.movimientoAnimalDetalle.create({
             data: {
                 idMovimiento: transferencia.idMovimiento,
-                idAnimal: body.animal,
+                idAnimal: body.animal.id,
             }
         });
 
         await tx.animal.update({
             where: {
-                idAnimal: body.animal
+                idAnimal: body.animal.id
             },
             data: {
                 categoria: body.destino,
@@ -706,7 +706,7 @@ class SettingService {
         const formData = await prisma.$transaction(async (tx) => {
             const data = {
                 tipoMovimiento: TipoMovimientoAnimal.INGRESO,
-                Motivos: MotivosPorTipoMetaData.INGRESO
+                motivos: MotivosPorTipoMetaData.INGRESO
             }
 
             switch (tipoSeguimiento) {
@@ -762,7 +762,7 @@ class SettingService {
         const formData = await prisma.$transaction(async (tx) => {
             const data = {
                 tipoMovimiento: TipoMovimientoAnimal.EGRESO,
-                Motivos: MotivosPorTipoMetaData.EGRESO
+                motivos: MotivosPorTipoMetaData.EGRESO
             }
 
             switch (tipoSeguimiento) {
@@ -820,6 +820,88 @@ class SettingService {
                                 idAnimal: a.idAnimal,
                                 codigo: a.codigo,
                                 raza: RazasMetaData[a.raza]
+                            }
+                        ))
+                    }
+                default:
+                    throw new AppError("Tipo de seguimiento invalido", 400);
+            }
+        })
+
+        return formData;
+    }
+
+    async obtenerTransferirFormData(idEstablecimiento: string) {
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento)
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+        const idConfiguracion = establecimiento.configuracions[0].idConfiguracion
+
+        const formData = await prisma.$transaction(async (tx) => {
+            const data = {
+                tipoMovimiento: TipoMovimientoAnimal.TRANSFERENCIA,
+                motivos: MotivosPorTipoMetaData.TRANSFERENCIA,
+                causas: Object.fromEntries(
+                    Object.entries(causasPorMotivo)
+                )
+            }
+
+            switch (tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    const rodeos = await tx.rodeo.findMany({
+                        where: {
+                            idConfiguracion
+                        },
+                        include: {
+                            razas: true
+                        }
+                    })
+
+                    return {
+                        ...data,
+                        tipoSeguimiento,
+                        rodeos: rodeos.map(r => (
+                            {
+                                idRodeo: r.idRodeo,
+                                TipoRodeo: TipoRodeoMetaData[r.tipoRodeo],
+                                cantVacas: r.cantVacas,
+                                razas: r.razas.map(r => (
+                                    {
+                                        idRaza: r.idRaza,
+                                        cantVacas: r.cantVacas,
+                                        nombre: RazasMetaData[r.nombre]
+                                    }
+                                ))
+                            }
+                        ))
+                    }
+
+                case TipoSeguimiento.INDIVIDUAL:
+
+                    const animales = await tx.animal.findMany({
+                        where: {
+                            idEstablecimiento,
+                            activo: true
+                        },
+                        select: {
+                            idAnimal: true,
+                            nombre: true,
+                            codigo: true,
+                            raza: true,
+                            categoria: true
+                        }
+                    })
+
+                    return {
+                        ...data,
+                        tipoSeguimiento,
+                        animales: animales.map(a => (
+                            {
+                                nombre: a.nombre,
+                                idAnimal: a.idAnimal,
+                                codigo: a.codigo,
+                                raza: RazasMetaData[a.raza],
+                                categoria: CategoriaAnimalMetaData[a.categoria]
                             }
                         ))
                     }

@@ -23,6 +23,6 @@ router.post("/animal/transferir", SettingController.transferirAnimal);
 
 router.get("/animal/alta/form-data", SettingController.obtenerAltaFormdata)
 router.get("/animal/baja/form-data", SettingController.obtenerBajaFormdata)
-router.get("/animal/transferir/form-data")
+router.get("/animal/transferir/form-data", SettingController.obtenerTrasnferirFormdata)
 
 export default router;

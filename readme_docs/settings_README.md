@@ -201,7 +201,10 @@ Mueve la cantidad de la raza indicada entre rodeos y actualiza sus existencias. 
   "tipoSeguimiento": "INDIVIDUAL",
   "origen": "ORDENE",
   "destino": "SECAS",
-  "animal": "uuid-animal",
+  "animal": {
+    "id": "uuid-animal",
+    "categoria": "ORDENE"
+  },
   "retorno": null
 }
 ```
@@ -230,7 +233,7 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 ```json
 {
   "tipoMovimiento": "INGRESO",
-  "Motivos": {
+  "motivos": {
       "label": "Ingreso Nacimiento",
       "value": "INGRESO_NACIMIENTO";
   }[],
@@ -242,10 +245,10 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
             "value": "ALTA_PRODUCCION"
         },
     }[],
-    "razas": {
+  "razas": {
         "label": "Jersey",
         "value": "JERSEY"
-    }[]
+  }[]
 }
 ```
 
@@ -254,7 +257,7 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 ```json
 {
     "tipoMovimiento": "INGRESO",
-    "Motivos": {
+    "motivos": {
       "label": "Ingreso Nacimiento",
       "value": "INGRESO_NACIMIENTO";
     }[],
@@ -290,7 +293,7 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 ```json
 {
   "tipoMovimiento": "EGRESO",
-  "Motivos": {
+  "motivos": {
       "label": "Egreso Muerte",
       "value": "EGRESO_MUERTE";
   }[],
@@ -310,10 +313,6 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
               "value": "JERSEY"
             }
         }[]
-    }[],
-    "razas": {
-        "label": "Jersey",
-        "value": "JERSEY"
     }[]
 }
 ```
@@ -323,22 +322,94 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 ```json
 {
     "tipoMovimiento": "EGRESO",
-    "Motivos": {
+    "motivos": {
       "label": "Egreso Muerte",
       "value": "EGRESO_MUERTE";
     }[],
     "tipoSeguimiento": "INDIVIDUAL",
-    "EstadoSanitarios": {
-        "label": "Problema Podal",
-        "value": "PROBLEMA_PODAL"
-    }[],
     "animales": {
       "idAnimal": "uuid-animal",
       "nombre": "Lola",
       "codigo": "A-H320",
-      "razas": {
+      "raza": {
         "label": "Jersey",
         "value": "JERSEY"
+      }
+    }[]
+}
+```
+
+Responde `200`. Errores: `400`, `401`, `403` y `404`.
+
+## 10. Obtener informacion para el formulario de Transferir animal
+
+**GET** `/api/conf/animal/transferir/form-data`
+
+No recibe query ni body. Devuelve información para utilizar en el formulario (darle opciones al usuario), la informacion varia dependiendo del tipo de seguimiento del establecimiento (RODEO, RODEO_UNICO | INDIVIDUAL)
+
+- En caso de RODEO, RODEO_UNICO se obtiene: TipoSeguimiento, Rodeos disponibles (idRodeo, label, value, cantidades), Razas disponibles (label, value, idRaza, cantidades), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
+- En caso de INDIVIDUAL se obtiene: TipoSeguimiento, animales disponibles (idAnimal, nombre, codigo, raza), TipoMovimiento (necesario para la baja), motivos disponibles (label, value).
+
+### RODEO o RODEO_UNICO
+
+```json
+{
+  "tipoMovimiento": "TRANSFERENCIA",
+  "motivos": {
+      "label": "Transferencia Sanitaria",
+      "value": "TRANSFERENCIA_SANITARIA";
+  }[],
+  "tipoSeguimiento": "RODEO" | "RODEO_UNICO",
+  "causas": {
+      "TRANSFERENCIA_SANITARIA": ["MASTITIS", "PROBLEMA_PODAL"...],
+      "TRANSFERENCIA_CICLO_PRODUCTIVO": ["SECADA_PROGRAMADA", "ABORTO"...],
+      ...
+  },
+  "rodeos": {
+        "idRodeo": "uuid del rodeo",
+        "TipoRodeo": {
+            "label": "Rodeo Alta Producción",
+            "value": "ALTA_PRODUCCION"
+        },
+        "cantVacas": 20,
+        "razas": {
+            "idRaza": "uuid-raza",
+            "cantVacas": 8,
+            "nombre": {
+              "label": "Jersey",
+              "value": "JERSEY"
+            }
+        }[]
+    }[]
+}
+```
+
+### INDIVIDUAL
+
+```json
+{   
+    "tipoMovimiento": "TRANSFERENCIA",
+    "motivos": {
+        "label": "Transferencia Sanitaria",
+        "value": "TRANSFERENCIA_SANITARIA";
+    }[],
+    "tipoSeguimiento": "INDIVIDUAL",
+    "causas": {
+        "TRANSFERENCIA_SANITARIA": ["MASTITIS", "PROBLEMA_PODAL"...],
+        "TRANSFERENCIA_CICLO_PRODUCTIVO": ["SECADA_PROGRAMADA", "ABORTO"...],
+        ...
+    },
+    "animales": {
+      "idAnimal": "uuid-animal",
+      "nombre": "Lola",
+      "codigo": "A-H320",
+      "raza": {
+        "label": "Jersey",
+        "value": "JERSEY"
+      },
+      "categoria": {
+        "label": "Ordeñe",
+        "value": "ORDENE"
       }
     }[]
 }

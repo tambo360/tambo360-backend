@@ -1,4 +1,5 @@
 import { MotivoMovimientoAnimal, Razas, TipoMerma, TipoRodeo, CausaMovimientoAnimal, EstadoSanitarioAnimal, CategoriaAnimal, TipoMovimientoAnimal } from "@prisma/client";
+import { MotivoMovimientoAnimalTransferencia } from "../types";
 
 export const formatDate = (date: Date): string => {
     const fecha = new Date(date);
@@ -259,4 +260,41 @@ export const estadoTratamientoPorEstado = (
     ];
 
     return estadosEnTratamiento.includes(estado) ? "En Tratamiento" : "Sana";
+};
+
+
+export const motivosPorTipo = {
+    [TipoMovimientoAnimal.INGRESO]: [
+        MotivoMovimientoAnimal.INGRESO_COMPRA,
+        MotivoMovimientoAnimal.INGRESO_NACIMIENTO,
+    ],
+
+    [TipoMovimientoAnimal.EGRESO]: [
+        MotivoMovimientoAnimal.EGRESO_VENTA,
+        MotivoMovimientoAnimal.EGRESO_MUERTE,
+        MotivoMovimientoAnimal.EGRESO_DESCARTE
+    ],
+
+    [TipoMovimientoAnimal.TRANSFERENCIA]: [
+        MotivoMovimientoAnimal.TRANSFERENCIA_CICLO_PRODUCTIVO,
+        MotivoMovimientoAnimal.TRANSFERENCIA_RECUPERACION,
+        MotivoMovimientoAnimal.TRANSFERENCIA_SANITARIA
+    ],
+} as const;
+
+export const causasPorMotivo: Record<MotivoMovimientoAnimalTransferencia, CausaMovimientoAnimal[]> = {
+    [MotivoMovimientoAnimal.TRANSFERENCIA_SANITARIA]: [
+        CausaMovimientoAnimal.MASTITIS,
+        CausaMovimientoAnimal.PROBLEMA_PODAL,
+        CausaMovimientoAnimal.PROBLEMA_UTERINO,
+        CausaMovimientoAnimal.ENFERMEDAD_GENERAL,
+    ],
+    [MotivoMovimientoAnimal.TRANSFERENCIA_CICLO_PRODUCTIVO]: [
+        CausaMovimientoAnimal.SECADA_PROGRAMADA,
+        CausaMovimientoAnimal.PARTO,
+        CausaMovimientoAnimal.ABORTO,
+    ],
+    [MotivoMovimientoAnimal.TRANSFERENCIA_RECUPERACION]: [
+        CausaMovimientoAnimal.ALTA_MEDICA,
+    ],
 };

@@ -1,54 +1,11 @@
 import { z } from "zod";
 import { TipoMovimientoAnimal, TipoSeguimiento, TipoOrdenie, EstadoSanitarioAnimal, CausaMovimientoAnimal, Razas, CategoriaAnimal } from "@prisma/client";
 import { AnimalSchema } from "./establishmentSchema"
-export const motivosPorTipo = {
-    INGRESO: [
-        "INGRESO_COMPRA",
-        "INGRESO_NACIMIENTO",
-    ],
-
-    EGRESO: [
-        "EGRESO_VENTA",
-        "EGRESO_DESCARTE",
-        "EGRESO_MUERTE"
-    ],
-
-    TRANSFERENCIA: [
-        "TRANSFERENCIA_SANITARIA",
-        "TRANSFERENCIA_CICLO_PRODUCTIVO",
-        "TRANSFERENCIA_RECUPERACION"
-    ],
-} as const;
-
-const motivoSchema = z.enum([
-    ...motivosPorTipo.INGRESO,
-    ...motivosPorTipo.EGRESO,
-    ...motivosPorTipo.TRANSFERENCIA
-], "Motivo inválido");
-
-export const causasPorMotivo = {
-    TRANSFERENCIA_SANITARIA: [
-        "MASTITIS",
-        "PROBLEMA_PODAL",
-        "PROBLEMA_UTERINO",
-        "ENFERMEDAD_GENERAL",
-    ],
-    TRANSFERENCIA_CICLO_PRODUCTIVO: [
-        "SECADA_PROGRAMADA",
-        "PARTO",
-        "ABORTO",
-    ],
-    TRANSFERENCIA_RECUPERACION: [
-        "ALTA_MEDICA",
-    ],
-}
-
-
-
+import { causasPorMotivo, motivosPorTipo } from "../utils";
 
 const transferenciaBaseSchema = z.object({
     tipo: z.enum([TipoMovimientoAnimal.TRANSFERENCIA]),
-    motivo: z.enum(motivosPorTipo.TRANSFERENCIA, "Motivo de transferencia inválido"),
+    motivo: z.enum( motivosPorTipo.TRANSFERENCIA, "Motivo de transferencia inválido"),
     causa: z.enum(CausaMovimientoAnimal, "Causa de transferencia inválida"),
     retorno: z.date().optional(),
     observacion: z.string().max(255).optional(),
@@ -80,10 +37,36 @@ const transferenciaAnimalSchema = transferenciaBaseSchema.extend({
     tipoSeguimiento: z.enum([TipoSeguimiento.INDIVIDUAL], "Tipo de seguimiento inválido"),
     origen: z.enum(CategoriaAnimal, "Categoría de animal inválida"),
     destino: z.enum(CategoriaAnimal, "Categoría de animal inválida"),
-    animal: z.uuid("Id de animal inválido"),
-}).refine((data) => data.origen !== data.destino, {
-    message: "El origen y destino no pueden ser iguales",
-})
+    animal: z.object({
+        id: z.uuid("Id de animal inválido"),
+        categoria: z.enum(CategoriaAnimal, "Categoría de animal inválida"),
+    })
+
+}).superRefine((data, ctx) => {
+    if (data.origen !== data.destino) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["origen"],
+            message: "El origen y destino no pueden ser iguales",
+        });
+    }
+
+    if (data.destino === data.animal.categoria) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["animal", "categoria"],
+            message: "El animal ya se encuentra en esa categoria",
+        });
+    }
+
+    if (data.animal.categoria !== data.origen) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["origen"],
+            message: "La categoría de origen no coincide con la categoría actual del animal",
+        });
+    }
+});
 
 
 export const transferenciaSchema = z.discriminatedUnion(

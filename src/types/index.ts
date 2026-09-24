@@ -108,3 +108,5 @@ export const rolEstablecimientoLabel: Record<RolEstablecimiento, string> = {
   ADMIN: "Administrador del establecimiento",
   EMPLOYEE: "Empleado"
 };
+
+export type MotivoMovimientoAnimalTransferencia = "TRANSFERENCIA_SANITARIA" | "TRANSFERENCIA_CICLO_PRODUCTIVO" | "TRANSFERENCIA_RECUPERACION"
