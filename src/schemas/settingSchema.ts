@@ -7,7 +7,7 @@ const transferenciaBaseSchema = z.object({
     tipo: z.enum([TipoMovimientoAnimal.TRANSFERENCIA]),
     motivo: z.enum( motivosPorTipo.TRANSFERENCIA, "Motivo de transferencia inválido"),
     causa: z.enum(CausaMovimientoAnimal, "Causa de transferencia inválida"),
-    retorno: z.date().optional(),
+    retorno: z.string().datetime().nullable(),
     observacion: z.string().max(255).optional(),
 }).superRefine((data, ctx) => {
     const causasPermitidas = causasPorMotivo[data.motivo];
