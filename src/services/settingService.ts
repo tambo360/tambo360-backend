@@ -912,6 +912,35 @@ class SettingService {
 
         return formData;
     }
+
+    async obtenerinfoCatalogo(idEstablecimiento: string) {
+        const establecimiento = await EstablishmentsService.obtenerEstablecimiento(idEstablecimiento);
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
+
+        switch (tipoSeguimiento) {
+            case TipoSeguimiento.RODEO:
+            case TipoSeguimiento.RODEO_UNICO: {
+                const rodeos = await EstablishmentsService.listarRodeos(idEstablecimiento);
+                return {
+                    tipoSeguimiento,
+                    rodeos,
+                };
+            }
+
+            case TipoSeguimiento.INDIVIDUAL: {
+                const animales = await EstablishmentsService.listarAnimales(idEstablecimiento, false);
+                return {
+                    tipoSeguimiento,
+                    animales,
+                };
+            }
+
+            default:
+                throw new AppError("Tipo de seguimiento no válido", 400);
+        }
+
+
+    }
 }
 
 export default new SettingService();

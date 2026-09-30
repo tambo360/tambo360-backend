@@ -215,7 +215,7 @@ class SettingController {
         }
     }
 
-    
+
     async obtenerTrasnferirFormdata(req: Request, res: Response, next: NextFunction) {
         try {
 
@@ -231,6 +231,26 @@ class SettingController {
 
         } catch (error) {
             next(error)
+        }
+    }
+
+    async obtenerinfoCatalogo(req: Request, res: Response, next: NextFunction) {
+        try {
+            const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+            if (!idEstablecimiento) {
+                throw new AppError("No se pudo determinar el establecimiento", 400);
+            }
+
+
+            const infoCatalogo = await settingService.obtenerinfoCatalogo(idEstablecimiento);
+
+            return res.status(200).json(
+                ApiResponse.success(infoCatalogo, "Información del catálogo obtenida correctamente")
+            );
+
+        } catch (error) {
+            next(error);
         }
     }
 }

@@ -416,3 +416,78 @@ No recibe query ni body. Devuelve información para utilizar en el formulario (d
 ```
 
 Responde `200`. Errores: `400`, `401`, `403` y `404`.
+
+### 11. Obtener información del catálogo
+
+**Método:** `GET`  
+**Ruta:** `/conf/info/catalogo`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+Devuelve los recursos disponibles para ver el catálogo según la configuración del establecimiento.
+
+- `RODEO` o `RODEO_UNICO` → responde con `rodeos`.
+- `INDIVIDUAL` → responde con animales.
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Información del catálogo obtenida correctamente",
+  "data": {
+    "tipoSeguimiento": "RODEO",
+    "rodeos": [
+      {
+        "idRodeo": "550e8400-e29b-41d4-a716-446655440003",
+        "label": "Rodeo Alta Producción",
+        "value": "ALTA_PRODUCCION",
+        "costoRacion": 120,
+        "cantVacas": 15,
+        "razas": [
+          {
+            "idRaza": "550e8400-e29b-41d4-a716-446655440003",
+            "nombre": "Holando Argentino",
+            "value": "HOLANDO_ARGENTINO",
+            "cantVacas": 10
+          },
+          { 
+            "idRaza": "550e8400-e29b-41d4-a716-446655440003",
+            "nombre": "Jersey",
+            "value": "JERSEY",
+            "cantVacas": 5
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Cuando `tipoSeguimiento` es `INDIVIDUAL`, `data` tiene esta forma:
+
+```json
+{
+  "tipoSeguimiento": "INDIVIDUAL",
+  "animales": [
+    {
+      "idAnimal": "550e8400-e29b-41d4-a716-446655440020",
+      "codigo": "A-001",
+      "nombre": "Vaca Rosa",
+      "categoria": "ORDENE",
+      "raza": "Holando-Jersey (Cruza)",
+      "estado": "SANO",
+      "fechaNacimiento": "2024-01-15T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | No se pudo determinar el establecimiento |
+| 401 | Usuario no autenticado |
+| 404 | Establecimiento no encontrado |
+
+---

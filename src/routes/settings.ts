@@ -25,4 +25,6 @@ router.get("/animal/alta/form-data", SettingController.obtenerAltaFormdata)
 router.get("/animal/baja/form-data", SettingController.obtenerBajaFormdata)
 router.get("/animal/transferir/form-data", SettingController.obtenerTrasnferirFormdata)
 
+router.get("/info/catalogo", SettingController.obtenerinfoCatalogo)
+
 export default router;

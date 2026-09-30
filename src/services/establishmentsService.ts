@@ -649,13 +649,15 @@ class EstablishmentsService {
         return animales;
     }
 
-    async listarAnimales(idEstablecimiento: string) {
+    async listarAnimales(idEstablecimiento: string, filtrado: boolean) {
         const animales = await prisma.animal.findMany({
             where: {
                 idEstablecimiento: idEstablecimiento,
                 activo: true,
-                categoria: CategoriaAnimal.ORDENE,
-                estado: EstadoSanitarioAnimal.SANO
+                ...(filtrado && {
+                    categoria: CategoriaAnimal.ORDENE,
+                    estado: EstadoSanitarioAnimal.SANO,
+                }),
             }
         });
         return animales.map(a => ({
@@ -730,7 +732,7 @@ class EstablishmentsService {
             }
 
             case TipoSeguimiento.INDIVIDUAL: {
-                const animales = await this.listarAnimales(idEstablecimiento);
+                const animales = await this.listarAnimales(idEstablecimiento, true);
                 return {
                     tipoSeguimiento,
                     animales,
