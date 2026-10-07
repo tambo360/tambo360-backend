@@ -668,6 +668,8 @@ class SettingService {
                 observacion: true,
                 usuarioId: true,
                 fechaCreacion: true,
+                retorno: true,
+                causa: true,
                 detalles: {
                     select: {
                         animal: {
