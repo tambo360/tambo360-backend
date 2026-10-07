@@ -165,12 +165,6 @@ class SettingController {
                 throw new AppError("No se pudo determinar el establecimiento", 400);
             }
 
-            const parsed = listaMovimientosSchema.safeParse(idEstablecimiento);
-
-            if (!parsed.success) {
-                throw zodError(parsed.error);
-            }
-
             const animal = await settingService.obtenerMovimientos(idEstablecimiento);
 
             return res.status(200).json(ApiResponse.success(animal, "Movimientos obtenidos correctamente"));
