@@ -36,6 +36,7 @@ export class LoteService {
                 unidad: data.unidad,
                 tempTanque: data.tempTanque,
                 destino: data.destino,
+                rodeoIdRodeo: data.idRodeo,
                 fechaProduccion: data.fechaProduccion ?? undefined,
                 ...(data.estado ? { estado: data.estado } : {}),
                 numeroLote: numeroLote,
