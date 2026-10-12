@@ -786,7 +786,11 @@
  * @swagger
  * /lote/completar/{idLote}:
  *   post:
- *     summary: Completar un lote
+ *     summary: Completar un lote de producción
+ *     description: >-
+ *       Marca un lote como completado en la base de datos. La operación valida que el lote exista,
+ *       que no esté ya cerrado y que el usuario tenga acceso al establecimiento asociado. Luego
+ *       dispara la análisis de IA en segundo plano para ese lote.
  *     tags: [Lotes]
  *     security:
  *       - bearerAuth: []
@@ -797,18 +801,95 @@
  *         schema:
  *           type: string
  *           format: uuid
- *         description: ID del lote a completar
+ *         description: ID único del lote que se desea cerrar.
  *     responses:
  *       200:
- *         description: Lote completado correctamente
+ *         description: Lote completado correctamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lote completado correctamente"
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idLote:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     idEstablecimiento:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440001"
+ *                     estado:
+ *                       type: boolean
+ *                       example: true
  *       400:
- *         description: Lote ya completado
+ *         description: Parámetros inválidos o el lote ya se encuentra completado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "El lote ya está completado"
+ *                 data:
+ *                   type: object
+ *                   nullable: true
  *       401:
- *         description: Usuario no autenticado
- *       403:
- *         description: No tiene permisos
+ *         description: Usuario no autenticado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 401
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Usuario no autenticado"
+ *                 data:
+ *                   type: object
+ *                   nullable: true
  *       404:
- *         description: Lote no encontrado
+ *         description: El lote no existe.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 404
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "El lote no existe"
+ *                 data:
+ *                   type: object
+ *                   nullable: true
  */
 
 /**

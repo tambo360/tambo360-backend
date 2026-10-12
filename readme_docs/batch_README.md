@@ -541,6 +541,55 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 ---
 
+### 6. Completar Lote
+
+**Método:** `POST`  
+**Ruta:** `/lote/completar/:idLote`  
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `aiLimiter`
+
+#### Parámetros de Ruta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|-----------|------|-------------|-------------|
+| `idLote` | string (UUID) | Sí | ID del lote que se desea cerrar | 
+
+> Esta operación no recibe body. Requiere que el lote exista y que aún esté abierto (`estado = false`). Si la validación pasa, el backend actualiza el lote a `estado = true` y dispara el análisis de IA asociado al lote en segundo plano.
+
+#### Ejemplo de Request
+
+```bash
+POST /lote/completar/550e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "success": true,
+  "message": "Lote completado correctamente",
+  "data": {
+    "idLote": "550e8400-e29b-41d4-a716-446655440000",
+    "idEstablecimiento": "550e8400-e29b-41d4-a716-446655440001",
+    "estado": true,
+    ...Datos del lote
+  }
+}
+```
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 400 | Parámetros inválidos |
+| 400 | El lote ya está completado |
+| 401 | Usuario no autenticado |
+| 404 | El lote no existe |
+
+---
+
 ## Notas
 
 - La fecha de producción debe estar en formato `dd/mm/aaaa`
