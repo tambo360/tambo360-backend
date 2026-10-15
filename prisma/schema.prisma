@@ -141,7 +141,6 @@ enum EstadoSanitarioAnimal {
   ENFERMEDAD_GENERAL
 }
 
-
 enum DestinoProduccion {
   TANQUE
   DESCARTE
@@ -357,11 +356,12 @@ model Rodeo {
 }
 
 model Raza {
-  idRaza    String @id @default(uuid(7))
-  nombre    Razas
-  cantVacas Int
-  idRodeo   String
-  rodeo     Rodeo  @relation(fields: [idRodeo], references: [idRodeo])
+  idRaza           String            @id @default(uuid(7))
+  nombre           Razas
+  cantVacas        Int
+  idRodeo          String
+  rodeo            Rodeo             @relation(fields: [idRodeo], references: [idRodeo])
+  produccionRodeos ProduccionRodeo[]
 
   @@unique([idRodeo, nombre])
 }
@@ -434,7 +434,9 @@ model ProduccionRodeo {
   idProduccionRodeo String         @id @default(uuid(7))
   idRodeo           String
   idLote            String
-  raza              Razas
+  idRaza            String
+  Raza              Raza           @relation(fields: [idRaza], references: [idRaza])
+  razaNombre        Razas
   cantVacas         Int
   rodeo             Rodeo          @relation(fields: [idRodeo], references: [idRodeo])
   lote              LoteProduccion @relation(fields: [idLote], references: [idLote])

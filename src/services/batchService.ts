@@ -44,7 +44,8 @@ export class LoteService {
                 produccionRodeos: {
                     create: rodeo.razas.map(raza => ({
                         idRodeo: rodeo.idRodeo,
-                        raza: raza.nombre,
+                        idRaza: raza.idRaza,
+                        razaNombre: raza.nombre,
                         cantVacas: raza.cantVacas
                     }))
                 }
@@ -152,7 +153,7 @@ export class LoteService {
                     create: rodeo.razas.map(raza => ({
                         idRodeo: rodeo.idRodeo,
                         idRaza: raza.idRaza,
-                        raza: raza.nombre,
+                        razaNombre: raza.nombre,
                         cantVacas: raza.cantVacas
                     }))
                 }
