@@ -20,8 +20,11 @@ class CostoGeneralService {
             }
         });
     }
+        // =====================================================
+        // El siguiente metodo lo eliminamos sin reemplazarlo
+        // =====================================================
 
-    async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
+/*    async calcularCostoAlimentacion(idEstablecimiento: string, fechaDesde: Date, fechaHasta: Date) {
 
         const establecimiento = await prisma.establecimiento.findUnique({
             where: {
@@ -65,6 +68,8 @@ class CostoGeneralService {
 
         return costoTotal;
     }
+ */
+
     /*
         async listar(idEstablecimiento: string, filtros?: {
             fechaDesde?: Date;
@@ -85,7 +90,12 @@ class CostoGeneralService {
         }
     */
 
-    async listar(idEstablecimiento: string, filtros?: {
+        // =====================================================
+        // El siguiente metodo lo reemplazamos por otro listar 
+        // con los filtros necesarios segun issue #93
+        // =====================================================
+
+  /*  async listar(idEstablecimiento: string, filtros?: {
         fechaDesde?: Date;
         fechaHasta?: Date;
     }) {
@@ -159,7 +169,150 @@ class CostoGeneralService {
                 new Date(a.fecha).getTime()
         );
     }
+*/
 
+
+async listar(idEstablecimiento: string, filtros?: {
+    fechaDesde?: Date;
+    fechaHasta?: Date;
+    tipoCosto?: TipoCostoGeneral;
+    ordenarPor?: "fecha" | "monto";
+    orden?: "asc" | "desc";
+    page?: number;
+    limit?: number;
+}) {
+
+    // =====================================================
+    // Validar que se haya enviado un período de consulta.
+    // =====================================================
+
+    if (!filtros?.fechaDesde || !filtros?.fechaHasta) {
+        throw new AppError(
+            "Debe indicar un período de consulta",
+            400
+        );
+    }
+
+    // =====================================================
+    // Paginación
+    // =====================================================
+
+    const page =
+        filtros?.page && filtros.page > 0
+            ? filtros.page
+            : 1;
+
+    const limit =
+        filtros?.limit && filtros.limit > 0
+            ? filtros.limit
+            : 10;
+
+    // =====================================================
+    // Construcción de filtros
+    // =====================================================
+
+    const where = {
+        idEstablecimiento,
+
+        ...(filtros?.fechaDesde || filtros?.fechaHasta
+            ? {
+                fecha: {
+                    ...(filtros.fechaDesde && {
+                        gte: filtros.fechaDesde
+                    }),
+                    ...(filtros.fechaHasta && {
+                        lte: filtros.fechaHasta
+                    }),
+                }
+            }
+            : {}),
+
+        ...(filtros?.tipoCosto
+            ? {
+                tipoCosto: filtros.tipoCosto
+            }
+            : {}),
+    };
+
+    // =====================================================
+    // Ordenamiento
+    //
+    // Por defecto:
+    // - fecha
+    // - descendente
+    // =====================================================
+
+    const ordenarPor =
+        filtros?.ordenarPor ?? "fecha";
+
+    const orden =
+        filtros?.orden ?? "desc";
+
+    // =====================================================
+    // Obtener cantidad total de registros
+    // =====================================================
+
+    const totalCostos =
+        await prisma.costoGeneral.count({
+            where
+        });
+
+    // =====================================================
+    // Calcular cantidad de páginas
+    // =====================================================
+
+    const totalPaginas =
+        Math.ceil(totalCostos / limit);
+
+    // =====================================================
+    // Validar que la página solicitada exista
+    // =====================================================
+
+    if (
+        page > totalPaginas &&
+        totalPaginas > 0
+    ) {
+        throw new AppError(
+            "La página solicitada no existe",
+            404
+        );
+    }
+
+    // =====================================================
+    // Obtener costos paginados
+    // =====================================================
+
+    const costos =
+        await prisma.costoGeneral.findMany({
+            where,
+
+            orderBy: {
+                [ordenarPor]: orden,
+            },
+
+            skip: (page - 1) * limit,
+
+            take: limit,
+        });
+
+    // =====================================================
+    // Respuesta paginada
+    // =====================================================
+
+    return {
+        page,
+        limit,
+        totalCostos,
+        totalPaginas,
+        costos,
+    };
+}
+
+        // =====================================================
+        // El siguiente metodo lo reemplazamos por otro resumen  
+        // economico necesario según issue #93
+        // =====================================================
+/*
     // =====================================================
     // Resumen Económico del período (Épica: Costos Generales
     // y Resumen Económico).
@@ -228,6 +381,120 @@ class CostoGeneralService {
             prorrateoPromedio,
         };
     }
+*/
+
+
+async resumenEconomico(
+    idEstablecimiento: string,
+    fechaDesde: Date,
+    fechaHasta: Date
+) {
+
+    if (!fechaDesde || !fechaHasta) {
+        throw new AppError(
+            "Debe indicar un período de consulta",
+            400
+        );
+    }
+
+    // =====================================================
+    // Obtener todos los costos generales registrados
+    // durante el período seleccionado.
+    //
+    // ALIMENTACION ya no se calcula automáticamente:
+    // ahora es un costo registrado mediante el CRUD.
+    // =====================================================
+    const costosManuales = await prisma.costoGeneral.aggregate({
+        where: {
+            idEstablecimiento,
+            fecha: {
+                gte: fechaDesde,
+                lte: fechaHasta,
+            },
+        },
+        _sum: {
+            monto: true,
+        },
+    });
+
+    const gastoCostosGenerales =
+        Number(costosManuales._sum.monto || 0);
+
+    // =====================================================
+    // Obtener específicamente los costos de ALIMENTACION.
+    //
+    // Se mantiene como dato informativo dentro del resumen,
+    // pero ya no se calcula mediante animales x ración.
+    // =====================================================
+    const costoAlimentacion =
+        await prisma.costoGeneral.aggregate({
+            where: {
+                idEstablecimiento,
+                tipoCosto: TipoCostoGeneral.ALIMENTACION,
+                fecha: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
+            },
+            _sum: {
+                monto: true,
+            },
+        });
+
+    const gastoAlimentacion =
+        Number(costoAlimentacion._sum.monto || 0);
+
+    // =====================================================
+    // Cantidad de lotes COMPLETOS del período.
+    //
+    // estado = true representa un lote completo/cerrado.
+    // =====================================================
+    const lotesCompletos =
+        await prisma.loteProduccion.count({
+            where: {
+                idEstablecimiento,
+                estado: true,
+                fechaProduccion: {
+                    gte: fechaDesde,
+                    lte: fechaHasta,
+                },
+            },
+        });
+
+    // =====================================================
+    // El gasto total ya incluye ALIMENTACION porque
+    // ALIMENTACION forma parte de CostoGeneral.
+    //
+    // NO debemos hacer:
+    //
+    // gastoAlimentacion + gastoCostosGenerales
+    //
+    // porque eso duplicaría ALIMENTACION.
+    // =====================================================
+    const gastoTotal = gastoCostosGenerales;
+
+    // =====================================================
+    // Costo promedio por lote completo.
+    //
+    // Se evita la división por cero.
+    // =====================================================
+    const prorrateoPromedio =
+        lotesCompletos > 0
+            ? gastoTotal / lotesCompletos
+            : 0;
+
+    return {
+        periodo: {
+            fechaDesde,
+            fechaHasta,
+        },
+        gastoAlimentacion,
+        gastoCostosGenerales,
+        gastoTotal,
+        lotesCompletos,
+        prorrateoPromedio,
+    };
+}
 
 
     async actualizar(idCostoGeneral: string, idEstablecimiento: string, data: {

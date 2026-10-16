@@ -1,7 +1,11 @@
 import { prisma } from "../lib/prisma";
-import { Categoria, CostosDirecto, Merma } from "@prisma/client";
 import { InfoMes, Metrica, SummaryResult } from "../types";
 import { meses } from "../utils/data";
+
+import { Categoria, Unidad, CostosDirecto, Merma } from "@prisma/client";
+import { calcularLitrosLibres } from "../utils/litrosLibres";
+import { AppError } from "../utils/AppError";
+
 
 export class DashboardService {
 
@@ -212,5 +216,270 @@ export class DashboardService {
         return { resultado, Lote: true }
 
     }
+
+
+    // =====================================================
+    // GET /dashboard/litros-libres
+    // Calcula los litros libres del mes actual.
+    // Utiliza el precio vigente en la configuración.
+    // =====================================================
+    static async obtenerLitrosLibres(idEstablecimiento: string) {
+        const hoy = new Date();
+
+        const fechaInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+        const fechaFin = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59, 999);
+
+        // Consultar la configuración del establecimiento.
+        const configuracion = await prisma.configuracion.findUnique({
+            where: { idEstablecimiento },
+            select: { precioLitro: true }
+        });
+
+        if (!configuracion || configuracion.precioLitro === null) {
+            throw new AppError(
+                "El establecimiento no tiene configurado el precio del litro de leche",
+                400
+            );
+        }
+
+        const precioLitro = Number(configuracion.precioLitro);
+
+        // Sumar solamente la producción de leche registrada en litros.
+        const produccion = await prisma.loteProduccion.aggregate({
+            where: {
+                idEstablecimiento,
+                fechaProduccion: {
+                    gte: fechaInicio,
+                    lte: fechaFin
+                },
+                unidad: Unidad.litros,
+                producto: {
+                    categoria: Categoria.leches
+                }
+            },
+            _sum: {
+                cantidad: true
+            }
+        });
+
+        const litrosProducidos = Number(
+            produccion._sum.cantidad ?? 0
+        );
+
+        // Sumar los costos generales del mismo establecimiento y mes.
+        const costos = await prisma.costoGeneral.aggregate({
+            where: {
+                idEstablecimiento,
+                fecha: {
+                    gte: fechaInicio,
+                    lte: fechaFin
+                }
+            },
+            _sum: {
+                monto: true
+            }
+        });
+
+        const costosGenerales = Number(costos._sum.monto ?? 0);
+
+        const litrosLibres = calcularLitrosLibres(
+            litrosProducidos,
+            precioLitro,
+            costosGenerales
+        );
+
+        return {
+            periodo: {
+                fechaDesde: fechaInicio,
+                fechaHasta: fechaFin
+            },
+            litrosProducidos,
+            precioLitro,
+            costosGenerales,
+            litrosLibres
+        };
+    }
+
+
+static async obtenerGraficoCostosGenerales(
+    idEstablecimiento: string,
+    periodo: string = "6meses"
+) {
+    if (!idEstablecimiento || !idEstablecimiento.trim()) {
+        throw new AppError("El establecimiento es obligatorio", 400);
+    }
+
+    const periodosValidos = ["7dias", "1mes", "6meses"];
+
+    if (!periodosValidos.includes(periodo)) {
+        throw new AppError(
+            "El período debe ser 7dias, 1mes o 6meses",
+            400
+        );
+    }
+
+    const hoy = new Date();
+    const anioActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth();
+
+    let fechaInicio: Date;
+    let fechaFin: Date;
+
+    if (periodo === "7dias") {
+        // Hoy y los seis días anteriores.
+        fechaInicio = new Date(anioActual, mesActual, hoy.getDate() - 6);
+        fechaInicio.setHours(0, 0, 0, 0);
+
+        fechaFin = new Date(hoy);
+        fechaFin.setHours(23, 59, 59, 999);
+    } else if (periodo === "1mes") {
+        // Mes calendario actual completo, hasta el momento de la consulta.
+        fechaInicio = new Date(anioActual, mesActual, 1);
+        fechaFin = new Date(hoy);
+        fechaFin.setHours(23, 59, 59, 999);
+    } else {
+        // Seis meses calendario anteriores, excluyendo el mes actual.
+        fechaInicio = new Date(anioActual, mesActual - 6, 1);
+        fechaFin = new Date(anioActual, mesActual, 0, 23, 59, 59, 999);
+    }
+
+    const costos = await prisma.costoGeneral.findMany({
+        where: {
+            idEstablecimiento,
+            fecha: {
+                gte: fechaInicio,
+                lte: fechaFin
+            }
+        },
+        select: {
+            fecha: true,
+            tipoCosto: true,
+            monto: true
+        },
+        orderBy: {
+            fecha: "asc"
+        }
+    });
+
+    // Preparar todos los períodos, incluso si no tienen costos.
+    
+    const periodos: {
+        clave: string;
+        etiqueta: string;
+        anio: number;
+    }[] = [];
+
+    if (periodo === "7dias") {
+        for (let i = 6; i >= 0; i--) {
+            const fecha = new Date(hoy);
+            fecha.setDate(hoy.getDate() - i);
+
+            const clave = [
+                fecha.getFullYear(),
+                String(fecha.getMonth() + 1).padStart(2, "0"),
+                String(fecha.getDate()).padStart(2, "0")
+            ].join("-");
+
+            periodos.push({
+                clave,
+                etiqueta: fecha.toLocaleDateString("es-AR", {
+                    day: "2-digit",
+                    month: "2-digit"
+                }),
+                anio: fecha.getFullYear()
+            });
+        }
+    } else {
+        const cantidadMeses = periodo === "1mes" ? 1 : 6;
+
+        for (let i = cantidadMeses; i >= 1; i--) {
+            // 1mes incluye el mes actual; 6meses excluye el actual.
+            const desplazamiento = periodo === "1mes" ? 0 : -i;
+            const fecha = new Date(
+                anioActual,
+                mesActual + desplazamiento,
+                1
+            );
+
+            const clave = `${fecha.getFullYear()}-${String(
+                fecha.getMonth() + 1
+            ).padStart(2, "0")}`;
+
+            periodos.push({
+                clave,
+                etiqueta: fecha.toLocaleDateString("es-AR", {
+                    month: "long"
+                }),
+                anio: fecha.getFullYear()
+            });
+        }
+    }
+
+    const categorias = [...new Set(
+        costos.map(costo => costo.tipoCosto)
+    )].sort();
+
+    const datosPorPeriodo = new Map<
+        string,
+        Record<string, string | number>
+    >();
+
+    for (const item of periodos) {
+        const fila: Record<string, string | number> = {
+            periodo: item.etiqueta,
+            clave: item.clave,
+            anio: item.anio,
+            total: 0
+        };
+
+        for (const categoria of categorias) {
+            fila[categoria] = 0;
+        }
+
+        datosPorPeriodo.set(item.clave, fila);
+    }
+
+    for (const costo of costos) {
+        const fecha = new Date(costo.fecha);
+
+        const clave = periodo === "7dias"
+            ? [
+                fecha.getFullYear(),
+                String(fecha.getMonth() + 1).padStart(2, "0"),
+                String(fecha.getDate()).padStart(2, "0")
+            ].join("-")
+            : `${fecha.getFullYear()}-${String(
+                fecha.getMonth() + 1
+            ).padStart(2, "0")}`;
+
+        const fila = datosPorPeriodo.get(clave);
+
+        if (!fila) continue;
+
+        const monto = Number(costo.monto);
+
+        if (!Number.isFinite(monto)) {
+            throw new AppError(
+                "Se encontró un monto de costo general inválido",
+                500
+            );
+        }
+
+        fila[costo.tipoCosto] =
+            Number(fila[costo.tipoCosto] ?? 0) + monto;
+
+        fila.total = Number(fila.total) + monto;
+    }
+
+    return {
+        periodo,
+        fechaInicio,
+        fechaFin,
+        categorias,
+        datos: [...datosPorPeriodo.values()]
+    };
+}
+
 
 }
