@@ -18,6 +18,9 @@ router.get("/costos", requireRoles({ est: [RolEstablecimiento.ADMIN, RolEstablec
 
 router.get("/mes-actual", DashboardController.mesActual)
 router.get("/grafico", DashboardController.grafico)
+router.get("/litros-libres", DashboardController.litrosLibres);
+router.get("/costos-generales", DashboardController.graficoCostosGenerales);
+
 
 
 export default router;

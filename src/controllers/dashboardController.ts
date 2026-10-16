@@ -73,6 +73,89 @@ export class DashboardController {
             next(error)
         }
     }
+
+
+    // =====================================================
+    // GET /dashboard/litros-libres
+    // =====================================================
+    static async litrosLibres(
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) {
+        try {
+            const idEstablecimiento =
+                req.estAccess?.idEstablecimiento;
+
+            if (!idEstablecimiento) {
+                throw new AppError(
+                    "No se pudo determinar el establecimiento",
+                    400
+                );
+            }
+
+            const respuesta =
+                await DashboardService.obtenerLitrosLibres(
+                    idEstablecimiento
+                );
+
+            return res.status(200).json(
+                ApiResponse.success(
+                    respuesta,
+                    "Litros Libres calculados correctamente"
+                )
+            );
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    
+static async graficoCostosGenerales(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+        if (!idEstablecimiento) {
+            throw new AppError(
+                "No se pudo determinar el establecimiento",
+                400
+            );
+        }
+
+        const periodo = req.query.periodo;
+
+        if (
+            periodo !== undefined &&
+            typeof periodo !== "string"
+        ) {
+            throw new AppError(
+                "El parámetro periodo debe ser un texto válido",
+                400
+            );
+        }
+
+        const respuesta =
+            await DashboardService.obtenerGraficoCostosGenerales(
+                idEstablecimiento,
+                periodo ?? "6meses"
+            );
+
+        return res.status(200).json(
+            ApiResponse.success(
+                respuesta,
+                "Gráfico de costos generales obtenido correctamente"
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
+}
+
+
 }
 
 
