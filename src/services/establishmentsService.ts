@@ -15,7 +15,7 @@ type CreateEstablishmentServiceData = CreateEstablishmentData & {
 
 class EstablishmentsService {
     //Limite de animales para el seguimiento individual
-    public LIMITE_ANIMAL = 70
+    public LIMITE_ANIMAL = 150
     public LIMITE_PROM_LITROS = 2000
 
     async obtenerEstablecimiento(idEstablecimiento: string) {
