@@ -259,3 +259,178 @@
  *                 data:
  *                   type: null
  */
+
+
+/**
+ * @swagger
+ * /dashboard/litros-libres:
+ *   get:
+ *     summary: Calcular litros libres del mes actual
+ *     description: >
+ *       Calcula los litros libres del establecimiento para el mes actual,
+ *       considerando la producción de leche registrada en litros, el precio
+ *       actual por litro configurado y los costos generales del período.
+ *       No incluye producción expresada en kilogramos ni costos directos.
+ *     tags: [Dashboard]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: header
+ *         name: x-establecimiento-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del establecimiento sobre el que se consulta.
+ *     responses:
+ *       200:
+ *         description: Litros libres calculados correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Litros Libres calculados correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     periodo:
+ *                       type: object
+ *                       properties:
+ *                         fechaInicio:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2026-10-01T00:00:00.000Z"
+ *                         fechaFin:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2026-10-31T23:59:59.999Z"
+ *                     litrosProducidos:
+ *                       type: number
+ *                       description: Total de leche producida en litros durante el período.
+ *                       example: 12000
+ *                     precioLitro:
+ *                       type: number
+ *                       description: Precio actual por litro obtenido de la configuración del establecimiento.
+ *                       example: 500
+ *                     costosGenerales:
+ *                       type: number
+ *                       description: Total de costos generales registrados durante el período.
+ *                       example: 1500000
+ *                     litrosLibres:
+ *                       type: number
+ *                       description: Litros libres resultantes del cálculo.
+ *                       example: 9000
+ *       400:
+ *         description: No se pudo determinar el establecimiento o falta configurar el precio por litro.
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Usuario sin permisos para consultar el establecimiento
+ */
+
+
+/**
+ * @swagger
+ * /dashboard/costos-generales:
+ *   get:
+ *     summary: Obtener datos para el gráfico de costos generales
+ *     description: >
+ *       Devuelve los costos generales del establecimiento agrupados por
+ *       categoría y período. Permite consultar los últimos 7 días, el mes
+ *       actual o los 6 meses completos anteriores. No incluye costos directos.
+ *     tags: [Dashboard]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: header
+ *         name: x-establecimiento-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID del establecimiento sobre el que se consulta.
+ *       - in: query
+ *         name: periodo
+ *         required: false
+ *         schema:
+ *           type: string
+ *           enum: [7dias, 1mes, 6meses]
+ *           default: 6meses
+ *         description: >
+ *           Período de consulta. 7dias corresponde a los últimos 7 días;
+ *           1mes corresponde al mes calendario actual; 6meses corresponde
+ *           a los 6 meses calendario completos anteriores, sin incluir
+ *           el mes actual.
+ *         example: 6meses
+ *     responses:
+ *       200:
+ *         description: Gráfico de costos generales obtenido correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Gráfico de costos generales obtenido correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     periodo:
+ *                       type: string
+ *                       enum: [7dias, 1mes, 6meses]
+ *                       example: 6meses
+ *                     inicioPeriodo:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Inicio del período consultado.
+ *                     finPeriodo:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Fin del período consultado.
+ *                     categorias:
+ *                       type: array
+ *                       description: Categorías de costos generales encontradas en el período.
+ *                       items:
+ *                         type: string
+ *                       example: ["alimentacion", "mantenimiento"]
+ *                     datos:
+ *                       type: array
+ *                       description: Valores agrupados por período. Cada categoría se representa como una propiedad numérica del objeto.
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           periodo:
+ *                             type: string
+ *                             description: Etiqueta visible del período.
+ *                             example: "Agosto"
+ *                           clave:
+ *                             type: string
+ *                             description: Clave identificadora del período.
+ *                             example: "2026-08"
+ *                           anio:
+ *                             type: integer
+ *                             example: 2026
+ *                           total:
+ *                             type: number
+ *                             description: Suma de los costos generales del período.
+ *                             example: 250000
+ *                         additionalProperties:
+ *                           type: number
+ *                           description: Importe de una categoría de costo general.
+ *       400:
+ *         description: Parámetros inválidos o no se pudo determinar el establecimiento.
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Usuario sin permisos para consultar el establecimiento
+ */
