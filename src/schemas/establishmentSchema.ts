@@ -36,13 +36,41 @@ const productSchema = z.discriminatedUnion("tipo", [
 
 
 const RodeoSchema = z.object({
-    tipoRodeo: z.enum(TipoRodeo, "El tipo de rodeo debe ser un valor válido"),
-    costoRacion: z.number("El costo de la ración es obligatorio").positive("El costo de la ración debe ser un número positivo"),
-    razas: z.array(z.object({
-        raza: z.enum(Razas, "La raza del animal debe ser un valor válido"),
-        cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
-    })).min(1, { message: "Debe existir al menos una raza" })
-})
+    tipoRodeo: z.enum(TipoRodeo, {
+        message: "El tipo de rodeo debe ser un valor válido",
+    }),
+    costoRacion: z
+        .number("El costo de la ración es obligatorio")
+        .positive("El costo de la ración debe ser un número positivo"),
+    razas: z
+        .array(
+            z.object({
+                raza: z.enum(Razas, {
+                    message: "La raza del animal debe ser un valor válido",
+                }),
+                cantVacas: z
+                    .number("La cantidad de animales es obligatoria")
+                    .int("La cantidad de animales debe ser un número entero")
+                    .positive("La cantidad de animales debe ser un número entero positivo"),
+            })
+        )
+        .min(1, { message: "Debe existir al menos una raza" }),
+}).superRefine((data, ctx) => {
+    const razas = data.razas.map(r => r.raza);
+    const duplicadas = razas.filter(
+        (raza, index) => razas.indexOf(raza) !== index
+    );
+
+    if (duplicadas.length > 0) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["razas"],
+            message: `No se pueden repetir las razas. Duplicadas: ${[
+                ...new Set(duplicadas),
+            ].join(", ")}`,
+        });
+    }
+});
 
 export const AnimalSchema = z.object({
     codigo: z.string().optional(),
@@ -58,14 +86,14 @@ export const AnimalSchema = z.object({
 }, {
     message: "Debe proporcionar al menos un código o un nombre para el animal",
 })
-.refine((data) => {
-    if (data.categoria === "ORDENE" && data.estado !== "SANO") {
-        return false;
-    }
-    return true;
-}, {
-    message: "Un animal de categoría ordeñe solo puede tener estado sano",
-});
+    .refine((data) => {
+        if (data.categoria === "ORDENE" && data.estado !== "SANO") {
+            return false;
+        }
+        return true;
+    }, {
+        message: "Un animal de categoría ordeñe solo puede tener estado sano",
+    });
 
 const questionnaireBaseSchema = z.object({
     idEstablecimiento: z.string("El ID del establecimiento es obligatorio").uuid("ID de establecimiento no válido"),
