@@ -46,6 +46,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       throw new AppError("Email y contraseña son obligatorios", 400);
     }
 
+    console.log("DATOS DEL USUARIO", correo, contraseña)
+
     const user = await userService.authenticate(correo, contraseña);
 
     const userData = {
