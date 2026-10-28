@@ -3,7 +3,7 @@ import { AppError } from "../utils/AppError";
 import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, EditarLoteIndividualDTO, EditarLoteRodeoDTO, ProduccionAnimalDTO, ProduccionAnimalEditarDTO } from "../schemas/batchSchema"
 import EstablishmentService from "./establishmentsService";
 import { Prisma, TipoSeguimiento } from "@prisma/client";
-import { TamboEngineService } from "./tamboEngineService";
+//import { TamboEngineService } from "./tamboEngineService";
 import { obtenerTurno } from "../utils";
 
 
@@ -288,9 +288,9 @@ export class LoteService {
         });
 
         // Disparar en background el análisis de IA si se creó como completado
-        if (lote.estado) {
+       /* if (lote.estado) {
             TamboEngineService.analizarSiCorresponde(idEstablecimiento, lote.idLote);
-        }
+        }*/
 
         return lote;
     }
@@ -308,13 +308,14 @@ export class LoteService {
             throw new AppError("No se pueden eliminar lotes que ya están completados", 409);
         }
 
-        const alertas = await prisma.alerta.findMany({
+        // NECESITA REVISION --------------------
+        /*const alertas = await prisma.alerta.findMany({
             where: { idLote, idEstablecimiento: idEstablecimiento }
         })
 
         if (alertas && alertas.length > 0) {
             throw new AppError("No se pueden eliminar lotes que tienen alertas asociadas. Elimine primero las alertas.", 409);
-        }
+        }*/
 
         await prisma.loteProduccion.delete({
             where: { idLote, idEstablecimiento: idEstablecimiento }
@@ -353,7 +354,8 @@ export class LoteService {
         let alertas = null;
         let alertasError = null;
 
-        try {
+        //NECESITA REVISION -----------
+        /*try {
             alertas = await TamboEngineService.getAlertasPorLote(
                 lote.establecimiento.idEstablecimiento,
                 idLote
@@ -362,7 +364,7 @@ export class LoteService {
             console.error("Error obteniendo alertas:", error);
             alertasError = "No se pudieron obtener las alertas";
         }
-
+*/
 
         return {
             lote: {
@@ -654,8 +656,8 @@ export class LoteService {
             data: { estado: true },
         });
 
-        // Disparar en background el análisis de IA al completarse
-        await TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
+        // Disparar en background el análisis de IA al completarse (REVISAR)
+        /*await TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);*/
 
         return loteActualizado;
     }

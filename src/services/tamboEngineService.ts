@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+/*import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
 import { analyze } from "../module/tambo/tambo.service";
 import { tamboRepository } from "../module/tambo/tambo.repository";
@@ -218,3 +218,4 @@ export class TamboEngineService {
         }
     }
 }
+*/
