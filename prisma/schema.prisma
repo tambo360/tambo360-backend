@@ -174,12 +174,6 @@ enum CausaMovimientoAnimal {
   ALTA_MEDICA
 }
 
-enum NivelAlerta {
-  bajo
-  medio
-  alto
-}
-
 enum Razas {
   HOLANDO_ARGENTINO
   JERSEY
@@ -251,6 +245,10 @@ model Establecimiento {
   invitaciones                        InvitacionEstablecimiento[]
   loteProducciones                    LoteProduccion[]
   configuracions                      configuracion[]
+  aiAnalysisEvents                    AiAnalysisEvent[]
+  alertaIAs                           AlertaIA[]
+  promedioProductivos                 PromedioProductivo[]
+  resumenMensuals                     ResumenMensual[]
 }
 
 model Establecimiento_OrganizacionUsuario {
@@ -443,26 +441,28 @@ model ProduccionRodeo {
 }
 
 model LoteProduccion {
-  idLote                   String             @id @default(uuid(7))
+  idLote                   String                   @id @default(uuid(7))
   numeroLote               Int
-  fechaProduccion          DateTime           @default(now())
+  fechaProduccion          DateTime                 @default(now())
   idProducto               String
   cantidad                 Decimal
   unidad                   Unidad
   idEstablecimiento        String
-  estado                   Boolean            @default(false)
+  estado                   Boolean                  @default(false)
   destino                  TipoDestino
   cantBajadas              Int
-  tempTanque               Decimal?           @db.Decimal(13, 2)
+  tempTanque               Decimal?                 @db.Decimal(13, 2)
   cantAnimales             Int
   costosDirectos           CostosDirecto[]
-  establecimiento          Establecimiento    @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
-  producto                 Producto           @relation(fields: [idProducto], references: [idProducto])
+  establecimiento          Establecimiento          @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  producto                 Producto                 @relation(fields: [idProducto], references: [idProducto])
   mermas                   Merma[]
   produccionesIndividuales ProduccionAnimal[]
   produccionRodeos         ProduccionRodeo[]
-  rodeo                    Rodeo?             @relation(fields: [rodeoIdRodeo], references: [idRodeo])
+  rodeo                    Rodeo?                   @relation(fields: [rodeoIdRodeo], references: [idRodeo])
   rodeoIdRodeo             String?
+  aiAnalysisEvents         AiAnalysisEvent[]
+  promedioProductivoLotes  PromedioProductivoLote[]
 
   @@unique([idEstablecimiento, numeroLote])
 }
@@ -514,28 +514,217 @@ model VerificarToken {
   @@index([idUsuario, tipo])
 }
 
-model Alerta {
-  id                String      @id @default(uuid(7))
-  idEstablecimiento String
-  idLote            String
-  producto          String
-  categoria         Categoria
-  nivel             NivelAlerta
-  descripcion       String
-  creadoEn          DateTime    @default(now())
-  visto             Boolean     @default(false)
+// -----------------------------------MODELOS DE IA --------------------------------------------------------------------------------
 
+enum TipoEventoIA {
+  LOT_CLOSED
+  MONTH_CLOSED
+}
+
+enum EstadoEventoIA {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum EstadoEjecucionIA {
+  COMPLETED
+  FAILED
+}
+
+enum TipoAlertaIA {
+  DESVIO_PRODUCTIVO
+  RESUMEN_MENSUAL
+}
+
+enum NivelAlerta {
+  INFORMATIVA
+  RELEVANTE
+  CRITICA
+}
+
+enum AmbitoPromedioProductivo {
+  RODEO_ALTO
+  RODEO_BAJO
+  RODEO_UNICO
+  INDIVIDUAL
+}
+
+enum CategoriaCostoResumen {
+  ALIMENTACION
+  SANIDAD
+  MANO_OBRA
+  ENERGIA
+  MANTENIMIENTO
+  LOGISTICA
+  SERVICIOS
+  VETERINARIO
+  INMUEBLE
+  OTRO
+}
+
+model AiAnalysisEvent {
+  idEventoIA        String         @id @default(uuid(7))
+  idEstablecimiento String
+  tipo              TipoEventoIA
+  estado            EstadoEventoIA @default(PENDING)
+
+  idLote           String?
+  idResumenMensual String?
+
+  claveIdempotencia String @unique
+  intentos          Int    @default(0)
+
+  iniciadoEn   DateTime?
+  completadoEn DateTime?
+  ultimoError  String?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+
+  lote LoteProduccion? @relation(fields: [idLote], references: [idLote])
+
+  resumenMensual ResumenMensual? @relation(fields: [idResumenMensual], references: [idResumenMensual])
+
+  ejecuciones AiAnalysisExecution[]
+  alertas     AlertaIA[]
+
+  @@index([estado, creadoEn])
   @@index([idEstablecimiento, creadoEn])
 }
 
-model PromedioCategoria {
-  id                  String    @id @default(uuid(7))
-  idEstablecimiento   String
-  categoria           Categoria
-  produccionAcumulada Float     @default(0)
-  mermaAcumulada      Float     @default(0)
-  pctMermaPromedio    Float     @default(0)
-  cantidadLotes       Int       @default(0)
+model AiAnalysisExecution {
+  idEjecucionIA String            @id @default(uuid(7))
+  idEventoIA    String
+  numeroIntento Int
+  estado        EstadoEjecucionIA
 
-  @@unique([idEstablecimiento, categoria])
+  inicioEn   DateTime  @default(now())
+  finEn      DateTime?
+  duracionMs Int?
+
+  usoLLM        Boolean @default(false)
+  proveedor     String?
+  modelo        String?
+  tokensEntrada Int?
+  tokensSalida  Int?
+
+  codigoError  String?
+  mensajeError String?
+
+  evento AiAnalysisEvent @relation(fields: [idEventoIA], references: [idEventoIA], onDelete: Cascade)
+
+  @@unique([idEventoIA, numeroIntento])
+  @@index([idEventoIA, inicioEn])
+}
+
+model AlertaIA {
+  idAlertaIA        String @id @default(uuid(7))
+  idEstablecimiento String
+  idEventoIA        String
+
+  tipo          TipoAlertaIA
+  nivel         NivelAlerta
+  titulo        String
+  descripcion   String
+  recomendacion String?
+  datosContexto Json?
+
+  visto    Boolean  @default(false)
+  creadoEn DateTime @default(now())
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+
+  evento AiAnalysisEvent @relation(fields: [idEventoIA], references: [idEventoIA])
+
+  @@index([idEstablecimiento, creadoEn])
+  @@index([idEstablecimiento, visto, creadoEn])
+  @@index([idEventoIA])
+}
+
+model PromedioProductivo {
+  idPromedioProductivo String                   @id @default(uuid(7))
+  idEstablecimiento    String
+  ambito               AmbitoPromedioProductivo
+
+  promedioLitrosPorAnimal Decimal   @db.Decimal(10, 2)
+  cantidadLotes           Int       @default(0)
+  periodoDesde            DateTime?
+  periodoHasta            DateTime?
+  actualizadoEn           DateTime  @updatedAt
+
+  establecimiento         Establecimiento          @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+  promedioProductivoLotes PromedioProductivoLote[]
+
+  @@unique([idEstablecimiento, ambito])
+}
+
+model PromedioProductivoLote {
+  idPromedioProductivoLote String             @id @default(uuid(7))
+  idPromedioProductivo     String
+  idLote                   String
+  creadoEn                 DateTime           @default(now())
+  promedioProductivo       PromedioProductivo @relation(fields: [idPromedioProductivo], references: [idPromedioProductivo])
+  lote                     LoteProduccion     @relation(fields: [idLote], references: [idLote])
+
+  @@unique([idPromedioProductivo, idLote])
+}
+
+model ResumenMensual {
+  idResumenMensual  String @id @default(uuid(7))
+  idEstablecimiento String
+
+  anio       Int
+  mes        Int
+  fechaDesde DateTime
+  fechaHasta DateTime
+
+  cantidadLotes Int @default(0)
+
+  litrosProduccion Decimal  @default(0) @db.Decimal(14, 2)
+  litrosMermas     Decimal  @default(0) @db.Decimal(14, 2)
+  litrosTotales    Decimal  @default(0) @db.Decimal(14, 2)
+  litrosLibres     Decimal? @db.Decimal(14, 2)
+
+  costosTotales Decimal  @default(0) @db.Decimal(14, 2)
+  costoPorLitro Decimal? @db.Decimal(14, 4)
+
+  calculadoEn DateTime @default(now())
+
+  establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
+
+  costosPorCategoria ResumenMensualCostoCategoria[]
+  eventosIA          AiAnalysisEvent[]
+
+  @@unique([idEstablecimiento, anio, mes])
+}
+
+model ResumenMensualCostoCategoria {
+  idResumenCostoCategoria String @id @default(uuid(7))
+  idResumenMensual        String
+
+  categoria CategoriaCostoResumen
+  monto     Decimal               @default(0) @db.Decimal(14, 2)
+
+  resumenMensual ResumenMensual @relation(fields: [idResumenMensual], references: [idResumenMensual], onDelete: Cascade)
+
+  @@unique([idResumenMensual, categoria])
+}
+
+//---------------------------------MODELOS DE SNAPSHOTS EXTERNAS---------------------------------------------------------------------------
+
+model PrecioMercado {
+  idPrecioMercado   String   @id @default(uuid(7))
+  precioLitro       Decimal  @default(0) @db.Decimal(14, 2)
+  precioLitroPrevio Decimal  @default(0) @db.Decimal(14, 2)
+  anio              Int
+  mes               Int
+  ultimaConsulta    DateTime
+  moneda            Moneda   @default(ARS)
+  fuente            String
+  creadoEn          DateTime @default(now())
+  actualizadoEn     DateTime @updatedAt
 }
