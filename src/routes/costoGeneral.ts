@@ -3,6 +3,7 @@ import { authenticate } from "../middleware/authMiddleware";
 import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { crear, listar, getResumen, actualizar, eliminar } from "../controllers/costoGeneralController";
 import { RolEstablecimiento } from "@prisma/client";
+import { tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = Router();
 
@@ -11,6 +12,13 @@ router.use(orgContext);
 router.use(requireOrgAccess);
 router.use(estContext);
 router.use(establecimientoRequireOrgAccess);
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
 
 router.post("/", requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN] }), crear);
 router.get("/resumen", requireRoles({ est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN] }), getResumen);

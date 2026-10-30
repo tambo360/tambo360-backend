@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware";
-import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote, completarLote} from "../controllers/batchController";
-import { aiLimiter } from "../middleware/RateLimit";
+import { crearLote, listarLotes, eliminarLote, obtenerLote, editarLote, completarLote } from "../controllers/batchController";
+import { aiLimiter, tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento } from "@prisma/client";
 
@@ -13,6 +13,12 @@ router.use(orgContext);
 router.use(requireOrgAccess);
 router.use(estContext);
 router.use(establecimientoRequireOrgAccess);
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
 
 router.post('/', crearLote);
 

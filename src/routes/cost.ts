@@ -3,6 +3,7 @@ import { authenticate } from "../middleware/authMiddleware";
 import { eliminarCosto, actualizarCosto, crearCosto, obtenerCostosPorLote, obtenerCostoPorId } from "../controllers/costController";
 import { RolEstablecimiento } from "@prisma/client";
 import { orgContext, estContext, requireOrgAccess, establecimientoRequireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
+import { tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = Router();
 
@@ -17,6 +18,13 @@ router.post("/registrar", authenticate, crearCosto);
 router.get("/costos-lote/:loteId", authenticate, obtenerCostosPorLote);
 router.get("/detalle/:id", authenticate, obtenerCostoPorId);
 */
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
 
 router.patch(
     "/:id",

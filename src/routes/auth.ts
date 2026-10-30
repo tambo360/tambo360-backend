@@ -1,7 +1,7 @@
 import express from "express";
 import { register, login, verifyEmail, resendVerificationEmail, forgotPassword, verifyResetPasswordToken, resetPassword, getMe, logout } from "../controllers/authController";
 import { authenticate } from "../middleware/authMiddleware"; //agregue esto para el middleware de autenticacion
-import { authLimiter } from "../middleware/RateLimit";
+import { authLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = express.Router();
 
@@ -15,6 +15,6 @@ router.post("/restablecer-contrasena", authLimiter, resetPassword);
 router.post("/logout", authenticate, logout);
 
 //router.get("/me", getMe);
-router.get("/me", authenticate, getMe); //para proteger la ruta para que no devuelva siempre error 401
+router.get("/me",tamboGetLimiter, authenticate, getMe); //para proteger la ruta para que no devuelva siempre error 401
 
 export default router;

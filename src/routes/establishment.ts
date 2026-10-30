@@ -3,12 +3,20 @@ import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstable
 import { authenticate } from "../middleware/authMiddleware";
 import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext, requireRoles } from "../middleware/orgMiddleware";
 import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
+import { tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = express.Router();
 
 router.use(authenticate);
 router.use(orgContext);
 router.use(requireOrgAccess);
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
 
 //router.post('/', registrarEstablecimiento); BLOQUEADO (SE CREA AUTOMATICAMENTE AL CREAR UNA ORGANIZACION)
 router.get('/:idEst', getEstablishmentById);

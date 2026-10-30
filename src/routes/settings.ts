@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware"; //agregue esto para el middleware de autenticacion
-import { authLimiter } from "../middleware/RateLimit";
+import { authLimiter, tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext, requireRoles } from "../middleware/orgMiddleware";
 import SettingController from "../controllers/settingController";
 
@@ -11,6 +11,13 @@ router.use(orgContext);
 router.use(requireOrgAccess);
 router.use(establecimientoRequireOrgAccess);
 router.use(estContext);
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
 
 router.patch("/establecimiento", SettingController.actualizarEstablecimiento);
 router.post("/animal", SettingController.crearAnimal);
