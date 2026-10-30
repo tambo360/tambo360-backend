@@ -22,27 +22,29 @@ export const aiLimiter = rateLimit({
 
 
 
-// 100 requests cada 5 minutos por usuario para operaciones del tambo
+
+// 100 requests cada 5 minutos para operaciones de escritura (POST, PUT, DELETE)
 export const tamboCrudLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutos
-  max: 100, // Máximo 100 requests en esa ventana de tiempo
-  keyGenerator: (req: any) => req.user.id, // Identifica al operario por su ID de usuario
-  standardHeaders: true, // Devuelve info del rate limit en los headers RateLimit-*
-  legacyHeaders: false, // Desactiva los headers viejos X-RateLimit-*
+  max: 100,
+  keyGenerator: (req: any) => req.user?.id || req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { forwardedHeader: false, xForwardedForHeader: false },
   message: {
     error: "TAMBO_CRUD_LIMIT_EXCEEDED",
     message: "Demasiadas operaciones seguidas. Esperá unos minutos e intentá de nuevo.",
   },
 });
 
-
-// 500 requests cada 5 minutos por usuario para consultas (GET)
+// 500 requests cada 5 minutos para consultas (GET)
 export const tamboGetLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutos
-  max: 500, // Límite muy alto solo para frenar bucles infinitos en el front
-  keyGenerator: (req: any) => req.user.id,
+  max: 500,
+  keyGenerator: (req: any) => req.user?.id || req.ip,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { forwardedHeader: false, xForwardedForHeader: false },
   message: {
     error: "TAMBO_GET_LIMIT_EXCEEDED",
     message: "Hubo un problema de sincronización. Por favor, reiniciá la app.",
