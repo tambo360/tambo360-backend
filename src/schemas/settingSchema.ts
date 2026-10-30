@@ -31,7 +31,7 @@ const transferenciaRodeoSchema = transferenciaBaseSchema.extend({
         raza: z.uuid("Id de raza inválido"),
         cantVacas: z.number("La cantidad de animales es obligatoria").int("La cantidad de animales debe ser un número entero").positive("La cantidad de animales debe ser un número entero positivo")
     })
-}).refine((data) => data.origen == data.destino, {
+}).refine((data) => data.origen !== data.destino, {
     message: "El origen y destino no pueden ser iguales",
 })
 
