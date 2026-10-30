@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { isValidEnum } from "../utils/enumValidation";
 import { MetricaObj } from "../types";
 import { DashboardService } from "../services/dashboardService";
+import { PrecioMercadoService } from "../services/precioMercadoService";
 
 export class DashboardController {
     static async costosPorCategoria(req: Request, res: Response, next: NextFunction) {
@@ -155,6 +156,31 @@ static async graficoCostosGenerales(
     }
 }
 
+
+// =====================================================
+// GET /dashboard/precio-mercado
+// Obtiene el precio nacional publicado por el Ministerio.
+// No modifica la configuración del establecimiento.
+// =====================================================
+static async precioMercado(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    try {
+        const respuesta =
+            await PrecioMercadoService.obtenerPrecioMercado();
+
+        return res.status(200).json(
+            ApiResponse.success(
+                respuesta,
+                "Precio nacional de mercado obtenido correctamente"
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
+}
 
 }
 
