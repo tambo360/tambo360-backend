@@ -425,7 +425,7 @@ model ProduccionAnimal {
   estado             EstadoSanitarioAnimal
   litros             Decimal
   animal             Animal                @relation(fields: [idAnimal], references: [idAnimal])
-  lote               LoteProduccion        @relation(fields: [idLote], references: [idLote])
+  lote               LoteProduccion        @relation(fields: [idLote], references: [idLote], onDelete: Cascade)
 }
 
 model ProduccionRodeo {
@@ -437,7 +437,7 @@ model ProduccionRodeo {
   razaNombre        Razas
   cantVacas         Int
   rodeo             Rodeo          @relation(fields: [idRodeo], references: [idRodeo])
-  lote              LoteProduccion @relation(fields: [idLote], references: [idLote])
+  lote              LoteProduccion @relation(fields: [idLote], references: [idLote], onDelete: Cascade)
 }
 
 model LoteProduccion {
