@@ -218,11 +218,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 // Funcion para obtener los datos del usuario autenticado
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
-      throw new AppError("No autenticado", 401);
-    }
-
-    if (!req.user.id) {
+    if (!req.user?.id) {
       throw new AppError("No autenticado", 401);
     }
 
