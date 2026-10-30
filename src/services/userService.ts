@@ -5,6 +5,7 @@ import { RegisterData } from "../schemas/authSchema";
 import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken, hashToken } from "../utils/token";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./mailService";
+import { AppError } from "../utils/AppError";
 
 class UserService {
   private users: User[] = [];
@@ -14,24 +15,28 @@ class UserService {
 
 
   async findByEmail(email: Usuario["correo"]) {
-    return prisma.usuario.findUnique({ where: { correo: email }, include: { organizaciones: {
-      select: {
-        rol: true,
-        organizacion: {
+    return prisma.usuario.findUnique({
+      where: { correo: email }, include: {
+        organizaciones: {
           select: {
-            nombre: true,
-            idOrganizacion: true,
-            establecimientos: {
+            rol: true,
+            organizacion: {
               select: {
-                idEstablecimiento: true,
                 nombre: true,
-                cuestionarioCompletado: true
+                idOrganizacion: true,
+                establecimientos: {
+                  select: {
+                    idEstablecimiento: true,
+                    nombre: true,
+                    cuestionarioCompletado: true
+                  }
+                }
               }
-            }
+            },
           }
-        },
+        }
       }
-    } } });
+    });
   }
 
   async getAllUsers() {
@@ -210,16 +215,17 @@ class UserService {
   async authenticate(email: string, password: string) {
     const user = await this.findByEmail(email);
     if (!user) {
-      throw new Error('Usuario no encontrado');
+      throw new AppError('Usuario no encontrado', 404);
     }
 
     const isPasswordValid = await comparePassword(password, user.contrasena);
+
     if (!isPasswordValid) {
-      throw new Error('Credenciales inválidas');
+      throw new AppError('Credenciales inválidas', 401);
     }
 
     if (!user.verificado) {
-      throw new Error('El email no ha sido verificado');
+      throw new AppError('El email no ha sido verificado', 403);
     }
 
     return user;
