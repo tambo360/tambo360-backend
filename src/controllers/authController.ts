@@ -223,6 +223,11 @@ export const getMe = async (req: Request, res: Response, next: NextFunction): Pr
     }
 
     const { id } = req.user;
+    
+    if (!id) {
+      throw new AppError("No autenticado", 401);
+    }
+
     const user = await userService.findById(id);
 
     if (!user) {
