@@ -1,19 +1,24 @@
 # Documentación de Endpoints - Dashboard
 
 ## Descripción
-Esta API expone métricas de dashboard para un establecimiento: costos directos por categoría, resumen del mes actual con variaciones, gráfico de producción, litros libres y gráfico de costos generales.
+
+Esta API expone métricas e información para el dashboard de un establecimiento: costos directos por categoría, resumen del mes actual con variaciones, gráfico de producción, litros libres y gráfico de costos generales.
+
+Además, permite consultar el precio nacional de mercado de la leche por litro, obtenido desde la fuente oficial del Ministerio de Agricultura, Ganadería y Pesca (MAGyP) y almacenado en el sistema para su posterior consulta.
 
 ## Autenticación y Autorización
 
 Todos los endpoints del router pasan por los siguientes middlewares:
 
-- Autenticación JWT (`authenticate`)
-- Contexto de organización (`orgContext`)
-- Acceso a la organización (`requireOrgAccess`)
-- Contexto de establecimiento (`estContext`)
-- Acceso al establecimiento (`establecimientoRequireOrgAccess`)
+- Autenticación JWT (`authenticate`).
+- Contexto de organización (`orgContext`).
+- Acceso a la organización (`requireOrgAccess`).
+- Contexto de establecimiento (`estContext`).
+- Acceso al establecimiento (`establecimientoRequireOrgAccess`).
 
 Además, **`GET /dashboard/costos` exige rol de establecimiento `ADMIN` o `OWNER`** (`requireRoles`). Los demás endpoints no tienen restricción de rol adicional: basta con tener acceso al establecimiento.
+
+El endpoint `GET /dashboard/precio-mercado` utiliza los mismos middlewares generales del router. Aunque consulta un precio de alcance nacional, su acceso se encuentra sujeto a la autenticación y autorización correspondientes.
 
 ## Headers Requeridos
 
@@ -52,6 +57,7 @@ Todas las respuestas exitosas siguen la estructura:
 | GET | `/dashboard/grafico` | Serie mensual de producción por producto y métrica | Acceso al establecimiento |
 | GET | `/dashboard/litros-libres` | Litros libres del mes actual | Acceso al establecimiento |
 | GET | `/dashboard/costos-generales` | Gráfico de costos generales por período | Acceso al establecimiento |
+| GET | `/dashboard/precio-mercado` | Precio nacional de mercado de la leche por litro | Acceso al establecimiento |
 
 ---
 
@@ -64,6 +70,7 @@ Todas las respuestas exitosas siguen la estructura:
 **Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`, `requireRoles({est: [RolEstablecimiento.ADMIN, RolEstablecimiento.OWNER]})`
 
 #### Request
+
 No requiere body ni query params.
 
 #### Ejemplo de Request
@@ -115,6 +122,7 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 Devuelve la producción y los costos del mes en curso, y la variación porcentual respecto del mes anterior.
 
 #### Request
+
 No requiere body ni query params.
 
 #### Ejemplo de Request
@@ -240,7 +248,7 @@ Calcula los litros libres del mes actual a partir de la producción de leche en 
 
 **Fórmula:**
 
-```
+```text
 litrosLibres = ((litrosProducidos × precioLitro) − costosGenerales) / precioLitro
              = litrosProducidos − (costosGenerales / precioLitro)
 ```
@@ -248,6 +256,7 @@ litrosLibres = ((litrosProducidos × precioLitro) − costosGenerales) / precioL
 Es decir, a la producción del mes se le restan los litros que hacen falta vender para cubrir los costos generales. El resultado no se redondea y puede ser **negativo** si los costos generales superan el valor de la producción.
 
 #### Request
+
 No requiere body ni query params.
 
 #### Ejemplo de Request
@@ -391,11 +400,83 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
 
 ---
 
+### 6. Precio Nacional de Mercado
+
+**Método:** `GET`
+
+**Ruta:** `/dashboard/precio-mercado`
+
+**Middleware:** `authenticate`, `orgContext`, `requireOrgAccess`, `estContext`, `establecimientoRequireOrgAccess`
+
+Obtiene el último precio nacional de mercado de la leche por litro, expresado en pesos argentinos (ARS).
+
+El precio se obtiene desde la fuente oficial del Ministerio de Agricultura, Ganadería y Pesca (MAGyP) y se almacena en la base de datos para que pueda ser consultado desde el dashboard sin realizar una consulta externa en cada solicitud.
+
+La actualización automática se realiza mediante una tarea programada (cron) el día 1 de cada mes a las 06:00, utilizando la zona horaria `America/Argentina/Buenos_Aires`.
+
+**Importante:** este precio es de alcance nacional y es independiente del precio por litro configurado en cada establecimiento. No modifica la configuración del establecimiento ni interviene en los cálculos del endpoint `/dashboard/litros-libres`.
+
+#### Request
+
+No requiere body ni query params.
+
+Sí requiere los headers generales del router:
+
+```bash
+GET /dashboard/precio-mercado
+Authorization: Bearer jwt_token_here
+x-organizacion-id: 550e8400-e29b-41d4-a716-446655440000
+x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
+```
+
+#### Response (200 - OK)
+
+```json
+{
+  "statusCode": 200,
+  "success": true,
+  "message": "Precio nacional de mercado obtenido correctamente",
+  "data": {
+    "precioLitro": 500.16,
+    "mes": 9,
+    "anio": 2026,
+    "ultimaConsulta": "2026-10-01T09:00:00.000Z"
+  }
+}
+```
+
+Los valores del ejemplo son ilustrativos.
+
+#### Campos de respuesta
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `precioLitro` | number | Precio nacional de mercado por litro, expresado en ARS |
+| `mes` | number | Mes correspondiente al precio publicado (1 a 12) |
+| `anio` | number | Año correspondiente al precio publicado |
+| `ultimaConsulta` | string (ISO 8601) | Fecha y hora de la última consulta exitosa a la fuente oficial |
+
+#### Posibles Errores
+
+| Código | Mensaje |
+|--------|---------|
+| 401 | Usuario no autenticado |
+| 403 | Permisos insuficientes |
+| 503 | No hay un precio nacional de mercado válido disponible |
+
+Si la consulta a la fuente oficial falla durante la actualización automática, se conserva el último precio válido almacenado. Si todavía no existe un precio válido, el endpoint devuelve un error `503`.
+
+---
+
 ## Notas
 
-- `/dashboard/costos` agrupa los costos directos de los lotes del mes actual por `tipoCosto` y `moneda`; las fechas se calculan automáticamente para el mes en curso
-- `/dashboard/mes-actual` y `/dashboard/litros-libres` trabajan sobre el mes calendario actual
-- `/dashboard/litros-libres` solo suma lotes de la categoría `leches` cuya unidad es litros; los costos generales se toman de todo el mes sin distinguir categoría
-- `/dashboard/grafico` devuelve 7 puntos mensuales (6 meses anteriores + el mes actual) aunque el mensaje de respuesta diga "últimos 6 meses"
-- `/dashboard/costos-generales` con `6meses` excluye el mes actual; para ver el mes en curso usar `1mes`
-- Todos los datos se filtran por el establecimiento indicado en `x-establecimiento-id`
+- `/dashboard/costos` agrupa los costos directos de los lotes del mes actual por `tipoCosto` y `moneda`; las fechas se calculan automáticamente para el mes en curso.
+- `/dashboard/mes-actual` y `/dashboard/litros-libres` trabajan sobre el mes calendario actual.
+- `/dashboard/litros-libres` solo suma lotes de la categoría `leches` cuya unidad es litros; los costos generales se toman de todo el mes sin distinguir categoría.
+- `/dashboard/grafico` devuelve 7 puntos mensuales (6 meses anteriores + el mes actual) aunque el mensaje de respuesta diga "últimos 6 meses".
+- `/dashboard/costos-generales` con `6meses` excluye el mes actual; para ver el mes en curso usar `1mes`.
+- `/dashboard/precio-mercado` devuelve el último precio nacional de mercado de la leche por litro almacenado en la base de datos.
+- El precio nacional de mercado se actualiza automáticamente el día 1 de cada mes a las 06:00 mediante una tarea programada.
+- Si falla la consulta a la fuente oficial durante la actualización, se conserva el último precio válido almacenado.
+- El precio nacional de mercado es independiente del precio por litro configurado en cada establecimiento y no modifica los cálculos de `/dashboard/litros-libres`.
+- Todos los datos específicos de un establecimiento se filtran por el establecimiento indicado en `x-establecimiento-id`.
