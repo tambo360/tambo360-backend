@@ -102,7 +102,11 @@ export const EstadoSanitarioAnimalMetaData: Record<EstadoSanitarioAnimal, { labe
     [EstadoSanitarioAnimal.SANO]: {
         label: "Sano",
         value: EstadoSanitarioAnimal.SANO
-    }
+    },
+    [EstadoSanitarioAnimal.TRATAMIENTO]: {
+        label: "En Tratamiento",
+        value: EstadoSanitarioAnimal.TRATAMIENTO
+    },
 }
 
 
