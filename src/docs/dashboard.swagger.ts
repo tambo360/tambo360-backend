@@ -434,3 +434,60 @@
  *       403:
  *         description: Usuario sin permisos para consultar el establecimiento
  */
+
+/**
+ * @swagger
+ * /dashboard/precio-mercado:
+ *   get:
+ *     summary: Obtener el precio nacional de mercado de la leche
+ *     description: >
+ *       Devuelve el último precio nacional por litro publicado por el
+ *       Ministerio de Agricultura, Ganadería y Pesca (MAGyP) y almacenado
+ *       en el sistema. El precio se actualiza automáticamente mediante
+ *       una tarea CRON mensual. Este endpoint no modifica el precio
+ *       configurado por cada establecimiento.
+ *     tags: [Dashboard]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Precio nacional de mercado obtenido correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Precio nacional de mercado obtenido correctamente"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     precioLitro:
+ *                       type: number
+ *                       description: Último precio nacional publicado por litro, expresado en pesos argentinos.
+ *                       example: 500.16
+ *                     mes:
+ *                       type: integer
+ *                       description: Mes correspondiente al precio publicado.
+ *                       example: 9
+ *                     anio:
+ *                       type: integer
+ *                       description: Año correspondiente al precio publicado.
+ *                       example: 2026
+ *                     ultimaConsulta:
+ *                       type: string
+ *                       format: date-time
+ *                       description: Fecha y hora de la última consulta exitosa a la fuente oficial.
+ *                       example: "2026-10-01T09:00:00.000Z"
+ *       401:
+ *         description: Usuario no autenticado
+ *       503:
+ *         description: El precio nacional de mercado todavía no está disponible.
+ */
