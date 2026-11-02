@@ -50,6 +50,22 @@ async function obtenerProductoLeche() {
     });
 }
 
+async function obtenerProductoQueso() {
+    const existente = await prisma.producto.findFirst({
+        where: { nombreNormalizado: "queso crema", idOrganizacion: null },
+    });
+    if (existente) return existente;
+
+    return prisma.producto.create({
+        data: {
+            nombre: "Queso Crema",
+            categoria: Categoria.quesos,
+            nombreNormalizado: "queso crema",
+            esSistema: true,
+        },
+    });
+}
+
 // Borra el historial del establecimiento en orden de dependencias.
 async function limpiarHistorial(idEstablecimiento: string) {
     const lotes = await prisma.loteProduccion.findMany({
@@ -74,6 +90,7 @@ async function limpiarHistorial(idEstablecimiento: string) {
 
 async function main() {
     const producto = await obtenerProductoLeche();
+    const productoQueso = await obtenerProductoQueso();
 
     // 1. Usuario
     const usuario = await prisma.usuario.upsert({
@@ -154,6 +171,12 @@ async function main() {
         await limpiarHistorial(establecimiento.idEstablecimiento);
     }
 
+    // El establecimiento también produce queso (se agrega si todavía no estaba habilitado)
+    await prisma.establecimientoProducto.createMany({
+        data: [{ idEstablecimiento: establecimiento.idEstablecimiento, idProducto: productoQueso.idProducto }],
+        skipDuplicates: true,
+    });
+
     const configuracion = establecimiento.configuracions[0];
     const rodeo = configuracion.rodeos[0];
     const razas = await prisma.raza.findMany({ where: { idRodeo: rodeo.idRodeo } });
@@ -161,21 +184,23 @@ async function main() {
     // 4. Historial
     const { lotes, costosGenerales } = generarHistorial({ meses: MESES, cantVacas: CANT_VACAS });
 
-    const creados: { idLote: string; cantidad: number; estado: boolean }[] = [];
+    const creados: { idLote: string; cantidad: number; estado: boolean; esLeche: boolean }[] = [];
     for (const lote of lotes) {
+        const esLeche = lote.producto === "LECHE";
         const creado = await prisma.loteProduccion.create({
             data: {
                 numeroLote: lote.numeroLote,
                 fechaProduccion: lote.fechaProduccion,
-                idProducto: producto.idProducto,
+                idProducto: esLeche ? producto.idProducto : productoQueso.idProducto,
                 idEstablecimiento: establecimiento.idEstablecimiento,
                 cantidad: lote.cantidad,
-                unidad: Unidad.litros,
+                unidad: esLeche ? Unidad.litros : Unidad.kg,
                 destino: lote.destino as TipoDestino,
                 tempTanque: lote.tempTanque,
                 cantBajadas: lote.cantBajadas,
                 cantAnimales: rodeo.cantVacas,
-                rodeoIdRodeo: rodeo.idRodeo,
+                // El queso sale de la fábrica, no de un rodeo en particular
+                rodeoIdRodeo: esLeche ? rodeo.idRodeo : null,
                 estado: lote.estado,
                 mermas: {
                     create: lote.mermas.map((m) => ({
@@ -191,18 +216,22 @@ async function main() {
                         fechaCreacion: lote.fechaProduccion,
                     })),
                 },
-                produccionRodeos: {
-                    create: razas.map((r) => ({
-                        idRodeo: rodeo.idRodeo,
-                        idRaza: r.idRaza,
-                        razaNombre: r.nombre,
-                        cantVacas: r.cantVacas,
-                    })),
-                },
+                ...(esLeche
+                    ? {
+                          produccionRodeos: {
+                              create: razas.map((r) => ({
+                                  idRodeo: rodeo.idRodeo,
+                                  idRaza: r.idRaza,
+                                  razaNombre: r.nombre,
+                                  cantVacas: r.cantVacas,
+                              })),
+                          },
+                      }
+                    : {}),
             },
             select: { idLote: true, cantidad: true, estado: true },
         });
-        creados.push({ idLote: creado.idLote, cantidad: Number(creado.cantidad), estado: creado.estado });
+        creados.push({ idLote: creado.idLote, cantidad: Number(creado.cantidad), estado: creado.estado, esLeche });
     }
 
     await prisma.costoGeneral.createMany({
@@ -221,11 +250,15 @@ async function main() {
         data: { ultimoNumeroLote: lotes.length },
     });
 
-    // 5. Referencia productiva: promedio de los últimos 30 lotes completados
-    const completados = creados.filter((l) => l.estado).slice(-30);
+    // 5. Referencia productiva: promedio de los últimos 30 lotes de leche completados
+    // (los lotes de queso están en kilos y no entran en el promedio de litros por animal)
+    const completados = creados.filter((l) => l.estado && l.esLeche).slice(-30);
     if (completados.length > 0) {
         const promedio = completados.reduce((acc, l) => acc + l.cantidad / rodeo.cantVacas, 0) / completados.length;
-        const fechas = lotes.filter((l) => l.estado).slice(-30).map((l) => l.fechaProduccion.getTime());
+        const fechas = lotes
+            .filter((l) => l.estado && l.producto === "LECHE")
+            .slice(-30)
+            .map((l) => l.fechaProduccion.getTime());
 
         const referencia = await prisma.promedioProductivo.create({
             data: {
@@ -249,7 +282,9 @@ async function main() {
     console.log(`  correo:        ${EMAIL}`);
     console.log(`  contraseña:    ${PASSWORD}`);
     console.log(`  establecimiento: ${NOMBRE_ESTABLECIMIENTO}`);
-    console.log(`  lotes:         ${lotes.length} (el último queda pendiente para completarlo desde la app)`);
+    console.log(
+        `  lotes:         ${lotes.length} (${creados.filter((l) => l.esLeche).length} de leche y ${creados.filter((l) => !l.esLeche).length} de queso; el último queda pendiente para completarlo desde la app)`,
+    );
     console.log(`  costos generales: ${costosGenerales.length}`);
 }
 
