@@ -139,6 +139,7 @@ enum EstadoSanitarioAnimal {
   PROBLEMA_PODAL
   PROBLEMA_UTERINO
   ENFERMEDAD_GENERAL
+  TRATAMIENTO
 }
 
 enum DestinoProduccion {
@@ -584,6 +585,11 @@ model AiAnalysisEvent {
   creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
 
+  intentosMaximos  Int       @default(5)
+  proximoIntentoEn DateTime?
+  bloqueadoHasta   DateTime?
+  tokenBloqueo     String?
+
   establecimiento Establecimiento @relation(fields: [idEstablecimiento], references: [idEstablecimiento])
 
   lote LoteProduccion? @relation(fields: [idLote], references: [idLote])
@@ -595,6 +601,8 @@ model AiAnalysisEvent {
 
   @@index([estado, creadoEn])
   @@index([idEstablecimiento, creadoEn])
+  @@index([estado, proximoIntentoEn, creadoEn])
+  @@index([estado, bloqueadoHasta])
 }
 
 model AiAnalysisExecution {
