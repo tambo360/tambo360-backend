@@ -80,16 +80,22 @@ describe('generarHistorial', () => {
         expect(costosGenerales.every((c) => c.monto > 0)).toBe(true);
     });
 
-    describe('lotes de queso', () => {
+    it('por defecto solo genera lotes de leche', () => {
+        const { lotes } = generarHistorial({ hoy: HOY });
+        expect(lotes.length).toBeGreaterThan(0);
+        expect(lotes.every((l) => l.producto === 'LECHE')).toBe(true);
+    });
+
+    describe('lotes de queso (opcionales)', () => {
         it('hay lotes de queso en todos los meses completos', () => {
-            const { lotes } = generarHistorial({ hoy: HOY, meses: 6 });
+            const { lotes } = generarHistorial({ hoy: HOY, meses: 6, lotesQuesoPorMes: 4 });
             const quesos = lotes.filter((l) => l.producto === 'QUESO');
             const meses = new Set(quesos.map((l) => `${l.fechaProduccion.getFullYear()}-${l.fechaProduccion.getMonth()}`));
             expect(meses.size).toBeGreaterThanOrEqual(6);
         });
 
         it('van a fábrica de quesos, sin temperatura de tanque, completados y con merma normal', () => {
-            const quesos = generarHistorial({ hoy: HOY }).lotes.filter((l) => l.producto === 'QUESO');
+            const quesos = generarHistorial({ hoy: HOY, lotesQuesoPorMes: 4 }).lotes.filter((l) => l.producto === 'QUESO');
             expect(quesos.length).toBeGreaterThan(0);
             for (const l of quesos) {
                 expect(l.destino).toBe('FABRICA_QUESOS');
@@ -103,7 +109,7 @@ describe('generarHistorial', () => {
         });
 
         it('no cambian los datos de leche ni el último lote pendiente', () => {
-            const con = generarHistorial({ hoy: HOY });
+            const con = generarHistorial({ hoy: HOY, lotesQuesoPorMes: 4 });
             const sin = generarHistorial({ hoy: HOY, lotesQuesoPorMes: 0 });
             const leche = (ls: typeof con.lotes) =>
                 ls.filter((l) => l.producto === 'LECHE').map(({ numeroLote, ...resto }) => resto);

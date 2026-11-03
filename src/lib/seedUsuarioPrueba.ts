@@ -8,6 +8,7 @@
 //   SEED_EMAIL     correo del usuario        (default: prueba.historial@tambo360.test)
 //   SEED_PASSWORD  contraseña del usuario    (default: Prueba123!)
 //   SEED_MESES     meses de historial        (default: 6)
+//   SEED_QUESOS    lotes de queso por mes    (default: 0, solo leche)
 //
 // Es repetible: si el establecimiento de prueba ya existe, reemplaza sus datos
 // históricos (lotes, mermas, costos y promedios) y deja intacto todo lo demás.
@@ -30,6 +31,8 @@ import {
 const EMAIL = process.env.SEED_EMAIL ?? "usuario.prueba@tambo360.test";
 const PASSWORD = process.env.SEED_PASSWORD ?? "Prueba123!";
 const MESES = Number(process.env.SEED_MESES ?? 6);
+// Lotes de queso por mes (por defecto 0: en esta versión solo se carga leche)
+const LOTES_QUESO_POR_MES = Number(process.env.SEED_QUESOS ?? 0);
 const NOMBRE_ORGANIZACION = "Organización de Prueba";
 const NOMBRE_ESTABLECIMIENTO = "Tambo de Prueba (historial)";
 const CANT_VACAS = 120;
@@ -90,7 +93,7 @@ async function limpiarHistorial(idEstablecimiento: string) {
 
 async function main() {
     const producto = await obtenerProductoLeche();
-    const productoQueso = await obtenerProductoQueso();
+    const productoQueso = LOTES_QUESO_POR_MES > 0 ? await obtenerProductoQueso() : null;
 
     // 1. Usuario
     const usuario = await prisma.usuario.upsert({
@@ -171,18 +174,37 @@ async function main() {
         await limpiarHistorial(establecimiento.idEstablecimiento);
     }
 
-    // El establecimiento también produce queso (se agrega si todavía no estaba habilitado)
-    await prisma.establecimientoProducto.createMany({
-        data: [{ idEstablecimiento: establecimiento.idEstablecimiento, idProducto: productoQueso.idProducto }],
-        skipDuplicates: true,
-    });
+    if (productoQueso) {
+        // Con SEED_QUESOS > 0, el establecimiento también produce queso (se habilita si todavía no lo estaba)
+        await prisma.establecimientoProducto.createMany({
+            data: [{ idEstablecimiento: establecimiento.idEstablecimiento, idProducto: productoQueso.idProducto }],
+            skipDuplicates: true,
+        });
+    } else {
+        // Solo leche: si una corrida anterior había habilitado el queso, se deshabilita para dejar el tambo limpio
+        const quesoExistente = await prisma.producto.findFirst({
+            where: { nombreNormalizado: "queso crema", idOrganizacion: null },
+        });
+        if (quesoExistente) {
+            await prisma.establecimientoProducto.deleteMany({
+                where: {
+                    idEstablecimiento: establecimiento.idEstablecimiento,
+                    idProducto: quesoExistente.idProducto,
+                },
+            });
+        }
+    }
 
     const configuracion = establecimiento.configuracions[0];
     const rodeo = configuracion.rodeos[0];
     const razas = await prisma.raza.findMany({ where: { idRodeo: rodeo.idRodeo } });
 
     // 4. Historial
-    const { lotes, costosGenerales } = generarHistorial({ meses: MESES, cantVacas: CANT_VACAS });
+    const { lotes, costosGenerales } = generarHistorial({
+        meses: MESES,
+        cantVacas: CANT_VACAS,
+        lotesQuesoPorMes: LOTES_QUESO_POR_MES,
+    });
 
     const creados: { idLote: string; cantidad: number; estado: boolean; esLeche: boolean }[] = [];
     for (const lote of lotes) {
@@ -191,7 +213,7 @@ async function main() {
             data: {
                 numeroLote: lote.numeroLote,
                 fechaProduccion: lote.fechaProduccion,
-                idProducto: esLeche ? producto.idProducto : productoQueso.idProducto,
+                idProducto: esLeche || !productoQueso ? producto.idProducto : productoQueso.idProducto,
                 idEstablecimiento: establecimiento.idEstablecimiento,
                 cantidad: lote.cantidad,
                 unidad: esLeche ? Unidad.litros : Unidad.kg,
