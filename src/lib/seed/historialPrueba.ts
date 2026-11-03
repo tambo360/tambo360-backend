@@ -49,7 +49,7 @@ export interface OpcionesHistorial {
     meses?: number;
     /** Lotes por mes completo (por defecto 10). */
     lotesPorMes?: number;
-    /** Lotes de queso por mes completo (por defecto 4; 0 = no genera quesos). */
+    /** Lotes de queso por mes completo (por defecto 0: solo leche; p. ej. 4 para sumar quesos). */
     lotesQuesoPorMes?: number;
     cantVacas?: number;
     semilla?: number;
@@ -87,7 +87,7 @@ export function generarHistorial(opciones: OpcionesHistorial = {}): HistorialPru
     const hoy = opciones.hoy ?? new Date();
     const meses = opciones.meses ?? 6;
     const lotesPorMes = opciones.lotesPorMes ?? 10;
-    const lotesQuesoPorMes = opciones.lotesQuesoPorMes ?? 4;
+    const lotesQuesoPorMes = opciones.lotesQuesoPorMes ?? 0;
     const cantVacas = opciones.cantVacas ?? 120;
     const aleatorio = crearAleatorio(opciones.semilla ?? 42);
 
