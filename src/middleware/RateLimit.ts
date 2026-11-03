@@ -3,7 +3,7 @@ import rateLimit from "express-rate-limit";
 //10 requests por IP cada 10 minutos para endpoints sensibles (login, register)
 export const authLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 min
-  max: 10, // 10 intentos
+  max: 100, // 100 intentos cambiar a 10 en producción
   message: {
     error: "Demasiados intentos. Por favor, inténtalo de nuevo más tarde.",
   },
