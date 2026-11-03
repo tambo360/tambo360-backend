@@ -21,11 +21,14 @@ export type TipoCostoGeneralSeed =
     | "INMUEBLE"
     | "LOGISTICA";
 
+export type ProductoSeed = "LECHE" | "QUESO";
+
 export interface LoteSeed {
     numeroLote: number;
+    producto: ProductoSeed;
     fechaProduccion: Date;
-    cantidad: number; // litros
-    destino: "TANQUE_FRIO" | "VENTA";
+    cantidad: number; // litros (leche) o kilos (queso)
+    destino: "TANQUE_FRIO" | "VENTA" | "FABRICA_QUESOS";
     tempTanque: number | null;
     cantBajadas: number;
     estado: boolean; // true = completado
@@ -46,6 +49,8 @@ export interface OpcionesHistorial {
     meses?: number;
     /** Lotes por mes completo (por defecto 10). */
     lotesPorMes?: number;
+    /** Lotes de queso por mes completo (por defecto 4; 0 = no genera quesos). */
+    lotesQuesoPorMes?: number;
     cantVacas?: number;
     semilla?: number;
 }
@@ -82,6 +87,7 @@ export function generarHistorial(opciones: OpcionesHistorial = {}): HistorialPru
     const hoy = opciones.hoy ?? new Date();
     const meses = opciones.meses ?? 6;
     const lotesPorMes = opciones.lotesPorMes ?? 10;
+    const lotesQuesoPorMes = opciones.lotesQuesoPorMes ?? 4;
     const cantVacas = opciones.cantVacas ?? 120;
     const aleatorio = crearAleatorio(opciones.semilla ?? 42);
 
@@ -130,7 +136,7 @@ export function generarHistorial(opciones: OpcionesHistorial = {}): HistorialPru
     // El último de todos queda sin completar.
     const indiceAnomalia = fechas.length - 3;
 
-    const lotes: LoteSeed[] = fechas.map((fecha, i) => {
+    const lotesLeche: LoteSeed[] = fechas.map((fecha, i) => {
         const numeroLote = i + 1;
         const esAnomalia = i >= indiceAnomalia;
         // ~22 L por vaca por día, ±8%, con leve suba estacional
@@ -155,6 +161,7 @@ export function generarHistorial(opciones: OpcionesHistorial = {}): HistorialPru
         const aTanque = i % 3 !== 0;
         return {
             numeroLote,
+            producto: "LECHE",
             // Si el mediodía de hoy todavía no llegó, se usa el momento actual (nunca una fecha futura)
             fechaProduccion: fecha > hoy ? new Date(hoy) : fecha,
             cantidad,
@@ -167,6 +174,61 @@ export function generarHistorial(opciones: OpcionesHistorial = {}): HistorialPru
             costosDirectos,
         };
     });
+
+    // Lotes de queso: usan su propio generador aleatorio para no alterar los datos de leche.
+    const aleatorioQueso = crearAleatorio((opciones.semilla ?? 42) + 1000);
+    const lotesQueso: LoteSeed[] = [];
+
+    for (let m = meses; m >= 0 && lotesQuesoPorMes > 0; m--) {
+        const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth() - m, 1);
+        const anio = inicioMes.getFullYear();
+        const mes = inicioMes.getMonth();
+        const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+        const esMesActual = m === 0;
+        const ultimoDia = esMesActual ? hoy.getDate() : diasDelMes;
+        const cantLotes = esMesActual
+            ? Math.round((lotesQuesoPorMes * ultimoDia) / diasDelMes)
+            : lotesQuesoPorMes;
+
+        for (let i = 0; i < cantLotes; i++) {
+            const dia = Math.min(ultimoDia, Math.max(1, Math.round(((i + 0.5) * ultimoDia) / cantLotes)));
+            const fecha = fechaMediodia(anio, mes, dia);
+            // ~300 kg por lote (≈ 10 litros de leche por kilo de queso), ±15%, con leve suba
+            const cantidad = redondear(300 * (0.85 + aleatorioQueso() * 0.3) * (1 + 0.004 * lotesQueso.length), 1);
+            const pctMerma = 0.01 + aleatorioQueso() * 0.02;
+
+            lotesQueso.push({
+                numeroLote: 0, // se asigna al ordenar junto con los de leche
+                producto: "QUESO",
+                fechaProduccion: fecha > hoy ? new Date(hoy) : fecha,
+                cantidad,
+                destino: "FABRICA_QUESOS",
+                tempTanque: null,
+                cantBajadas: 1,
+                estado: true,
+                mermas: [
+                    {
+                        tipo: MERMAS_NORMALES[Math.floor(aleatorioQueso() * MERMAS_NORMALES.length)],
+                        cantidad: redondear(cantidad * pctMerma, 1),
+                    },
+                ],
+                costosDirectos: [
+                    { tipoCosto: "ENERGIA", monto: redondear(20_000 + aleatorioQueso() * 15_000, 0) },
+                    { tipoCosto: "MANO_OBRA", monto: redondear(40_000 + aleatorioQueso() * 20_000, 0) },
+                ],
+            });
+        }
+    }
+
+    // Se ordenan por fecha (si coinciden, el queso va antes, así el último lote sigue siendo el de leche pendiente)
+    // y se numeran en forma consecutiva.
+    const lotes = [...lotesLeche, ...lotesQueso]
+        .sort(
+            (a, b) =>
+                a.fechaProduccion.getTime() - b.fechaProduccion.getTime() ||
+                (a.producto === b.producto ? a.numeroLote - b.numeroLote : a.producto === "QUESO" ? -1 : 1),
+        )
+        .map((lote, i) => ({ ...lote, numeroLote: i + 1 }));
 
     return { lotes, costosGenerales };
 }

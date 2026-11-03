@@ -49,8 +49,8 @@ describe('generarHistorial', () => {
         expect(lotes.slice(0, -1).every((l) => l.estado)).toBe(true);
     });
 
-    it('los 3 últimos lotes tienen merma alta y el resto merma normal', () => {
-        const { lotes } = generarHistorial({ hoy: HOY });
+    it('los 3 últimos lotes de leche tienen merma alta y el resto merma normal', () => {
+        const lotes = generarHistorial({ hoy: HOY }).lotes.filter((l) => l.producto === 'LECHE');
         const pct = (i: number) => lotes[i].mermas.reduce((a, m) => a + m.cantidad, 0) / lotes[i].cantidad;
 
         for (let i = 0; i < lotes.length - 3; i++) {
@@ -78,6 +78,44 @@ describe('generarHistorial', () => {
         const meses = new Set(costosGenerales.map((c) => `${c.fecha.getFullYear()}-${c.fecha.getMonth()}`));
         expect(meses.size).toBeGreaterThanOrEqual(6);
         expect(costosGenerales.every((c) => c.monto > 0)).toBe(true);
+    });
+
+    describe('lotes de queso', () => {
+        it('hay lotes de queso en todos los meses completos', () => {
+            const { lotes } = generarHistorial({ hoy: HOY, meses: 6 });
+            const quesos = lotes.filter((l) => l.producto === 'QUESO');
+            const meses = new Set(quesos.map((l) => `${l.fechaProduccion.getFullYear()}-${l.fechaProduccion.getMonth()}`));
+            expect(meses.size).toBeGreaterThanOrEqual(6);
+        });
+
+        it('van a fábrica de quesos, sin temperatura de tanque, completados y con merma normal', () => {
+            const quesos = generarHistorial({ hoy: HOY }).lotes.filter((l) => l.producto === 'QUESO');
+            expect(quesos.length).toBeGreaterThan(0);
+            for (const l of quesos) {
+                expect(l.destino).toBe('FABRICA_QUESOS');
+                expect(l.tempTanque).toBeNull();
+                expect(l.estado).toBe(true);
+                expect(l.cantidad).toBeGreaterThan(0);
+                expect(l.costosDirectos.some((c) => c.tipoCosto === 'ALIMENTACION')).toBe(false);
+                const merma = l.mermas.reduce((a, m) => a + m.cantidad, 0) / l.cantidad;
+                expect(merma).toBeLessThan(0.04);
+            }
+        });
+
+        it('no cambian los datos de leche ni el último lote pendiente', () => {
+            const con = generarHistorial({ hoy: HOY });
+            const sin = generarHistorial({ hoy: HOY, lotesQuesoPorMes: 0 });
+            const leche = (ls: typeof con.lotes) =>
+                ls.filter((l) => l.producto === 'LECHE').map(({ numeroLote, ...resto }) => resto);
+
+            expect(sin.lotes.some((l) => l.producto === 'QUESO')).toBe(false);
+            expect(leche(con.lotes)).toEqual(leche(sin.lotes));
+            expect(con.costosGenerales).toEqual(sin.costosGenerales);
+
+            const ultimo = con.lotes[con.lotes.length - 1];
+            expect(ultimo.producto).toBe('LECHE');
+            expect(ultimo.estado).toBe(false);
+        });
     });
 
     it('funciona aunque hoy sea el primer día del mes', () => {
