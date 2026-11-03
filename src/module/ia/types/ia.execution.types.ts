@@ -9,8 +9,8 @@ export interface MetricasEjecucionIA {
 export interface ErrorEjecucionIA {
   codigo: string;
   mensaje: string;
+  reintentable: boolean;
 }
-
 
 export enum EstadoEjecucionIAType {
   COMPLETED = 'COMPLETED',
@@ -18,8 +18,10 @@ export enum EstadoEjecucionIAType {
   RUNNING = 'RUNNING'
 }
 
+
 export interface FinalizarEjecucionParams {
   idEjecucionIA: string;
+  tokenBloqueo: string;
   estadoFinal: EstadoEjecucionIAType.COMPLETED | EstadoEjecucionIAType.FAILED;
   error?: ErrorEjecucionIA;
   metricas?: MetricasEjecucionIA;

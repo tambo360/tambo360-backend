@@ -1,5 +1,6 @@
 
 import { TipoSeguimiento as TipoSeguimientoDB, TipoEventoIA as TipoEventoIADB, AmbitoPromedioProductivo as AmbitoPromedioProductivoDB, TipoAlertaIA as TipoAlertaIADB, NivelAlerta as NivelAlertaDB, TipoMerma, CategoriaCostoResumen} from "@prisma/client";
+import { ErrorEjecucionIA, EstadoEjecucionIAType, MetricasEjecucionIA } from "./ia.execution.types";
 
 export type TipoEventoIA = TipoEventoIADB;
 export type TipoSeguimiento = TipoSeguimientoDB;
@@ -114,4 +115,46 @@ export interface ErrorIAResponse {
             mensaje: string;
         }>;
     };
+}
+
+export interface EventoLoteParams {
+    idEstablecimiento: string;
+    idLote: string;
+}
+
+export interface EventoReclamado {
+    idEventoIA: string;
+    idEjecucionIA: string;
+    tokenBloqueo: string;
+    intentos: number;
+    intentosMaximos: number;
+}
+
+export interface ErrorProcesamiento {
+    codigo: string;
+    mensaje: string;
+    reintentable: boolean;
+}
+
+
+export interface CrearEventoIAParams {
+  idEstablecimiento: string;
+  tipo: TipoEventoIA;
+  claveIdempotencia: string;
+  idLote?: string;
+  idResumenMensual?: string;
+}
+
+
+export interface FallarEventoIAParams {
+  idEventoIA: string;
+  tokenBloqueo: string;
+  codigo: string;
+  mensaje: string;
+  reintentable: boolean;
+}
+
+export interface ReactivarEventoIAParams {
+  idEventoIA: string;
+  intentosAdicionales: number;
 }
