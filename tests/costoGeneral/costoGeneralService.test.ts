@@ -1,7 +1,7 @@
 import { AppError } from '../../src/utils/AppError';
 import costoGeneralService from '../../src/services/costoGeneralService';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TipoCostoGeneral, TipoRodeo } from '@prisma/client';
+import { TipoCostoGeneral } from '@prisma/client';
 
 const { prismaMock } = vi.hoisted(() => ({
     prismaMock: {
@@ -12,6 +12,7 @@ const { prismaMock } = vi.hoisted(() => ({
             update: vi.fn(),
             delete: vi.fn(),
             aggregate: vi.fn(),
+            count: vi.fn(),
         }, establecimiento: {
             findUnique: vi.fn(),
         },
@@ -64,23 +65,42 @@ describe('CostoGeneralService', () => {
     // ─── listar ──────────────────────────────────────────────────────────────
 
     describe('listar', () => {
-        it('lista los costos del establecimiento', async () => {
+        const periodo = {
+            fechaDesde: new Date('2026-07-01'),
+            fechaHasta: new Date('2026-07-31'),
+        };
+
+        it('lista los costos del establecimiento con paginación', async () => {
+            prismaMock.costoGeneral.count.mockResolvedValue(1);
             prismaMock.costoGeneral.findMany.mockResolvedValue([costoMock]);
 
-            prismaMock.establecimiento.findUnique.mockResolvedValue({
-                idEstablecimiento: ID_ESTABLECIMIENTO,
-                configuracions: [],
-            });
-
-
-            const resultado = await costoGeneralService.listar(ID_ESTABLECIMIENTO, {
-                fechaDesde: new Date('2026-07-01'),
-                fechaHasta: new Date('2026-07-31'),
-            }
-            );
+            const resultado = await costoGeneralService.listar(ID_ESTABLECIMIENTO, periodo);
 
             expect(prismaMock.costoGeneral.findMany).toHaveBeenCalledTimes(1);
-            expect(resultado).toHaveLength(2);
+            expect(resultado.costos).toHaveLength(1);
+            expect(resultado.totalCostos).toBe(1);
+            expect(resultado.totalPaginas).toBe(1);
+        });
+
+        it('pagina de a 20 por defecto', async () => {
+            prismaMock.costoGeneral.count.mockResolvedValue(45);
+            prismaMock.costoGeneral.findMany.mockResolvedValue([]);
+
+            const resultado = await costoGeneralService.listar(ID_ESTABLECIMIENTO, periodo);
+
+            expect(resultado.limit).toBe(20);
+            expect(resultado.totalPaginas).toBe(3);
+            expect(prismaMock.costoGeneral.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({ skip: 0, take: 20 })
+            );
+        });
+
+        it('lanza 404 si la página pedida no existe', async () => {
+            prismaMock.costoGeneral.count.mockResolvedValue(5);
+
+            await expect(
+                costoGeneralService.listar(ID_ESTABLECIMIENTO, { ...periodo, page: 2 })
+            ).rejects.toBeInstanceOf(AppError);
         });
 
         it('lanza 400 si no se indica el período de consulta', async () => {
@@ -152,28 +172,21 @@ describe('eliminar', () => {
 
 // ─── resumenEconomico ────────────────────────────────────────────────────
 // Épica: Costos Generales y Resumen Económico (issue #79)
+// La alimentación es un costo general más (tipo ALIMENTACION): el service hace
+// dos aggregate, primero el total de costos y después solo el de alimentación.
 
 describe('resumenEconomico', () => {
     const FECHA_DESDE = new Date('2026-07-01');
-    const FECHA_HASTA = new Date('2026-07-31'); // 31 días de período
+    const FECHA_HASTA = new Date('2026-07-31');
 
-    const establecimientoConRodeosMock = {
-        idEstablecimiento: ID_ESTABLECIMIENTO,
-        configuracions: [
-            {
-                idConfiguracion: 'config-1',
-                rodeos: [
-                    { idRodeo: 'r1', tipoRodeo: TipoRodeo.ALTA_PRODUCCION, cantVacas: 100, costoRacion: 4.5 },
-                    { idRodeo: 'r2', tipoRodeo: TipoRodeo.BAJA_PRODUCCION, cantVacas: 50, costoRacion: 2.8 },
-                    { idRodeo: 'r3', tipoRodeo: TipoRodeo.VACAS_SECAS, cantVacas: 20, costoRacion: 1.5 },
-                ],
-            },
-        ],
+    const mockearTotales = (total: number | null, alimentacion: number | null) => {
+        prismaMock.costoGeneral.aggregate
+            .mockResolvedValueOnce({ _sum: { monto: total } })
+            .mockResolvedValueOnce({ _sum: { monto: alimentacion } });
     };
 
-    it('calcula el resumen económico combinando alimentación, costos generales y prorrateo', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue(establecimientoConRodeosMock);
-        prismaMock.costoGeneral.aggregate.mockResolvedValue({ _sum: { monto: 3000 } });
+    it('calcula total, alimentación, otros gastos y prorrateo por lote', async () => {
+        mockearTotales(3000, 1200);
         prismaMock.loteProduccion.count.mockResolvedValue(60);
 
         const resultado = await costoGeneralService.resumenEconomico(
@@ -182,18 +195,17 @@ describe('resumenEconomico', () => {
             FECHA_HASTA
         );
 
-        // costo alimentacion = (100*4.5 + 50*2.8 + 20*1.5) * 31 dias
-        //                    = (450 + 140 + 30) * 31 = 620 * 31 = 19220
-        expect(resultado.gastoAlimentacion).toBe(19220);
+        expect(resultado.gastoAlimentacion).toBe(1200);
         expect(resultado.gastoCostosGenerales).toBe(3000);
-        expect(resultado.gastoTotal).toBe(22220);
+        // el total ya incluye la alimentación: no se suma dos veces
+        expect(resultado.gastoTotal).toBe(3000);
+        expect(resultado.gastoOtros).toBe(1800);
         expect(resultado.lotesCompletos).toBe(60);
-        expect(resultado.prorrateoPromedio).toBeCloseTo(22220 / 60);
+        expect(resultado.prorrateoPromedio).toBeCloseTo(3000 / 60);
     });
 
     it('devuelve prorrateo 0 si no hay lotes completos en el período (evita división por cero)', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue(establecimientoConRodeosMock);
-        prismaMock.costoGeneral.aggregate.mockResolvedValue({ _sum: { monto: 1000 } });
+        mockearTotales(1000, 0);
         prismaMock.loteProduccion.count.mockResolvedValue(0);
 
         const resultado = await costoGeneralService.resumenEconomico(
@@ -206,12 +218,8 @@ describe('resumenEconomico', () => {
         expect(resultado.prorrateoPromedio).toBe(0);
     });
 
-    it('devuelve gastoAlimentacion 0 si el establecimiento no tiene configuración/rodeos', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue({
-            idEstablecimiento: ID_ESTABLECIMIENTO,
-            configuracions: [],
-        });
-        prismaMock.costoGeneral.aggregate.mockResolvedValue({ _sum: { monto: 500 } });
+    it('sin gastos de alimentación, todo el total es "otros gastos"', async () => {
+        mockearTotales(500, null);
         prismaMock.loteProduccion.count.mockResolvedValue(10);
 
         const resultado = await costoGeneralService.resumenEconomico(
@@ -221,12 +229,12 @@ describe('resumenEconomico', () => {
         );
 
         expect(resultado.gastoAlimentacion).toBe(0);
+        expect(resultado.gastoOtros).toBe(500);
         expect(resultado.gastoTotal).toBe(500);
     });
 
     it('trata costos generales sin registros como 0 (aggregate sin monto)', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue(establecimientoConRodeosMock);
-        prismaMock.costoGeneral.aggregate.mockResolvedValue({ _sum: { monto: null } });
+        mockearTotales(null, null);
         prismaMock.loteProduccion.count.mockResolvedValue(5);
 
         const resultado = await costoGeneralService.resumenEconomico(
@@ -236,19 +244,11 @@ describe('resumenEconomico', () => {
         );
 
         expect(resultado.gastoCostosGenerales).toBe(0);
-    });
-
-    it('lanza 404 si el establecimiento no existe', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue(null);
-
-        await expect(
-            costoGeneralService.resumenEconomico(ID_ESTABLECIMIENTO, FECHA_DESDE, FECHA_HASTA)
-        ).rejects.toBeInstanceOf(AppError);
+        expect(resultado.gastoOtros).toBe(0);
     });
 
     it('solo cuenta lotes con estado COMPLETO en el conteo de lotesCompletos', async () => {
-        prismaMock.establecimiento.findUnique.mockResolvedValue(establecimientoConRodeosMock);
-        prismaMock.costoGeneral.aggregate.mockResolvedValue({ _sum: { monto: 0 } });
+        mockearTotales(0, 0);
         prismaMock.loteProduccion.count.mockResolvedValue(3);
 
         await costoGeneralService.resumenEconomico(ID_ESTABLECIMIENTO, FECHA_DESDE, FECHA_HASTA);
