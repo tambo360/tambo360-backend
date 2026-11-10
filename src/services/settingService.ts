@@ -537,11 +537,8 @@ class SettingService {
         }
 
         const where: any = {};
-        const fecha = new Date();
-        const inicioDia = new Date(fecha.setHours(0, 0, 0, 0));
-        const finDia = new Date(fecha.setHours(23, 59, 59, 999))
-        const hoy = fecha.getTime()
-            ;
+        const hoy = new Date().setHours(23, 59, 59, 999);
+
         if (params.codigo) {
             where.codigo = { contains: params.codigo, mode: "insensitive" };
         }
@@ -564,16 +561,7 @@ class SettingService {
             skip: (params.page - 1) * params.limit,
             take: params.limit,
             include: {
-                producciones: {
-                    where: {
-                        lote: {
-                            fechaProduccion: {
-                                gte: inicioDia,
-                                lte: finDia,
-                            }
-                        }
-                    }
-                }
+                producciones: true
             }
         })
 
@@ -584,11 +572,11 @@ class SettingService {
                 diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             }
 
-            const litrosAgrupados = a.producciones.reduce((acc, prod) => {
-                const litros = prod.litros as Decimal;
-                acc[prod.destino] = (acc[prod.destino] ?? new Decimal(0)).add(litros);
-                return acc;
-            }, {} as Record<string, Decimal>);
+            const litros = a.producciones.map(p => p.litros as Decimal);
+            const litrosTotales = litros.reduce((sum, l) => sum.add(l), new Decimal(0));
+            const litrosPromedio = litros.length > 0
+                ? litrosTotales.div(litros.length)
+                : new Decimal(0);
 
             return {
                 idAnimal: a.idAnimal,
@@ -603,8 +591,7 @@ class SettingService {
                 fechaNacimiento: a.fechaNacimiento,
                 DEL: diffDias,
                 produccion: {
-                    litros_hoy: litrosAgrupados,
-                    litros_totales: Object.values(litrosAgrupados).reduce((sum, v) => sum.add(v), new Decimal(0)),
+                    litros_promedio: litrosPromedio.toDecimalPlaces(2),
                 }
             }
         })
