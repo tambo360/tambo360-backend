@@ -28,7 +28,7 @@
  *                 example: PERSONAL
  *               descripcion:
  *                 type: string
- *                 maxLength: 500
+ *                 maxLength: 100
  *                 example: Sueldos del personal del establecimiento
  *               monto:
  *                 type: number
@@ -38,6 +38,7 @@
  *                 type: string
  *                 format: date-time
  *                 example: '2026-08-31T00:00:00.000Z'
+ *                 description: No puede ser futura ni anterior a 7 días (según la fecha de Argentina).
  *     responses:
  *       201:
  *         description: Costo general registrado correctamente
@@ -158,6 +159,7 @@
  *                         fechaDesde: { type: string, format: date-time }
  *                         fechaHasta: { type: string, format: date-time }
  *                     gastoAlimentacion: { type: number, example: 250000 }
+ *                     gastoOtros: { type: number, example: 125000.5, description: Gastos que no son de alimentación (gastoTotal  menos gastoAlimentacion) }
  *                     gastoCostosGenerales: { type: number, example: 125000.5 }
  *                     gastoTotal: { type: number, example: 375000.5 }
  *                     lotesCompletos: { type: integer, example: 8 }
@@ -196,7 +198,7 @@
  *               tipoCosto:
  *                 type: string
  *                 enum: [PERSONAL, ALIMENTACION, SERVICIOS, LOGISTICA, MANTENIMIENTO, VETERINARIO, INMUEBLE, OTRO]
- *               descripcion: { type: string, maxLength: 500 }
+ *               descripcion: { type: string, maxLength: 100 }
  *               monto: { type: number, exclusiveMinimum: 0 }
  *               fecha: { type: string, format: date-time }
  *     responses:
