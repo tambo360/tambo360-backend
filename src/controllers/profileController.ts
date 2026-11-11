@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../utils/AppError";
 import { ApiResponse } from "../utils/ApiResponse";
 import profileService from "../services/profileService";
-import { respondEstablishmentInvitationSchema, respondOrganizationInvitationSchema } from "../schemas/profileSchema";
+import { actualizarPerfilSchema, respondEstablishmentInvitationSchema, respondOrganizationInvitationSchema } from "../schemas/profileSchema";
 import { RolOrganizacion } from "@prisma/client";
 
 export class ProfileController {
@@ -63,6 +63,32 @@ export class ProfileController {
             const response = await profileService.respondEstablishmentInvitation(result.data.idInvitacion, result.data.accion, userId, result.data.rol);
 
             return res.status(200).json(ApiResponse.success(response, "Invitaciones respondidas correctamente"));
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async actualizarPerfil(req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+
+            if (!userId) {
+                throw new AppError("Usuario no autenticado", 401);
+            }
+
+            const result = actualizarPerfilSchema.safeParse(req.body);
+
+            if (!result.success) {
+                throw new AppError(result.error.issues[0].message, 400);
+            }
+
+            const usuario = await profileService.actualizarPerfil(userId, result.data);
+
+            const mensaje = usuario.verificado
+                ? "Perfil actualizado correctamente"
+                : "Perfil actualizado. Revisá tu correo nuevo para verificarlo";
+
+            return res.status(200).json(ApiResponse.success(usuario, mensaje));
         } catch (error) {
             next(error);
         }
