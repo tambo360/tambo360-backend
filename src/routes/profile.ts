@@ -19,6 +19,7 @@ router.use((req, res, next) => {
 router.get('/invitaciones', ProfileController.getInvitations);
 router.post('/invitaciones/org', ProfileController.respondOrganizationInvitation);
 router.post('/invitaciones/est', ProfileController.respondEstablishmentInvitation);
+router.patch('/', ProfileController.actualizarPerfil);
 //eliminar usuarios de establecimientos (solo dueño)
 
 export default router;
