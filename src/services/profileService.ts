@@ -1,8 +1,13 @@
-import { RolOrganizacion } from "@prisma/client";
+import { RolOrganizacion, TipoToken } from "@prisma/client";
 import { prisma } from "../lib/prisma";
-import { RespondEstablishmentInvitationInput, RespondOrganizationInvitationInput } from "../schemas/profileSchema";
+import { ActualizarPerfilInput, RespondEstablishmentInvitationInput, RespondOrganizationInvitationInput } from "../schemas/profileSchema";
 import { formatDate } from "../utils";
 import { getRoleLabel } from "../utils/enumValidation";
+import { comparePassword } from "../utils/password";
+import { generateToken, hashToken } from "../utils/token";
+import { sendVerificationEmail } from "./mailService";
+import { AppError } from "../utils/AppError";
+
 
 
 
@@ -354,6 +359,76 @@ class ProfileService {
 
         return this.acceptInvitation(invitation, userId, rol);
     }
+
+    async actualizarPerfil(userId: string, data: ActualizarPerfilInput) {
+        const user = await prisma.usuario.findUnique({
+            where: { idUsuario: userId }
+        });
+
+        if (!user) {
+            throw new AppError("Usuario no encontrado", 404);
+        }
+
+        const cambios: { nombre?: string; correo?: string; verificado?: boolean } = {};
+
+        if (data.nombre !== undefined) {
+            cambios.nombre = data.nombre;
+        }
+
+        const cambiaCorreo = data.correo !== undefined && data.correo !== user.correo;
+
+        if (cambiaCorreo) {
+            const passwordOk = await comparePassword(data.contraseñaActual!, user.contrasena);
+            if (!passwordOk) {
+                throw new AppError("La contraseña actual es incorrecta", 401);
+            }
+
+            const correoEnUso = await prisma.usuario.findUnique({
+                where: { correo: data.correo }
+            });
+            if (correoEnUso) {
+                throw new AppError("El correo ya está en uso", 409);
+            }
+
+            cambios.correo = data.correo;
+            cambios.verificado = false;
+        }
+
+        const rawToken = cambiaCorreo ? generateToken() : null;
+
+        const actualizado = await prisma.$transaction(async (tx) => {
+            const updated = await tx.usuario.update({
+                where: { idUsuario: userId },
+                data: cambios,
+                select: { idUsuario: true, nombre: true, correo: true, verificado: true }
+            });
+
+            if (rawToken) {
+                await tx.verificarToken.deleteMany({
+                    where: { idUsuario: userId, tipo: TipoToken.verificacion }
+                });
+
+                await tx.verificarToken.create({
+                    data: {
+                        idUsuario: userId,
+                        tipo: TipoToken.verificacion,
+                        tokenHash: hashToken(rawToken),
+                        expiraEn: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                    }
+                });
+            }
+
+            return updated;
+        });
+
+        if (rawToken) {
+            const link = `${process.env.FRONTEND_URL}/verificar?token=${rawToken}`;
+            await sendVerificationEmail(actualizado.correo, link);
+        }
+
+        return actualizado;
+    }
+
 }
 export default new ProfileService();
 
