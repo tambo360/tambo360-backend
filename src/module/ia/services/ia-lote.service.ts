@@ -3,7 +3,7 @@ import { prisma } from "../../../lib/prisma";
 import { Prisma, TipoRodeo, AmbitoPromedioProductivo, PromedioProductivoLote } from "@prisma/client";
 import { findAmbitoPromedioProductivo } from "../utils";
 import { PromedioProductivoLotesParams, UpdatePromedioProductivoParams, CheckEventCreationParams } from "../types/ia-lote.types";
-import { crearEventoIA } from "./ia-eventService";
+import { crearEventoIA, obtenerPromedioProductivo } from "./ia-eventService";
 
 
 export class IALoteService {
@@ -31,30 +31,7 @@ export class IALoteService {
 
             const ambitoPromedio = findAmbitoPromedioProductivo(tipoSeguimiento, data.tipoRodeo)
 
-            const promedioProductivo = await tx.promedioProductivo.findUnique({
-                where: {
-                    idEstablecimiento_ambito: {
-                        idEstablecimiento: data.idEstablecimiento,
-                        ambito: ambitoPromedio
-                    }
-                },
-                include: {
-                    promedioProductivoLotes: {
-                        include: {
-                            lote: {
-                                select: {
-                                    cantAnimales: true,
-                                    cantidad: true
-                                }
-                            }
-                        }
-                    }
-                }
-            })
-
-            if (!promedioProductivo) {
-                throw new AppError("No se encontró el promedio productivo para el establecimiento y ámbito especificado", 404);
-            }
+            const promedioProductivo = await obtenerPromedioProductivo(tx, data.idEstablecimiento, tipoSeguimiento, data.tipoRodeo)
 
             if (promedioProductivo.cantidadLotes < this.MIN_LOTES) {
                 await this.updatePromedioProductivo(tx, {

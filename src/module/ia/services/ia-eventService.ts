@@ -1,10 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { EstadoEjecucionIA, EstadoEventoIA, Prisma } from "@prisma/client";
+import { EstadoEjecucionIA, EstadoEventoIA, Prisma, TipoRodeo } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
-import { CrearEventoIAParams, FallarEventoIAParams, ReactivarEventoIAParams, } from "../types/ia.types";
+import { CrearEventoIAParams, FallarEventoIAParams, ReactivarEventoIAParams, TipoSeguimiento, } from "../types/ia.types";
 import { calcularProximoIntento } from "../utils/reintentos";
+import { procesarEventoIA } from "./processorService";
+import { findAmbitoPromedioProductivo } from "../utils";
+import { AppError } from "../../../utils/AppError";
 
 const TIEMPO_BLOQUEO_MS = 2 * 60 * 1000;
+const eventosPorCicloCRON = 10
 
 /**
  * Crea un evento pendiente.
@@ -14,7 +18,7 @@ const TIEMPO_BLOQUEO_MS = 2 * 60 * 1000;
  */
 export async function crearEventoIA(tx: Prisma.TransactionClient, params: CrearEventoIAParams) {
   const prismaTx = tx || prisma;
-  return  prismaTx.aiAnalysisEvent.upsert({
+  return prismaTx.aiAnalysisEvent.upsert({
     where: {
       claveIdempotencia: params.claveIdempotencia,
     },
@@ -300,4 +304,161 @@ export async function reactivarEventoIA({ idEventoIA, intentosAdicionales, }: Re
   });
 
   return resultado.count === 1;
+}
+
+
+// BUSca eventos pendientes para procesar, obtiene los eventos que están en estado PENDING y que no tienen un bloqueo activo. Esto permite que los procesos de análisis de IA puedan reclamar y procesar estos eventos. SOLO EVENTOS TIPO LOT_CLOSED
+export async function obtenerEventosPendientes(take: number) {
+  const ahora = new Date();
+  return prisma.aiAnalysisEvent.findMany({
+    where: {
+      estado: EstadoEventoIA.PENDING,
+      tipo: "LOT_CLOSED",
+      OR: [
+        { bloqueadoHasta: null },
+        { bloqueadoHasta: { lte: ahora } },
+      ],
+    },
+    take: take,
+    include: {
+      lote: {
+        select: {
+          idLote: true,
+          cantidad: true,
+          cantAnimales: true,
+          fechaProduccion: true,
+          rodeo: {
+            select: {
+              tipoRodeo: true
+            }
+          },
+          produccionesIndividuales: {
+            select: {
+              idAnimal: true,
+              litros: true
+            }
+          }
+        }
+      },
+      establecimiento: {
+        select: {
+          idEstablecimiento: true,
+          configuracions: {
+            select: {
+              tipoSeguimiento: true
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+//recibe los eventos pendientes y los procesa uno por uno, utilizando la función procesarEventoIA para cada evento. Esto permite que los eventos pendientes sean procesados de manera secuencial.
+export async function procesarEventosPendientes() {
+  let eventosProcesados = 0
+  const eventosPendientes = await obtenerEventosPendientes(eventosPorCicloCRON);
+  console.log(`[CRON] EVENTOS PENDIENTES ENCONTRADOS: ${eventosPendientes.length}`);
+
+  for (const evento of eventosPendientes) {
+    try {
+
+      if (!evento.lote || !evento.idLote) {
+        console.warn(`[CRON] Evento ${evento.idEventoIA} no tiene lote asociado, se omite`);
+        continue;
+      }
+
+
+      let promedioProductivo = await obtenerPromedioProductivo(null, evento.idEstablecimiento, evento.establecimiento.configuracions[0].tipoSeguimiento, evento.lote.rodeo?.tipoRodeo || null);
+
+      await procesarEventoIA({
+        idEventoIA: evento.idEventoIA,
+        tipo: evento.tipo,
+        idEstablecimiento: evento.idEstablecimiento,
+        datos: {
+          lote: {
+            idLote: evento.idLote,
+            cantidad: evento.lote.cantidad.toString(),
+            cantAnimales: evento.lote.cantAnimales,
+            fechaProduccion: evento.lote.fechaProduccion.toISOString(),
+            listaAnimales: evento.lote.produccionesIndividuales.map(a => ({
+              ...a,
+              litros: a.litros.toString()
+            }))
+          },
+          contexto: {
+            tipoSeguimiento: evento.establecimiento.configuracions[0].tipoSeguimiento,
+            promedioProductivo: {
+              idPromedioProductivo: promedioProductivo.idPromedioProductivo,
+              ambito: promedioProductivo.ambito,
+              promedioLitrosPorAnimal: promedioProductivo.promedioLitrosPorAnimal.toString(),
+              cantLotes: promedioProductivo.cantidadLotes,
+              periodoDesde: promedioProductivo.periodoDesde ? promedioProductivo.periodoDesde.toISOString() : null,
+              periodoHasta: promedioProductivo.periodoHasta ? promedioProductivo.periodoHasta.toISOString() : null,
+              lotes: promedioProductivo.promedioProductivoLotes.map(lote => ({
+                idLote: lote.idLote,
+                cantLitros: lote.lote.cantidad.toString(),
+                cantAnimales: lote.lote.cantAnimales,
+                creadoEn: lote.creadoEn.toISOString(),
+                mermas: lote.lote.mermas.map(lote => ({
+                  tipo: lote.tipo,
+                  cantidad: lote.cantidad.toString()
+                }))
+              }))
+            }
+          }
+        },
+
+      });
+
+      console.log(`[CRON] evento procesado: ${evento.idEventoIA}`);
+      eventosProcesados++
+    } catch (error) {
+      console.error(`[CRON] Error procesando evento ${evento.idEventoIA}`, error);
+    }
+  }
+
+
+  return {
+    eventosProcesados
+  }
+
+}
+
+
+export async function obtenerPromedioProductivo(tx: Prisma.TransactionClient | null, idEstablecimiento: string, tipoSeguimiento: TipoSeguimiento, tipoRodeo: TipoRodeo | null) {
+  const prismaTX = tx || prisma;
+  const ambitoPromedio = findAmbitoPromedioProductivo(tipoSeguimiento, tipoRodeo)
+  const promedioProductivo = await prismaTX.promedioProductivo.findUnique({
+    where: {
+      idEstablecimiento_ambito: {
+        idEstablecimiento: idEstablecimiento,
+        ambito: ambitoPromedio
+      }
+    },
+    include: {
+      promedioProductivoLotes: {
+        include: {
+          lote: {
+            select: {
+              cantAnimales: true,
+              cantidad: true,
+              mermas: {
+                select: {
+                  tipo: true,
+                  cantidad: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+
+  if (!promedioProductivo) {
+    throw new AppError("No se encontró el promedio productivo para el establecimiento y ámbito especificado", 404);
+  }
+
+  return promedioProductivo;
 }

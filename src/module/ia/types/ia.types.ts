@@ -28,7 +28,7 @@ export interface PromedioProductivoLote {
     creadoEn: string;
     mermas: {
         tipo: TipoMerma;
-        cantidad: string;
+        cantidad: string
     }[];
 }
 
