@@ -214,7 +214,12 @@ export const completarLote = async (req: Request, res: Response, next: NextFunct
         const user = (req as any).user;
         if (!user) throw new AppError("Usuario no autenticado", 401);
 
-        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote);
+        const idEstablecimiento = req.estId
+        if (!idEstablecimiento) {
+            throw new AppError("No se pudo determinar el establecimiento", 400);
+        }
+
+        const loteActualizado = await LoteService.completarLote(parsedParams.data.idLote, idEstablecimiento);
 
         return res.status(200).json(
             ApiResponse.success(loteActualizado, "Lote completado correctamente")

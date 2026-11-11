@@ -5,6 +5,7 @@ import EstablishmentService from "./establishmentsService";
 import { Prisma, TipoSeguimiento } from "@prisma/client";
 //import { TamboEngineService } from "./tamboEngineService";
 import { obtenerTurno } from "../utils";
+import  IALoteService from "../module/ia/services/ia-lote.service";
 
 
 export class LoteService {
@@ -288,9 +289,9 @@ export class LoteService {
         });
 
         // Disparar en background el análisis de IA si se creó como completado
-       /* if (lote.estado) {
-            TamboEngineService.analizarSiCorresponde(idEstablecimiento, lote.idLote);
-        }*/
+        /* if (lote.estado) {
+             TamboEngineService.analizarSiCorresponde(idEstablecimiento, lote.idLote);
+         }*/
 
         return lote;
     }
@@ -637,29 +638,51 @@ export class LoteService {
     }
     */
 
-    async completarLote(idLote: string) {
+    async completarLote(idLote: string, idEstablecimiento: string) {
 
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-        });
+        const result = await prisma.$transaction(async (tx) => {
 
-        if (!lote) {
-            throw new AppError("El lote no existe", 404);
-        }
+            const lote = await tx.loteProduccion.findUnique({
+                where: { idLote, idEstablecimiento: idEstablecimiento },
+                include: {
+                    rodeo: true,
+                }
+            });
 
-        if (lote.estado) {
-            throw new AppError("El lote ya está completado", 400);
-        }
 
-        const loteActualizado = await prisma.loteProduccion.update({
-            where: { idLote },
-            data: { estado: true },
-        });
+            if (!lote) {
+                throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
+            }
 
+            if (lote.estado) {
+                throw new AppError("El lote ya está completado", 400);
+            }
+
+
+
+            const loteActualizado = await tx.loteProduccion.update({
+                where: { idLote, idEstablecimiento: idEstablecimiento },
+                data: { estado: true },
+            });
+
+            await IALoteService.checkEventCreation({
+                idEstablecimiento: idEstablecimiento,
+                lote: {
+                    idLote: lote.idLote,
+                    cantidad: lote.cantidad.toNumber(),
+                    cantAnimales: lote.cantAnimales
+                },
+                tipoRodeo: lote.rodeo?.tipoRodeo ?? null
+            });
+
+            return loteActualizado;
+
+        })
+
+        return result;
         // Disparar en background el análisis de IA al completarse (REVISAR)
         /*await TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);*/
 
-        return loteActualizado;
     }
 
     async cerrarLotesVencidos() {
@@ -672,14 +695,14 @@ export class LoteService {
                 estado: false,
                 fechaProduccion: { lte: fechaLimite }
             },
-            select: { idLote: true }
+            select: { idLote: true, idEstablecimiento: true }
         });
 
         console.log(`[CRON] Lotes vencidos encontrados: ${lotes.length}`);
 
         for (const lote of lotes) {
             try {
-                await this.completarLote(lote.idLote);
+                await this.completarLote(lote.idLote, lote.idEstablecimiento);
                 console.log(`[CRON] Lote cerrado: ${lote.idLote}`);
             } catch (error) {
                 console.error(`[CRON] Error cerrando lote ${lote.idLote}`, error);

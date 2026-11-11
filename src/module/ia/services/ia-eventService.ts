@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { EstadoEjecucionIA, EstadoEventoIA } from "@prisma/client";
+import { EstadoEjecucionIA, EstadoEventoIA, Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { CrearEventoIAParams, FallarEventoIAParams, ReactivarEventoIAParams, } from "../types/ia.types";
 import { calcularProximoIntento } from "../utils/reintentos";
@@ -12,8 +12,9 @@ const TIEMPO_BLOQUEO_MS = 2 * 60 * 1000;
  * La clave de idempotencia evita crear dos eventos para la misma operación.
  * Si ya existe, devuelve el evento existente sin modificarlo.
  */
-export async function crearEventoIA(params: CrearEventoIAParams) {
-  return prisma.aiAnalysisEvent.upsert({
+export async function crearEventoIA(tx: Prisma.TransactionClient, params: CrearEventoIAParams) {
+  const prismaTx = tx || prisma;
+  return  prismaTx.aiAnalysisEvent.upsert({
     where: {
       claveIdempotencia: params.claveIdempotencia,
     },

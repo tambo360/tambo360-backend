@@ -6,6 +6,8 @@ import { getRoleLabel } from "../utils/enumValidation";
 import { sendInvitationEmail } from "./mailService";
 import { generateToken, hashToken } from "../utils/token";
 import { formatDate, RazasMetaData, TipoRodeoMetaData } from "../utils";
+import { findAmbitoPromedioProductivo } from "../module/ia/utils";
+import IALoteService from "../module/ia/services/ia-lote.service";
 
 type CreateEstablishmentServiceData = CreateEstablishmentData & {
     userId: string;
@@ -17,6 +19,35 @@ class EstablishmentsService {
     //Limite de animales para el seguimiento individual
     public LIMITE_ANIMAL = 150
     public LIMITE_PROM_LITROS = 2000
+
+    private async sincronizarPromediosProductivos(tx: Prisma.TransactionClient, idEstablecimiento: string, tipoSeguimiento: TipoSeguimiento, rodeos: Rodeo[]) {
+        switch (tipoSeguimiento) {
+            case TipoSeguimiento.RODEO:
+                for (const rodeo of rodeos) {
+                    if (rodeo.tipoRodeo === TipoRodeo.VACAS_SECAS) return; // No se crea promedio productivo para VACAS_SECAS
+                    const ambitoPromedio = findAmbitoPromedioProductivo(tipoSeguimiento, rodeo.tipoRodeo);
+                    await IALoteService.createPromedioProductivo(tx, idEstablecimiento, ambitoPromedio);
+                }
+                break;
+
+            case TipoSeguimiento.RODEO_UNICO:
+                for (const rodeo of rodeos) {
+                    if (rodeo.tipoRodeo === TipoRodeo.UNICO_SECA) return // No se crea promedio productivo para UNICO_SECA
+                    const ambitoPromedio = findAmbitoPromedioProductivo(tipoSeguimiento, rodeo.tipoRodeo);
+                    await IALoteService.createPromedioProductivo(tx, idEstablecimiento, ambitoPromedio);
+                }
+
+                break;
+
+            case TipoSeguimiento.INDIVIDUAL:
+                const ambitoPromedio = findAmbitoPromedioProductivo(tipoSeguimiento, null);
+                await IALoteService.createPromedioProductivo(tx, idEstablecimiento, ambitoPromedio);
+                break;
+
+        }
+
+        return true;
+    }
 
     async obtenerEstablecimiento(idEstablecimiento: string) {
         const establecimiento = await prisma.establecimiento.findUnique({
@@ -397,6 +428,7 @@ class EstablishmentsService {
                     await this.sincronizarProductos(tx, data, orgId)
 
                     await this.sincronizarRodeos(tx, rodeosProcesados, establecimiento.configuracions[0].idConfiguracion)
+                    await this.sincronizarPromediosProductivos(tx, data.idEstablecimiento, data.TipoSeguimiento, rodeosProcesados)
                     break
                 case TipoSeguimiento.INDIVIDUAL:
                     if (!data.animales) {
@@ -412,6 +444,7 @@ class EstablishmentsService {
                     await this.sincronizarProductos(tx, data, orgId)
 
                     await this.sincronizarAnimales(tx, data.animales, cant, establecimiento.idEstablecimiento)
+                    await this.sincronizarPromediosProductivos(tx, data.idEstablecimiento, data.TipoSeguimiento, [])
                     break;
                 default:
                     throw new AppError("Tipo de seguimiento no válido", 400);
