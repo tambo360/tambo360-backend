@@ -4,8 +4,9 @@ import { ZodError } from "zod";
 import { prisma } from "../../../lib/prisma";
 import { ejecutarAnalisisIA } from "../clients/python-ia.client";
 import { PythonIAError, EjecucionIAError } from "../errors/python-ia.error";
-import {AnalisisIARequest,AnalisisIAResponse,ErrorProcesamiento,} from "../types/ia.types";
-import {finalizarEjecucionExitosa,finalizarEjecucionFallida,iniciarEjecucion,} from "./ia-executionService";
+import { AnalisisIARequest, AnalisisIAResponse, ErrorProcesamiento, } from "../types/ia.types";
+import { finalizarEjecucionExitosa, finalizarEjecucionFallida, iniciarEjecucion, } from "./ia-executionService";
+import { UpdatePromedioProductivoParams, } from "../types/ia-lote.types";
 import { reclamarEventoIA } from "./ia-eventService";
 
 export interface ResultadoProcesamientoIA {
@@ -28,7 +29,7 @@ export interface ResultadoProcesamientoIA {
  * 4. Envía el payload a Python.
  * 5. Finaliza la ejecución y el evento.
  */
-export async function procesarEventoIA(payload: AnalisisIARequest): Promise<ResultadoProcesamientoIA> {
+export async function procesarEventoIA(payload: AnalisisIARequest, updatePromedioData: UpdatePromedioProductivoParams): Promise<ResultadoProcesamientoIA> {
     const evento = await prisma.aiAnalysisEvent.findUnique({
         where: {
             idEventoIA: payload.idEventoIA,
@@ -42,11 +43,11 @@ export async function procesarEventoIA(payload: AnalisisIARequest): Promise<Resu
     });
 
     if (!evento) {
-        throw new EjecucionIAError(`No existe el evento ${payload.idEventoIA}`,"EVENTO_NO_ENCONTRADO");
+        throw new EjecucionIAError(`No existe el evento ${payload.idEventoIA}`, "EVENTO_NO_ENCONTRADO");
     }
 
-    if (evento.idEstablecimiento !== payload.idEstablecimiento ||evento.tipo !== payload.tipo) {
-        throw new EjecucionIAError("Los datos del payload no coinciden con el evento registrado","PAYLOAD_EVENTO_INCOMPATIBLE");
+    if (evento.idEstablecimiento !== payload.idEstablecimiento || evento.tipo !== payload.tipo) {
+        throw new EjecucionIAError("Los datos del payload no coinciden con el evento registrado", "PAYLOAD_EVENTO_INCOMPATIBLE");
     }
 
     if (evento.estado !== EstadoEventoIA.PENDING) {
@@ -67,7 +68,7 @@ export async function procesarEventoIA(payload: AnalisisIARequest): Promise<Resu
 
     const { idEventoIA, tokenBloqueo } = eventoReclamado;
 
-    const ejecucion = await iniciarEjecucion(idEventoIA,tokenBloqueo);
+    const ejecucion = await iniciarEjecucion(idEventoIA, tokenBloqueo);
 
     let respuesta: AnalisisIAResponse;
 
@@ -81,7 +82,7 @@ export async function procesarEventoIA(payload: AnalisisIARequest): Promise<Resu
     } catch (error) {
         const errorProcesamiento = clasificarError(error);
 
-        await finalizarEjecucionFallida(ejecucion.idEjecucionIA,tokenBloqueo,errorProcesamiento);
+        await finalizarEjecucionFallida(ejecucion.idEjecucionIA, tokenBloqueo, errorProcesamiento);
 
         return {
             procesado: true,
@@ -94,7 +95,22 @@ export async function procesarEventoIA(payload: AnalisisIARequest): Promise<Resu
      * COMPLETED e INSUFFICIENT_HISTORY son respuestas válidas.
      * En el segundo caso, alerta será null y no se guardará ninguna alerta.
      */
-    await finalizarEjecucionExitosa(ejecucion.idEjecucionIA,tokenBloqueo,undefined,respuesta.alerta);
+
+    try {
+        await finalizarEjecucionExitosa(ejecucion.idEjecucionIA, tokenBloqueo, updatePromedioData, undefined, respuesta.alerta);
+    } catch (error) {
+        // Si falló la transacción (ej. falló updatePromedioProductivo), 
+        // marcamos la ejecución como fallida/reintentable para que el CRON lo vuelva a agarrar luego.
+        const errorBD = clasificarError(error);
+        await finalizarEjecucionFallida(ejecucion.idEjecucionIA, tokenBloqueo, errorBD);
+
+        return {
+            procesado: true,
+            idEventoIA,
+            error: errorBD,
+        };
+    }
+
 
     return {
         procesado: true,

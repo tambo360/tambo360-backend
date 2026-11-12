@@ -6,6 +6,7 @@ import { calcularProximoIntento } from "../utils/reintentos";
 import { procesarEventoIA } from "./processorService";
 import { findAmbitoPromedioProductivo } from "../utils";
 import { AppError } from "../../../utils/AppError";
+import IALoteService from "./ia-lote.service";
 
 const TIEMPO_BLOQUEO_MS = 2 * 60 * 1000;
 const eventosPorCicloCRON = 10
@@ -371,7 +372,19 @@ export async function procesarEventosPendientes() {
 
       let promedioProductivo = await obtenerPromedioProductivo(null, evento.idEstablecimiento, evento.establecimiento.configuracions[0].tipoSeguimiento, evento.lote.rodeo?.tipoRodeo || null);
 
-      await procesarEventoIA({
+      const updatePromedioData = {
+        idEstablecimiento: evento.idEstablecimiento,
+        ambitoPromedio: promedioProductivo.ambito,
+        LotesHistorial: promedioProductivo.promedioProductivoLotes,
+        loteActual: {
+          idLote: evento.lote!.idLote,
+          cantidad: evento.lote!.cantidad.toNumber(),
+          cantAnimales: evento.lote!.cantAnimales
+        }
+      }
+
+
+      const result = await procesarEventoIA({
         idEventoIA: evento.idEventoIA,
         tipo: evento.tipo,
         idEstablecimiento: evento.idEstablecimiento,
@@ -408,11 +421,31 @@ export async function procesarEventosPendientes() {
             }
           }
         },
+      },
+        updatePromedioData
+      );
 
-      });
 
-      console.log(`[CRON] evento procesado: ${evento.idEventoIA}`);
+      if (!result.procesado) {
+        console.log(`[CRON] Evento ${evento.idEventoIA} no pudo ser procesado, se omite`)
+        continue
+      }
+      
       eventosProcesados++
+
+      if (result.error) {
+        throw new AppError(`[CRON] Error de comunicacion con python, Errores: ${result.error}`, 400)
+      }
+
+      if (!result.resultado) {
+        throw new AppError(`[CRON] Error de respuesta: No vino la respuesta o su formato es incorrecto`, 400)
+      }
+
+
+      console.log(`[CRON] evento: ${evento.idEventoIA} procesado correctamente`);
+      console.log(`[CRON] Estado/Resultado: ${result.resultado.resultado}`);
+      console.log(`[CRON] Alerta de IA creadas: ${result.resultado.alerta ? "SI" : "NO"}`);
+
     } catch (error) {
       console.error(`[CRON] Error procesando evento ${evento.idEventoIA}`, error);
     }

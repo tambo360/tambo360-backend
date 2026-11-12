@@ -63,7 +63,7 @@ export class IALoteService {
             return
         })
 
-        return 
+        return
     }
 
     async createPromedioProductivo(tx: Prisma.TransactionClient, idEstablecimiento: string, ambitoPromedio: AmbitoPromedioProductivo) {
@@ -76,39 +76,49 @@ export class IALoteService {
         })
     }
 
-    async updatePromedioProductivo(tx: Prisma.TransactionClient, data: UpdatePromedioProductivoParams) {
+    async updatePromedioProductivo(tx: Prisma.TransactionClient | null, data: UpdatePromedioProductivoParams) {
+
         const { promedioLitrosPorAnimal, LIMITE_ALCANZADO, loteMasViejo, fechaDesde, fechaHasta } = await this.generateNewPromedioProductivo(data.LotesHistorial, data.loteActual)
 
-        const promedioProductivo = await tx.promedioProductivo.update({
-            where: {
-                idEstablecimiento_ambito: {
-                    idEstablecimiento: data.idEstablecimiento,
-                    ambito: data.ambitoPromedio,
-                }
-            },
-            data: {
-                promedioLitrosPorAnimal: promedioLitrosPorAnimal,
-                ...(LIMITE_ALCANZADO ? {} : { cantidadLotes: { increment: 1 } }),
-                periodoDesde: fechaDesde,
-                periodoHasta: fechaHasta
-            }
-        })
+        const ejecutarOperaciones = async (prismaTX: Prisma.TransactionClient) => {
 
-        if (LIMITE_ALCANZADO && loteMasViejo) {
-            await tx.promedioProductivoLote.delete({
+            const promedioProductivo = await prismaTX.promedioProductivo.update({
                 where: {
-                    idPromedioProductivoLote: loteMasViejo.idPromedioProductivoLote
+                    idEstablecimiento_ambito: {
+                        idEstablecimiento: data.idEstablecimiento,
+                        ambito: data.ambitoPromedio,
+                    }
                 },
+                data: {
+                    promedioLitrosPorAnimal: promedioLitrosPorAnimal,
+                    ...(LIMITE_ALCANZADO ? {} : { cantidadLotes: { increment: 1 } }),
+                    periodoDesde: fechaDesde,
+                    periodoHasta: fechaHasta
+                }
+            })
+
+            if (LIMITE_ALCANZADO && loteMasViejo) {
+                await prismaTX.promedioProductivoLote.delete({
+                    where: {
+                        idPromedioProductivoLote: loteMasViejo.idPromedioProductivoLote
+                    },
+                });
+            }
+
+            await prismaTX.promedioProductivoLote.create({
+                data: {
+                    idLote: data.loteActual.idLote,
+                    idPromedioProductivo: promedioProductivo.idPromedioProductivo,
+                    creadoEn: fechaHasta
+                }
             });
         }
 
-        await tx.promedioProductivoLote.create({
-            data: {
-                idLote: data.loteActual.idLote,
-                idPromedioProductivo: promedioProductivo.idPromedioProductivo,
-                creadoEn: fechaHasta
-            }
-        });
+        if (tx) {
+            return ejecutarOperaciones(tx);
+        } else {
+            return prisma.$transaction(ejecutarOperaciones);
+        }
     }
 
     async generateNewPromedioProductivo(lotesHistorial: PromedioProductivoLotesParams[], loteActual: { cantidad: number, cantAnimales: number }) {

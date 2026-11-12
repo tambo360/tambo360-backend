@@ -1,9 +1,11 @@
 import { EstadoEjecucionIA, EstadoEventoIA, Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { ErrorEjecucionIA, MetricasEjecucionIA, EstadoEjecucionIAType, FinalizarEjecucionParams } from "../types/ia.execution.types";
+import { UpdatePromedioProductivoParams, } from "../types/ia-lote.types";
 import { AlertaIAResponse } from "../types/ia.types";
 import { EjecucionIAError } from "../errors/python-ia.error";
 import { calcularProximoIntento } from "../utils/reintentos";
+import IALoteService  from "./ia-lote.service";
 
 /**
  * Inicia un nuevo intento.
@@ -88,8 +90,8 @@ export async function iniciarEjecucion(idEventoIA: string, tokenBloqueo: string)
  * Si Python devolvió una alerta, también la guarda.
  * La alerta, la ejecución y el evento se confirman en una transacción.
  */
-export async function finalizarEjecucionExitosa(idEjecucionIA: string, tokenBloqueo: string, metricas?: MetricasEjecucionIA, alerta?: AlertaIAResponse | null) {
-    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.COMPLETED, metricas, alerta, });
+export async function finalizarEjecucionExitosa(idEjecucionIA: string, tokenBloqueo: string, updatePromedioData: UpdatePromedioProductivoParams, metricas?: MetricasEjecucionIA, alerta?: AlertaIAResponse | null) {
+    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.COMPLETED, metricas, alerta, updatePromedioData });
 }
 
 /**
@@ -99,15 +101,16 @@ export async function finalizarEjecucionExitosa(idEjecucionIA: string, tokenBloq
  * el evento vuelve a PENDING. En caso contrario, pasa a FAILED.
  */
 export async function finalizarEjecucionFallida(idEjecucionIA: string, tokenBloqueo: string, error: ErrorEjecucionIA, metricas?: MetricasEjecucionIA) {
-    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.FAILED, error, metricas, });
+    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.FAILED, error, metricas });
 }
 
 interface FinalizarEjecucionConAlertaParams
     extends FinalizarEjecucionParams {
     alerta?: AlertaIAResponse | null;
+    updatePromedioData?: UpdatePromedioProductivoParams | null
 }
 
-async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, error, metricas, alerta, }: FinalizarEjecucionConAlertaParams) {
+async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, error, metricas, alerta, updatePromedioData }: FinalizarEjecucionConAlertaParams) {
     return prisma.$transaction(async (tx) => {
         const ahora = new Date();
 
@@ -267,6 +270,10 @@ async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, er
                     }),
                 },
             });
+        }
+
+        if (esExitosa && updatePromedioData) {
+            await IALoteService.updatePromedioProductivo(tx, updatePromedioData);
         }
 
         return tx.aiAnalysisExecution.findUniqueOrThrow({
