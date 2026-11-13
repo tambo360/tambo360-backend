@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
@@ -148,37 +147,27 @@ export class PrecioMercadoService {
             });
         }
 
-        const precioAnterior = Number(existente.precioLitro);
-
-        const cambioPrecio =
-            precioAnterior !== publicado.precioLitro;
-
         const cambioPeriodo =
             existente.mes !== publicado.mes ||
             existente.anio !== publicado.anio;
 
         /*
-         * Si cambia el importe, conserva el valor anterior.
-         * Si cambia solamente el período, mantiene el precio anterior
-         * sin modificarlo.
+         * Si cambia el período, el precio actual anterior pasa a ser
+         * el precio previo del nuevo período.
          *
-         * ultimaConsulta se actualiza siempre que la consulta oficial
-         * haya sido exitosa, incluso cuando no cambió el precio.
+         * Si cambia el precio dentro del mismo período, solamente se
+         * actualiza el precio actual y se conserva el precio previo.
          */
         return prisma.precioMercado.update({
             where: {
                 idPrecioMercado: existente.idPrecioMercado,
             },
             data: {
-                ...(cambioPrecio
-                    ? {
-                        precioLitro: publicado.precioLitro,
-                        precioLitroPrevio: existente.precioLitro,
-                    }
-                    : {}),
+                precioLitro: publicado.precioLitro,
 
                 ...(cambioPeriodo
                     ? {
+                        precioLitroPrevio: existente.precioLitro,
                         mes: publicado.mes,
                         anio: publicado.anio,
                     }
@@ -210,10 +199,26 @@ export class PrecioMercadoService {
             );
         }
 
+        const precioLitro = Number(registro.precioLitro);
+        const precioLitroPrevio = Number(registro.precioLitroPrevio);
+
+        // Calcula la variación porcentual respecto del período anterior.
+        const variacion =
+            Number.isFinite(precioLitroPrevio) && precioLitroPrevio > 0
+                ? Number(
+                    (
+                        ((precioLitro - precioLitroPrevio) /
+                            precioLitroPrevio) *
+                        100
+                    ).toFixed(2)
+                )
+                : null;
+
         return {
-            precioLitro: Number(registro.precioLitro),
+            precioLitro,
             mes: registro.mes,
             anio: registro.anio,
+            variacion,
             ultimaConsulta: registro.ultimaConsulta,
         };
     }

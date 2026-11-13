@@ -481,6 +481,11 @@
  *                       type: integer
  *                       description: Año correspondiente al precio publicado.
  *                       example: 2026
+ *                     variacion:
+ *                       type: number
+ *                       nullable: true
+ *                       description: Variación porcentual respecto del precio del período anterior. Es positivo si aumentó, negativo si disminuyó y cero si se mantuvo. Es null cuando no existe un precio anterior válido.
+ *                       example: 2.49
  *                     ultimaConsulta:
  *                       type: string
  *                       format: date-time

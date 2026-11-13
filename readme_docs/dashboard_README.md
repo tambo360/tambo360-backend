@@ -440,6 +440,7 @@ x-establecimiento-id: 550e8400-e29b-41d4-a716-446655440001
     "precioLitro": 500.16,
     "mes": 9,
     "anio": 2026,
+    "variacion": 2.49,
     "ultimaConsulta": "2026-10-01T09:00:00.000Z"
   }
 }
@@ -454,7 +455,16 @@ Los valores del ejemplo son ilustrativos.
 | `precioLitro` | number | Precio nacional de mercado por litro, expresado en ARS |
 | `mes` | number | Mes correspondiente al precio publicado (1 a 12) |
 | `anio` | number | Año correspondiente al precio publicado |
+| `variacion` | number \| null | Variación porcentual respecto del precio del período anterior. Es positiva si aumentó, negativa si disminuyó y cero si se mantuvo. Es `null` cuando no existe un precio anterior válido |
 | `ultimaConsulta` | string (ISO 8601) | Fecha y hora de la última consulta exitosa a la fuente oficial |
+
+La variación se calcula mediante la siguiente fórmula:
+
+```text
+variacion = ((precioLitro - precioLitroPrevio) / precioLitroPrevio) * 100
+```
+
+El resultado se redondea a dos decimales. Si no existe un precio anterior válido o su valor es cero, el endpoint devuelve `null` para evitar una división por cero.
 
 #### Posibles Errores
 
@@ -465,18 +475,3 @@ Los valores del ejemplo son ilustrativos.
 | 503 | No hay un precio nacional de mercado válido disponible |
 
 Si la consulta a la fuente oficial falla durante la actualización automática, se conserva el último precio válido almacenado. Si todavía no existe un precio válido, el endpoint devuelve un error `503`.
-
----
-
-## Notas
-
-- `/dashboard/costos` agrupa los costos directos de los lotes del mes actual por `tipoCosto` y `moneda`; las fechas se calculan automáticamente para el mes en curso.
-- `/dashboard/mes-actual` y `/dashboard/litros-libres` trabajan sobre el mes calendario actual.
-- `/dashboard/litros-libres` solo suma lotes de la categoría `leches` cuya unidad es litros; los costos generales se toman de todo el mes sin distinguir categoría.
-- `/dashboard/grafico` devuelve 7 puntos mensuales (6 meses anteriores + el mes actual) aunque el mensaje de respuesta diga "últimos 6 meses".
-- `/dashboard/costos-generales` con `6meses` excluye el mes actual; para ver el mes en curso usar `1mes`.
-- `/dashboard/precio-mercado` devuelve el último precio nacional de mercado de la leche por litro almacenado en la base de datos.
-- El precio nacional de mercado se actualiza automáticamente el día 1 de cada mes a las 06:00 mediante una tarea programada.
-- Si falla la consulta a la fuente oficial durante la actualización, se conserva el último precio válido almacenado.
-- El precio nacional de mercado es independiente del precio por litro configurado en cada establecimiento y no modifica los cálculos de `/dashboard/litros-libres`.
-- Todos los datos específicos de un establecimiento se filtran por el establecimiento indicado en `x-establecimiento-id`.
