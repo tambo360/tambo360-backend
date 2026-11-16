@@ -124,6 +124,11 @@ export const crearResumenesMensuales = async (data: crearResumenesMensualesParam
         }
       })
 
+      if (lotes.length <= 0) {
+        console.warn(`[CRON] El establecimiento: ${est.idEstablecimiento} no tiene lotes existentes, se omite`);
+        continue;
+      }
+
       const costos = await prisma.costoGeneral.findMany({
         where: {
           idEstablecimiento: est.idEstablecimiento,
