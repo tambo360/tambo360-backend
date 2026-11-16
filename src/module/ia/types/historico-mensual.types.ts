@@ -1,5 +1,5 @@
 
-import { CategoriaCostoResumen } from "@prisma/client";
+import { CategoriaCostoResumen, CostoGeneral } from "@prisma/client";
 
 /**
  * Representa un costo correspondiente a una categoría
@@ -42,4 +42,28 @@ export interface ResumenMensualHistorico {
  */
 export interface HistoricoMensualResponse {
   historico: ResumenMensualHistorico[];
+}
+
+
+export interface crearResumenesMensualesParams {
+  mes: number,
+  anio: number,
+  fechaDesde: Date,
+  fechaHasta: Date
+}
+
+export interface crearResumenMensualParams {
+  costos: CostoGeneral[],
+  idEstablecimiento: string,
+  anio: number,
+  mes: number,
+  fechaDesde: Date,
+  fechaHasta: Date,
+  cantidadLotes: number,
+  litrosProduccion: number,
+  litrosMermas:     number,
+  litrosTotales:    number,
+  litrosLibres:     number,
+  costosTotales: number
+  costoPorLitro: number
 }

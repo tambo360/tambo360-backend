@@ -556,7 +556,7 @@ enum AmbitoPromedioProductivo {
 enum CategoriaCostoResumen {
   ALIMENTACION
   SANIDAD
-  MANO_OBRA
+  PERSONAL
   ENERGIA
   MANTENIMIENTO
   LOGISTICA
@@ -565,6 +565,7 @@ enum CategoriaCostoResumen {
   INMUEBLE
   OTRO
 }
+
 
 model AiAnalysisEvent {
   idEventoIA        String         @id @default(uuid(7))
@@ -736,4 +737,5 @@ model PrecioMercado {
   fuente            String
   creadoEn          DateTime @default(now())
   actualizadoEn     DateTime @updatedAt
+   @@unique([mes, anio])
 }

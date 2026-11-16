@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { EstadoEjecucionIA, EstadoEventoIA, Prisma, TipoRodeo } from "@prisma/client";
+import { EstadoEjecucionIA, EstadoEventoIA, Prisma, TipoEventoIA, TipoRodeo } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { CrearEventoIAParams, FallarEventoIAParams, ReactivarEventoIAParams, TipoSeguimiento, } from "../types/ia.types";
 import { calcularProximoIntento } from "../utils/reintentos";
@@ -309,12 +309,12 @@ export async function reactivarEventoIA({ idEventoIA, intentosAdicionales, }: Re
 
 
 // BUSca eventos pendientes para procesar, obtiene los eventos que están en estado PENDING y que no tienen un bloqueo activo. Esto permite que los procesos de análisis de IA puedan reclamar y procesar estos eventos. SOLO EVENTOS TIPO LOT_CLOSED
-export async function obtenerEventosPendientes(take: number) {
+export async function obtenerEventosPendientes(take: number, tipo: TipoEventoIA) {
   const ahora = new Date();
   return prisma.aiAnalysisEvent.findMany({
     where: {
       estado: EstadoEventoIA.PENDING,
-      tipo: "LOT_CLOSED",
+      tipo: tipo,
       OR: [
         { bloqueadoHasta: null },
         { bloqueadoHasta: { lte: ahora } },
@@ -356,9 +356,9 @@ export async function obtenerEventosPendientes(take: number) {
 }
 
 //recibe los eventos pendientes y los procesa uno por uno, utilizando la función procesarEventoIA para cada evento. Esto permite que los eventos pendientes sean procesados de manera secuencial.
-export async function procesarEventosPendientes() {
+export async function procesarEventosLotesPendientes() {
   let eventosProcesados = 0
-  const eventosPendientes = await obtenerEventosPendientes(eventosPorCicloCRON);
+  const eventosPendientes = await obtenerEventosPendientes(eventosPorCicloCRON, "LOT_CLOSED");
   console.log(`[CRON] EVENTOS PENDIENTES ENCONTRADOS: ${eventosPendientes.length}`);
 
   for (const evento of eventosPendientes) {
@@ -457,6 +457,7 @@ export async function procesarEventosPendientes() {
   }
 
 }
+
 
 
 export async function obtenerPromedioProductivo(tx: Prisma.TransactionClient | null, idEstablecimiento: string, tipoSeguimiento: TipoSeguimiento, tipoRodeo: TipoRodeo | null) {
