@@ -4,7 +4,8 @@ import { TipoToken, Usuario } from "@prisma/client";
 import { RegisterData } from "../schemas/authSchema";
 import { comparePassword, hashPassword } from "../utils/password";
 import { generateToken, hashToken } from "../utils/token";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./mailService";
+import { sendAccountExistsEmail, sendPasswordResetEmail, sendVerificationEmail } from "./mailService";
+import { AppError } from "../utils/AppError";
 
 class UserService {
   private users: User[] = [];
@@ -14,38 +15,70 @@ class UserService {
 
 
   async findByEmail(email: Usuario["correo"]) {
-    return prisma.usuario.findUnique({ where: { correo: email }, include: { establecimientos: true } });
+    return prisma.usuario.findUnique({
+      where: { correo: email }, include: {
+        organizaciones: {
+          select: {
+            rol: true,
+            organizacion: {
+              select: {
+                nombre: true,
+                idOrganizacion: true,
+                establecimientos: {
+                  select: {
+                    idEstablecimiento: true,
+                    nombre: true,
+                    cuestionarioCompletado: true
+                  }
+                }
+              }
+            },
+          }
+        }
+      }
+    });
   }
 
   async getAllUsers() {
-    return prisma.usuario.findMany({ include: { establecimientos: true } });
+    return prisma.usuario.findMany({ include: { organizaciones: true } });
   }
 
   async findById(id: Usuario["idUsuario"]) {
     console.log("Buscando usuario por ID:", id);
-    return prisma.usuario.findUnique({ 
-      where: { idUsuario: id }, 
+    return prisma.usuario.findUnique({
+      where: { idUsuario: id },
       select: {
         idUsuario: true,
         nombre: true,
         correo: true,
         verificado: true,
-        establecimientos: true
+        organizaciones: {
+          include: {
+            establecimientoOrganizacionUsuarios: true
+          }
+        }
       }
-    
+
     });
   }
 
   async create(userData: RegisterData) {
     const existingUser = await this.findByEmail(userData.correo);
+
     if (existingUser) {
-      throw new Error('El email ya está registrado');
+      if (!existingUser.verificado) {
+        await this.resendVerificationEmail(existingUser.correo);
+      } else {
+        const loginLink = `${process.env.FRONTEND_URL}/iniciar-sesion`;
+        const recoverLink = `${process.env.FRONTEND_URL}/recuperar-contrasena`;
+        await sendAccountExistsEmail(existingUser.correo, loginLink, recoverLink);
+      }
+      return null;
     }
 
     const hashedPassword = await hashPassword(userData.contraseña);
-    const rawToken = generateToken()
-    const hashedToken = hashToken(rawToken)
-
+    const rawToken = generateToken();
+    const hashedToken = hashToken(rawToken);
 
     const result = await prisma.$transaction(async (prisma) => {
       const newUser = await prisma.usuario.create({
@@ -53,7 +86,6 @@ class UserService {
           nombre: userData.nombre,
           correo: userData.correo,
           contrasena: hashedPassword
-
         },
         select: {
           idUsuario: true,
@@ -62,143 +94,129 @@ class UserService {
           verificado: true,
           fechaCreacion: true
         }
-      })
+      });
 
-      const newToken = await prisma.verificarToken.create({
+      await prisma.verificarToken.create({
         data: {
           idUsuario: newUser.idUsuario,
           tipo: TipoToken.verificacion,
           tokenHash: hashedToken,
-          expiraEn: new Date(Date.now() + 24 * 60 * 60 * 1000) // Expira en 24 horas
+          expiraEn: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
-      })
-      return newUser;
-    })
+      });
 
-    if (!result) {
-      throw new Error('Error al crear el usuario');
-    }
+      return newUser;
+    });
 
     const link = `${process.env.FRONTEND_URL}/verificar?token=${rawToken}`;
-
     await sendVerificationEmail(result.correo, link);
 
     return result;
   }
 
   async verifyEmail(token: string) {
-  const hashedToken = hashToken(token);
+    const hashedToken = hashToken(token);
 
-  const response = await prisma.$transaction(async (tx) => {
-    const tokenRecord = await tx.verificarToken.findFirst({
-      where: {
-        tokenHash: hashedToken,
-        tipo: TipoToken.verificacion
-      },
-      include: {
-        usuario: {
-          include: {
-            establecimientos: true
+    const response = await prisma.$transaction(async (tx) => {
+      const tokenRecord = await tx.verificarToken.findFirst({
+        where: {
+          tokenHash: hashedToken,
+          tipo: TipoToken.verificacion
+        },
+        include: {
+          usuario: {
+            include: {
+              organizaciones: {
+                include: {
+                  establecimientoOrganizacionUsuarios: true
+                }
+              }
+            }
           }
         }
+      });
+
+      if (!tokenRecord) {
+        throw new AppError("Token de verificación inválido", 400);
       }
-    });
 
-    if (!tokenRecord) {
-      throw new Error("Token de verificación inválido");
-    }
+      // Si ya fue usado, no rompemos (idempotencia)
+      if (tokenRecord.usadoEn) {
+        return tokenRecord.usuario;
+      }
 
-    // Si ya fue usado, no rompemos (idempotencia)
-    if (tokenRecord.usadoEn) {
+      if (tokenRecord.expiraEn < new Date()) {
+        throw new AppError("Token de verificación expirado", 400);
+      }
+
+      //  Actualizamos usuario
+      await tx.usuario.update({
+        where: { idUsuario: tokenRecord.idUsuario },
+        data: { verificado: true }
+      });
+
+      //  Marcamos token como usado (NO lo borramos)
+      await tx.verificarToken.update({
+        where: { tokenid: tokenRecord.tokenid },
+        data: { usadoEn: new Date() }
+      });
+
+
+
       return tokenRecord.usuario;
-    }
-
-    if (tokenRecord.expiraEn < new Date()) {
-      throw new Error("Token de verificación expirado");
-    }
-
-    //  Actualizamos usuario
-    await tx.usuario.update({
-      where: { idUsuario: tokenRecord.idUsuario },
-      data: { verificado: true }
     });
 
-    //  Marcamos token como usado (NO lo borramos)
-    await tx.verificarToken.update({
-      where: { tokenid: tokenRecord.tokenid },
-      data: { usadoEn: new Date() }
-    });
-
-
-
-    return tokenRecord.usuario;
-  });
-
-  return response
-}
+    return response
+  }
 
   async resendVerificationEmail(email: string) {
     const user = await this.findByEmail(email);
-    if (!user) {
-      throw new Error('Usuario no encontrado');
+
+    if (!user || user.verificado) {
+      return;
     }
 
-    if (user.verificado) {
-      throw new Error('El email ya está verificado');
-    }
+    const rawToken = generateToken();
+    const hashedToken = hashToken(rawToken);
 
-    const rawToken = generateToken()
-    const hashedToken = hashToken(rawToken)
-
-    const result = await prisma.$transaction(async (prisma) => {
+    await prisma.$transaction(async (prisma) => {
       await prisma.verificarToken.deleteMany({
         where: {
           idUsuario: user.idUsuario,
-          tipo: TipoToken.verificacion,
-          expiraEn: {
-            gt: new Date()
-          }
+          tipo: TipoToken.verificacion
         }
-      })
+      });
 
-      const tokenRecord = await prisma.verificarToken.create({
+      await prisma.verificarToken.create({
         data: {
           idUsuario: user.idUsuario,
           tipo: TipoToken.verificacion,
           tokenHash: hashedToken,
-          expiraEn: new Date(Date.now() + 24 * 60 * 60 * 1000) // Expira en 24 horas
+          expiraEn: new Date(Date.now() + 24 * 60 * 60 * 1000)
         }
-      })
-
-      return tokenRecord;
-    })
-
-    if (!result) {
-      throw new Error('Error al generar el token de verificación');
-    }
+      });
+    });
 
     const link = `${process.env.FRONTEND_URL}/verificar?token=${rawToken}`;
-
     await sendVerificationEmail(user.correo, link);
   }
 
   async authenticate(email: string, password: string) {
     const user = await this.findByEmail(email);
-    if (!user) {
-      throw new Error('Usuario no encontrado');
-    }
 
-    const isPasswordValid = await comparePassword(password, user.contrasena);
-    if (!isPasswordValid) {
-      throw new Error('Credenciales inválidas');
+    const isPasswordValid = user
+      ? await comparePassword(password, user.contrasena)
+      : false;
+
+    if (!user || !isPasswordValid) {
+      throw new AppError('Correo o contraseña incorrectos', 401);
     }
 
     if (!user.verificado) {
-      throw new Error('El email no ha sido verificado');
+      throw new AppError('El email no ha sido verificado', 403);
     }
 
     return user;
-
   }
 
   async forgotPassword(email: string) {
@@ -235,7 +253,7 @@ class UserService {
     })
 
     if (!tokenRecord) {
-      throw new Error('Error al generar el token de recuperación');
+      throw new AppError('Error al generar el token de recuperación', 500);
     }
 
     const link = `${process.env.FRONTEND_URL}/recuperar-contrasena?token=${rawToken}`;
@@ -258,11 +276,11 @@ class UserService {
     })
 
     if (!tokenRecord || tokenRecord.tipo !== TipoToken.recuperacion) {
-      throw new Error('Token de recuperación inválido');
+      throw new AppError('Token de recuperación inválido', 400);
     }
 
     if (tokenRecord.expiraEn < new Date()) {
-      throw new Error('Token de recuperación expirado');
+      throw new AppError('Token de recuperación expirado', 400);
     }
 
     return tokenRecord;
@@ -273,7 +291,7 @@ class UserService {
     const hashedPassword = await hashPassword(newPassword);
 
     if (!tokenRecord) {
-      throw new Error('Token de recuperación inválido o expirado');
+      throw new AppError('Token de recuperación inválido o expirado', 400);
     }
 
     await prisma.$transaction(async (prisma) => {

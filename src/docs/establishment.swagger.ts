@@ -7,10 +7,10 @@
 
 /**
  * @swagger
- * /establecimiento/registrar:
+ * /establecimiento/:
  *   post:
- *     summary: Crear un nuevo establecimiento
- *     description: Permite registrar un establecimiento para un usuario autenticado. Cada usuario solo puede tener un establecimiento.
+ *     summary: Crear un establecimiento en la organización actual
+ *     description: Crea un establecimiento dentro de la organización indicada por x-organizacion-id. El usuario que realiza la operación queda asociado como OWNER y se crea una configuración inicial.
  *     tags: [Establecimientos]
  *     security:
  *       - bearerAuth: []   # Si usas JWT
@@ -20,23 +20,14 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - nombre
- *               - localidad
- *               - provincia
+ *             required: [nombre]
  *             properties:
  *               nombre:
  *                 type: string
- *                 description: Nombre del establecimiento
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: Nombre del establecimiento, único dentro de la organización
  *                 example: Establecimiento Norte
- *               localidad:
- *                 type: string
- *                 description: Localidad del establecimiento
- *                 example: Rafaela
- *               provincia:
- *                 type: string
- *                 description: Provincia del establecimiento
- *                 example: Santa Fe
  *     responses:
  *       201:
  *         description: Establecimiento creado correctamente
@@ -63,16 +54,21 @@
  *                       example: Establecimiento Norte
  *                     localidad:
  *                       type: string
- *                       example: Rafaela
+ *                       nullable: true
  *                     provincia:
  *                       type: string
- *                       example: Santa Fe
- *                     idUsuario:
+ *                       nullable: true
+ *                     fechaCreacion:
+ *                       type: string
+ *                       format: date-time
+ *                     idOrganizacion:
  *                       type: string
  *                       format: uuid
- *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       400:
- *         description: Datos inválidos o usuario ya tiene establecimiento
+ *         description: Datos inválidos, acceso a organización no válido o nombre duplicado dentro de la organización
  *         content:
  *           application/json:
  *             schema:
@@ -83,7 +79,7 @@
  *                   example: 400
  *                 message:
  *                   type: string
- *                   example: "Todos los campos son obligatorios o el usuario ya tiene un establecimiento"
+ *                   example: "Ya existe un establecimiento con ese nombre en la organización"
  *                 data:
  *                   type: null
  *       401:
@@ -103,6 +99,199 @@
  *                   type: null
  */
 
+/**
+ * @swagger
+ * /establecimiento/cuestionario:
+ *   post:
+ *     summary: Registrar cuestionario del establecimiento
+ *     description: Registra la configuración del establecimiento y, según el tipo de seguimiento, sincroniza rodeos o animales. El establecimiento se toma del contexto y no se envía en el body.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - TipoSeguimiento
+ *               - cantOrdenie
+ *               - tipoOrdenie
+ *               - promDEL
+ *               - promLitros
+ *               - ventaLeche
+ *               - precioLitro
+ *               - ubicacion
+ *             properties:
+ *               TipoSeguimiento:
+ *                 type: string
+ *                 enum: [RODEO, RODEO_UNICO, INDIVIDUAL]
+ *                 example: RODEO
+ *               cantOrdenie:
+ *                 type: integer
+ *                 example: 2
+ *               tipoOrdenie:
+ *                 type: string
+ *                 enum: [balde, linea, espina_de_pescado, rotativo, manual, otro]
+ *                 example: linea
+ *               promLitros:
+ *                 type: number
+ *                 example: 25.5
+ *               promDEL:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 description: Promedio de días en leche (DEL).
+ *                 example: 120
+ *               ventaLeche:
+ *                 type: string
+ *                 enum: [USINA, COOPERTIVA, ELABORACION_PROPIA, VENTA_DIRECTA_MERCADO_LOCAL]
+ *                 example: USINA
+ *               precioLitro:
+ *                 type: number
+ *                 exclusiveMinimum: 0
+ *                 example: 42.5
+ *               productos:
+ *                 type: array
+ *                 description: Productos asociados al establecimiento. Puede incluir productos existentes o nuevos.
+ *                 items:
+ *                   oneOf:
+ *                     - type: object
+ *                       required: [tipo, idProducto, nombre]
+ *                       properties:
+ *                         tipo:
+ *                           type: string
+ *                           enum: [existente]
+ *                           example: existente
+ *                         idProducto:
+ *                           type: string
+ *                           format: uuid
+ *                           example: "550e8400-e29b-41d4-a716-446655440300"
+ *                         nombre:
+ *                           type: string
+ *                           example: Leche Fresca
+ *                     - type: object
+ *                       required: [tipo, nombre, categoria]
+ *                       properties:
+ *                         tipo:
+ *                           type: string
+ *                           enum: [nuevo]
+ *                           example: nuevo
+ *                         nombre:
+ *                           type: string
+ *                           example: Yogur Natural
+ *                         categoria:
+ *                           type: string
+ *                           enum: [quesos, leches, yogures, otros]
+ *                           example: yogures
+ *               rodeos:
+ *                 type: array
+ *                 description: Requerido para RODEO y RODEO_UNICO. La cantidad de vacas se calcula sumando las cantidades de sus razas. RODEO exige al menos un rodeo de cada tipo ALTA_PRODUCCION, BAJA_PRODUCCION y VACAS_SECAS; RODEO_UNICO exige al menos un rodeo UNICO_ORDENIE y uno UNICO_SECA.
+ *                 items:
+ *                   type: object
+ *                   required: [tipoRodeo, costoRacion, razas]
+ *                   properties:
+ *                     tipoRodeo:
+ *                       type: string
+ *                       enum: [ALTA_PRODUCCION, BAJA_PRODUCCION, VACAS_SECAS, UNICO_ORDENIE, UNICO_SECA]
+ *                       example: ALTA_PRODUCCION
+ *                     costoRacion:
+ *                       type: number
+ *                       example: 150.5
+ *                     razas:
+ *                       type: array
+ *                       minItems: 1
+ *                       items:
+ *                         type: object
+ *                         required: [raza, cantVacas]
+ *                         properties:
+ *                           raza:
+ *                             type: string
+ *                             enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                             example: HOLANDO_ARGENTINO
+ *                           cantVacas:
+ *                             type: integer
+ *                             minimum: 1
+ *                             example: 40
+ *               animales:
+ *                 type: array
+ *                 description: Requerido para INDIVIDUAL. La cantidad total de animales se calcula a partir del array.
+ *                 items:
+ *                   type: object
+ *                   required: [categoria, estado, raza]
+ *                   properties:
+ *                     codigo:
+ *                       type: string
+ *                       example: A-001
+ *                     nombre:
+ *                       type: string
+ *                       example: Animal 1
+ *                     categoria:
+ *                       type: string
+ *                       enum: [ORDENE, SECAS]
+ *                       example: ORDENE
+ *                     estado:
+ *                       type: string
+ *                       enum: [MASTITIS, TRATAMIENTO, PREPARTO, SANO]
+ *                       example: SANO
+ *                     fechaNacimiento:
+ *                       type: string
+ *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
+ *                       example: "2024-01-01T00:00:00.000Z"
+ *                     observacion:
+ *                       type: string
+ *                       example: "Animal en seguimiento"
+ *                     fechaParto:
+ *                       type: string
+ *                       format: date-time
+ *                       description: String convertible a fecha JavaScript.
+ *                       example: "2026-07-20T00:00:00.000Z"
+ *                     raza:
+ *                       type: string
+ *                       enum: [HOLANDO_ARGENTINO, JERSEY, PARDO_SUIZO, GIR_LECHERO, HOLANDO_JERSEY_CRUZA, AYRSHIRE, NORMANDO, BROWN_SWISS, MONTBELIARDE, SIMMENTAL_LECHERO, OTRAS]
+ *                       example: HOLANDO_ARGENTINO
+ *               ubicacion:
+ *                 type: object
+ *                 required:
+ *                   - provincia
+ *                   - localidad
+ *                 properties:
+ *                   provincia:
+ *                     type: string
+ *                     example: Córdoba
+ *                   localidad:
+ *                     type: string
+ *                     example: Villa María
+ *     responses:
+ *       201:
+ *         description: Cuestionario registrado correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Cuestionario registrado correctamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                       example: success
+ *       400:
+ *         description: Datos inválidos, faltan rodeos/animales, falta una raza, un animal de categoría ORDENE tiene un estado distinto de SANO o se exceden los límites del seguimiento individual
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Requiere rol OWNER o ADMIN del establecimiento y ORG_OWNER de la organización
+ *       404:
+ *         description: Establecimiento no encontrado
+ */
 /**
  * @swagger
  * /establecimiento/listar:
@@ -146,6 +335,9 @@
  *                       type: string
  *                       format: uuid
  *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       401:
  *         description: Usuario no autenticado
  *         content:
@@ -159,6 +351,158 @@
  *                 message:
  *                   type: string
  *                   example: Usuario no autenticado
+ *                 data:
+ *                   type: null
+ */
+
+/**
+ * @swagger
+ * /establecimiento/invitacion/{idInvitacion}:
+ *   delete:
+ *     summary: Eliminar una invitación de establecimiento
+ *     description: Elimina una invitación pendiente asociada al establecimiento del usuario autenticado.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: idInvitacion
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID de la invitación a eliminar
+ *     responses:
+ *       200:
+ *         description: Invitación eliminada correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitación eliminada correctamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     idInvitacion:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f"
+ *                     idEstablecimiento:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     correo:
+ *                       type: string
+ *                       example: "usuario@dominio.com"
+ *                     estado:
+ *                       type: string
+ *                       example: "pendiente"
+ *       400:
+ *         description: La invitación ya fue procesada o datos inválidos
+ *       401:
+ *         description: Usuario no autenticado
+ *       403:
+ *         description: Permisos insuficientes o no pertenece al establecimiento
+ *       404:
+ *         description: Invitación no encontrada
+ */
+/**
+ * @swagger
+ * /establecimiento/invitacion:
+ *   get:
+ *     summary: Obtener invitaciones de establecimiento
+ *     description: Lista las invitaciones pendientes asociadas al establecimiento autenticado.
+ *     tags: [Establecimientos]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Invitaciones obtenidas correctamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Invitaciones obtenidas correctamente
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         example: "8e2f7b1a-3b90-4c0a-a4db-df0d2b6f4f8f"
+ *                       correo:
+ *                         type: string
+ *                         example: "usuario@dominio.com"
+ *                       codigo:
+ *                         type: string
+ *                         example: "abc123def456"
+ *                       estado:
+ *                         type: string
+ *                         example: "pendiente"
+ *                       expiracion:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2024-01-08T00:00:00.000Z"
+ *                       rol:
+ *                         type: string
+ *                         example: ADMIN
+ *       400:
+ *         description: Acceso no válido o datos inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: Acceso a establecimiento no válido
+ *                 data:
+ *                   type: null
+ *       401:
+ *         description: Usuario no autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: Usuario no autenticado
+ *                 data:
+ *                   type: null
+ *       403:
+ *         description: Permisos insuficientes para obtener invitaciones
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 403
+ *                 message:
+ *                   type: string
+ *                   example: Permisos insuficientes para obtener invitaciones
  *                 data:
  *                   type: null
  */
@@ -218,6 +562,9 @@
  *                       type: string
  *                       format: uuid
  *                       example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+ *                     cuestionarioCompletado:
+ *                       type: boolean
+ *                       example: false
  *       400:
  *         description: Nombre inválido
  *         content:

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-//import config from "../config";  // Importar config para que se reconozca el token
 
 interface JwtPayload {
   user: {
@@ -9,29 +9,42 @@ interface JwtPayload {
   };
 }
 
-export const authenticate = (
+export const authenticate = async (
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   try {
-    console.log("Cookies recibidas:", req.cookies);
     const token = req.cookies?.token;
 
     if (!token) {
-      throw new AppError("No autenticado", 401); //Si no existe, lanza un error 401, “verificar que exista el token para rutas protegidas y generar un error si no existe”
+      return next(new AppError("No autenticado", 401));
     }
-    //verifica que exista el token
+
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET!
     ) as JwtPayload;
 
-    
-    req.user = { id: decoded.user.idUsuario }; //Se setea  el id del usuario, “en caso de que exista, hacer un req.user.id
+    if (!decoded?.user?.idUsuario) {
+      return next(new AppError("Token inválido o expirado", 401));
+    }
 
+    const user = await prisma.usuario.findUnique({
+      where: { idUsuario: decoded.user.idUsuario }
+    });
+
+    if (!user) {
+      return next(new AppError("Usuario no autorizado", 401));
+    }
+
+    req.user = { id: user.idUsuario };
     next();
   } catch (error) {
-    next(new AppError("Token inválido o expirado", 401));
+    if (error instanceof AppError) {
+      return next(error);
+    }
+
+    return next(new AppError("Token inválido o expirado", 401));
   }
 };

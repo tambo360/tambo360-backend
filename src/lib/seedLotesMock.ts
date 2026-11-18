@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-
+/*
 async function main() {
     const idEstablecimientoMock = "07356209-e6de-4232-b24c-60ea772b11f7";
 
@@ -65,3 +65,4 @@ async function main() {
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
+*/

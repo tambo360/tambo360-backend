@@ -1,231 +1,348 @@
 import { prisma } from "../lib/prisma";
 import { AppError } from "../utils/AppError";
-import { CrearLoteDTO } from "../schemas/batchSchema";
-import { Prisma } from "@prisma/client";
-import { TamboEngineService } from "./tamboEngineService";
+import { CrearLoteDTO, CrearLoteIndividualDTO, CrearLoteRodeoDTO, EditarLoteDTO, EditarLoteIndividualDTO, EditarLoteRodeoDTO, ProduccionAnimalDTO, ProduccionAnimalEditarDTO } from "../schemas/batchSchema"
+import EstablishmentService from "./establishmentsService";
+import { Prisma, TipoSeguimiento } from "@prisma/client";
+//import { TamboEngineService } from "./tamboEngineService";
+import { obtenerTurno } from "../utils";
+import  IALoteService from "../module/ia/services/ia-lote.service";
 
 
 export class LoteService {
 
-    static async crearLote(idUsuario: string, data: CrearLoteDTO) {
-        const establecimiento = await prisma.establecimiento.findFirst({
-            where: { idUsuario },
-        });
+    // HELPER METHODS ------------------------------------------------------------------------------------
 
-        if (!establecimiento) {
-            throw new AppError("El usuario no tiene un establecimiento registrado", 400);
-        }
 
-        const producto = await prisma.producto.findUnique({
-            where: { idProducto: data.idProducto },
-        });
+    private async generateBatchNumber(tx: Prisma.TransactionClient, idEstablecimiento: string) {
+        const config = await tx.configuracion.update({
+            where: { idEstablecimiento: idEstablecimiento },
+            data: { ultimoNumeroLote: { increment: 1 } },
+            select: { ultimoNumeroLote: true }
+        })
 
-        if (!producto) {
-            throw new AppError("El producto seleccionado no existe", 400);
-        }
+        return config.ultimoNumeroLote;
+    }
 
-        const ultimoLote = await prisma.loteProduccion.findFirst({
-            where: { idEstablecimiento: establecimiento.idEstablecimiento },
-            orderBy: { numeroLote: 'desc' }
-        });
+    private async crearLoteRodeo(tx: Prisma.TransactionClient, data: CrearLoteRodeoDTO, idEstablecimiento: string, numeroLote: number, idProducto: string, idConf: string) {
 
-        const nuevoNumeroLote = ultimoLote ? ultimoLote.numeroLote + 1 : 1;
+        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idConf)
 
-        const unidad: "kg" | "litros" = producto.categoria === "quesos" ? "kg" : "litros";
-
-        const lote = await prisma.loteProduccion.create({
+        const lote = await tx.loteProduccion.create({
             data: {
-                idProducto: data.idProducto,
-                idEstablecimiento: establecimiento.idEstablecimiento,
+                idLote: data.idLote,
+                cantAnimales: rodeo.cantVacas,
+                idProducto: idProducto,
+                idEstablecimiento: idEstablecimiento,
                 cantidad: data.cantidad,
-                unidad,
+                unidad: data.unidad,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                rodeoIdRodeo: data.idRodeo,
                 fechaProduccion: data.fechaProduccion ?? undefined,
-                estado: data.estado ?? false,
-                numeroLote: nuevoNumeroLote,
+                ...(data.estado ? { estado: data.estado } : {}),
+                numeroLote: numeroLote,
+                cantBajadas: data.cantBajadas,
+                produccionRodeos: {
+                    create: rodeo.razas.map(raza => ({
+                        idRodeo: rodeo.idRodeo,
+                        idRaza: raza.idRaza,
+                        razaNombre: raza.nombre,
+                        cantVacas: raza.cantVacas
+                    }))
+                }
             },
             include: {
                 producto: {
                     select: {
+                        idProducto: true,
                         nombre: true,
                         categoria: true
                     }
+                },
+                produccionRodeos: true
+            }
+        })
+
+
+        return lote
+    };
+
+    private async validarCantidadProduccion(cantidadLitros: number, animales: ProduccionAnimalDTO[]) {
+        const produccionAnimales = animales.reduce((acc, animal) => acc + Number(animal.litros), 0);
+        if (produccionAnimales !== cantidadLitros) {
+            throw new AppError("La cantidad total de producción no coincide con la cantidad del lote", 400);
+        }
+    }
+
+    private async crearLoteIndividual(tx: Prisma.TransactionClient, data: CrearLoteIndividualDTO, establecimiento: any, numeroLote: number) {
+        const animales = await EstablishmentService.validateAnimals(establecimiento.idEstablecimiento, data.animales.map(a => a.idAnimal))
+        this.validarCantidadProduccion(data.cantidad, data.animales)
+
+        const lote = await tx.loteProduccion.create({
+            data: {
+                idLote: data.idLote,
+                cantAnimales: animales.length,
+                idProducto: data.idProducto,
+                idEstablecimiento: establecimiento.idEstablecimiento,
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                fechaProduccion: data.fechaProduccion ?? undefined,
+                ...(data.estado ? { estado: data.estado } : {}),
+                numeroLote: numeroLote,
+                cantBajadas: data.cantBajadas
+            }
+        })
+
+        await tx.produccionAnimal.createMany({
+            data: data.animales.map(animalDTO => {
+                const animalDB = animales.find(a => a.idAnimal === animalDTO.idAnimal);
+
+                if (!animalDB) {
+                    throw new AppError(`Animal ${animalDTO.idAnimal} no válido`, 400);
                 }
+
+                return {
+                    idAnimal: animalDB.idAnimal,
+                    idLote: lote.idLote,
+                    litros: animalDTO.litros,
+                    estado: animalDB.estado,
+                    destino: animalDTO.destino,
+                    categoria: animalDB.categoria
+                };
+            })
+        });
+
+        return lote
+
+    }
+
+    async obtenerLoteEditable(idLote: string, tx?: Prisma.TransactionClient) {
+        const db = tx ?? prisma;
+        const lote = await db.loteProduccion.findUnique(
+            { where: { idLote } }
+        )
+
+        if (!lote) {
+            throw new AppError("Lote no encontrado", 404)
+        }
+
+        if (lote.estado) {
+            throw new AppError("El lote está completo", 409)
+        }
+
+        return lote
+    }
+
+    private async editarLoteRodeo(tx: Prisma.TransactionClient, idLote: string, data: EditarLoteRodeoDTO, idConfiguracion: string, idEstablecimiento: string) {
+        const producto = data.idProducto ? await EstablishmentService.validateProduct(data.idProducto) : null;
+        const rodeo = await EstablishmentService.validateRodeo(data.idRodeo, idConfiguracion);
+
+        return await tx.loteProduccion.update({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            data: {
+                ...(producto && { idProducto: producto.idProducto }),
+                cantAnimales: rodeo.cantVacas,
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                fechaProduccion: data.fechaProduccion,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                cantBajadas: data.cantBajadas,
+                produccionRodeos: {
+                    create: rodeo.razas.map(raza => ({
+                        idRodeo: rodeo.idRodeo,
+                        idRaza: raza.idRaza,
+                        razaNombre: raza.nombre,
+                        cantVacas: raza.cantVacas
+                    }))
+                }
+            },
+            include: {
+                producto: {
+                    select: {
+                        idProducto: true,
+                        nombre: true,
+                        categoria: true,
+                    },
+                },
+                produccionRodeos: true
+            },
+        });
+    }
+
+    private async sincronizarProduccionesAnimales(tx: Prisma.TransactionClient, idLote: string, animales: ProduccionAnimalEditarDTO[]) {
+        const produccionesActuales = await tx.produccionAnimal.findMany({ where: { idLote }, include: { animal: true } });
+
+        //diccionarios para buscar por idAnimal ------
+        const actuales = new Map(produccionesActuales.map(p => [p.idAnimal, p]));
+        const nuevas = new Map(animales.map(a => [a.idAnimal, a]));
+
+        // Determinar qué producciones crear, eliminar o actualizar --------
+        const crear = animales.filter(a => !actuales.has(a.idAnimal)).map(a => {
+            const infoActual = actuales.get(a.idAnimal)
+            return {
+                idAnimal: a.idAnimal,
+                litros: a.litros,
+                destino: a.destino,
+                estado: infoActual ? infoActual.estado : a.estado,
+                ...(infoActual?.categoria && { categoria: infoActual.categoria }),
+            };
+        });
+
+        const eliminar = produccionesActuales.filter(p => !nuevas.has(p.idAnimal));
+        const actualizar = animales.filter(a => actuales.has(a.idAnimal));
+
+
+        // Ejecutar las operaciones en la base de datos --------
+        if (crear.length > 0) {
+            await tx.produccionAnimal.createMany({
+                data: crear.map(a => ({
+                    idAnimal: a.idAnimal,
+                    idLote,
+                    litros: a.litros,
+                    estado: a.estado,
+                    destino: a.destino
+                })),
+            });
+        }
+
+        if (eliminar.length > 0) {
+            await tx.produccionAnimal.deleteMany({
+                where: {
+                    idProduccionAnimal: {
+                        in: eliminar.map(p => p.idProduccionAnimal),
+                    },
+                },
+            });
+        }
+
+        await Promise.all(
+            actualizar.map(async (animal) => {
+                const actual = actuales.get(animal.idAnimal)!;
+                if (actual.estado === animal.estado && actual.litros.equals(animal.litros)) { return }
+
+                await tx.produccionAnimal.update({
+                    where: { idProduccionAnimal: actual.idProduccionAnimal },
+                    data: {
+                        estado: animal.estado,
+                        litros: animal.litros,
+                        destino: animal.destino
+                    },
+                });
+            })
+        );
+
+    }
+
+    private async editarLoteIndividual(tx: Prisma.TransactionClient, idLote: string, data: EditarLoteIndividualDTO, idEstablecimiento: string) {
+        const producto = data.idProducto ? await EstablishmentService.validateProduct(data.idProducto) : null;
+        await EstablishmentService.validateAnimals(idEstablecimiento, data.animales.map(a => a.idAnimal));
+        this.validarCantidadProduccion(data.cantidad, data.animales);
+
+        const lote = await tx.loteProduccion.update({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+            data: {
+                ...(producto && { idProducto: producto.idProducto }),
+                cantidad: data.cantidad,
+                unidad: data.unidad,
+                fechaProduccion: data.fechaProduccion,
+                tempTanque: data.tempTanque,
+                destino: data.destino,
+                cantAnimales: data.animales.length,
+                cantBajadas: data.cantBajadas
             }
         });
 
-        // Disparar en background el análisis de IA si se creó como completado
-        if (lote.estado) {
-            TamboEngineService.analizarSiCorresponde(establecimiento.idEstablecimiento, lote.idLote);
-        }
+        await this.sincronizarProduccionesAnimales(tx, idLote, data.animales);
 
         return lote;
     }
 
-    static async editarLote(idLote: string, data: Partial<CrearLoteDTO>, idUsuario: string) {
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { establecimiento: true, mermas: true, costosDirectos: true }
-        });
+    // SERVICE METHODS ------------------------------------------------------------------------------------
 
-        if (!lote) throw new AppError("El lote no existe", 404);
+    async crearLote(data: CrearLoteDTO, idEstablecimiento: string) {
+        const establecimiento = await EstablishmentService.obtenerEstablecimiento(idEstablecimiento);
+        const tipoSeguimiento = establecimiento.configuracions[0].tipoSeguimiento;
 
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para modificar este lote", 403);
+        if (tipoSeguimiento !== data.tipoSeguimiento) {
+            throw new AppError("El tipo de seguimiento enviado no coincide con la configuración del establecimiento", 400);
         }
 
-        if (lote.mermas.length > 0 || lote.costosDirectos.length > 0) {
-            throw new AppError(
-                "El lote tiene mermas o costos directos asociados y no puede editarse",
-                400
-            );
-        }
+        const producto = await EstablishmentService.validateProduct(data.idProducto)
 
-        let idProducto = lote.idProducto;
-        let unidad = lote.unidad;
+        const lote = await prisma.$transaction(async (tx) => {
+            const numeroLote = await this.generateBatchNumber(tx, idEstablecimiento);
+            switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    return this.crearLoteRodeo(tx, data, establecimiento.idEstablecimiento, numeroLote, producto.idProducto, establecimiento.configuracions[0].idConfiguracion);
 
-        if (data.idProducto && data.idProducto !== lote.idProducto) {
-            const producto = await prisma.producto.findUnique({
-                where: { idProducto: data.idProducto }
-            });
+                case TipoSeguimiento.INDIVIDUAL:
+                    return this.crearLoteIndividual(tx, data, establecimiento, numeroLote);
 
-            if (!producto) {
-                throw new AppError("El producto seleccionado no existe", 400);
+                default:
+                    throw new AppError("Tipo de seguimiento inválido", 400);
             }
 
-            idProducto = data.idProducto;
-            unidad = producto.categoria === "quesos" ? "kg" : "litros";
-        }
-
-        return prisma.loteProduccion.update({
-            where: { idLote },
-            data: {
-                idProducto,
-                unidad,
-                cantidad: data.cantidad ?? lote.cantidad,
-                fechaProduccion: data.fechaProduccion
-                    ? new Date(data.fechaProduccion)
-                    : lote.fechaProduccion,
-            },
-            include: {
-                producto: true,
-                mermas: true,
-                costosDirectos: true
-            }
         });
+
+        // Disparar en background el análisis de IA si se creó como completado
+        /* if (lote.estado) {
+             TamboEngineService.analizarSiCorresponde(idEstablecimiento, lote.idLote);
+         }*/
+
+        return lote;
     }
 
-    static async eliminarLote(idLote: string, idUsuario: string) {
+    async eliminarLote(idLote: string, idEstablecimiento: string) {
         const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { establecimiento: true, mermas: true, costosDirectos: true },
-        });
+            where: { idLote, idEstablecimiento: idEstablecimiento },
+        })
 
         if (!lote) {
-            throw new AppError("El lote no existe", 404);
+            throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
         }
 
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para eliminar este lote", 403);
+        if (lote.estado) {
+            throw new AppError("No se pueden eliminar lotes que ya están completados", 409);
         }
 
-        if ((lote.mermas.length > 0) || (lote.costosDirectos.length > 0)) {
-            throw new AppError("No se puede eliminar el lote, tiene información asociada", 400);
-        }
+        // NECESITA REVISION --------------------
+        /*const alertas = await prisma.alerta.findMany({
+            where: { idLote, idEstablecimiento: idEstablecimiento }
+        })
 
-        return prisma.loteProduccion.delete({ where: { idLote } });
+        if (alertas && alertas.length > 0) {
+            throw new AppError("No se pueden eliminar lotes que tienen alertas asociadas. Elimine primero las alertas.", 409);
+        }*/
+
+        await prisma.loteProduccion.delete({
+            where: { idLote, idEstablecimiento: idEstablecimiento }
+        })
+
+        return;
+
     }
 
-    static async listarLotes(idUsuario: string, filtros?: {
-        nombre?: string; fecha?: { inicio: Date; fin: Date }; numeroLote?: number;
-        orden?: "asc" | "desc"; pagina?: number;
-    }
-    ) {
-
-        const establecimiento = await prisma.establecimiento.findFirst({
-            where: { idUsuario },
-        });
-
-        if (!establecimiento) {
-            throw new AppError("El usuario no tiene un establecimiento registrado", 400);
-        }
-
-        const where: Prisma.LoteProduccionWhereInput = {
-            idEstablecimiento: establecimiento.idEstablecimiento,
-        };
-
-        if (filtros?.nombre) {
-            const valor = filtros.nombre;
-            const esNumero = !Number.isNaN(Number(valor));
-
-            if (esNumero) {
-                // Buscar lotes cuyo numeroLote empiece con el número
-                const lotesNumero = await prisma.$queryRaw<{ idLote: string }[]>`
-                SELECT "idLote"
-                FROM "LoteProduccion"
-                WHERE CAST("numeroLote" AS TEXT) LIKE ${valor + "%"}
-                AND "idEstablecimiento" = ${establecimiento.idEstablecimiento}
-            `;
-                const ids = lotesNumero.map((l) => l.idLote);
-
-                if (ids.length > 0) {
-                    where.idLote = { in: ids };
-                } else {
-
-                    where.idLote = { equals: "0" };
-                }
-            } else {
-
-                where.producto = {
-                    nombre: {
-                        contains: valor,
-                        mode: "insensitive",
-                    },
-                };
-            }
-        } else if (filtros?.numeroLote !== undefined && !Number.isNaN(filtros.numeroLote)) {
-
-            where.numeroLote = filtros.numeroLote;
-        }
-
-        const pagina = filtros?.pagina && filtros.pagina > 0 ? filtros.pagina : 1;
-        const cantidadPorPagina = 20;
-
-        const totalLotes = await prisma.loteProduccion.count({ where });
-        const totalPaginas = Math.ceil(totalLotes / cantidadPorPagina);
-
-        if (pagina > totalPaginas && totalPaginas > 0) {
-            throw new AppError("La página solicitada no existe", 404);
-        }
-
-        const lotes = await prisma.loteProduccion.findMany({
-            where,
+    async obtenerLote(idLote: string, idEstablecimiento: string) {
+        const lote = await prisma.loteProduccion.findUnique({
+            where: { idLote, idEstablecimiento: idEstablecimiento },
             include: {
                 producto: true,
                 mermas: true,
                 costosDirectos: true,
+                establecimiento: true,
+                produccionesIndividuales: {
+                    select: {
+                        idAnimal: true,
+                        litros: true,
+                        estado: true
+                    }
+                },
+                rodeo: true
             },
-            orderBy: [
-                { numeroLote: filtros?.orden ?? "asc" },
-                { fechaProduccion: filtros?.orden ?? "desc" },
-            ],
-            skip: (pagina - 1) * cantidadPorPagina,
-            take: cantidadPorPagina,
-        });
-
-
-        return {
-            pagina,
-            totalPaginas,
-            totalLotes,
-            lotes,
-        };
-
-    }
-
-    static async obtenerLote(idLote: string, idUsuario: string) {
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { producto: true, mermas: true, costosDirectos: true, establecimiento: true },
         });
 
 
@@ -233,15 +350,13 @@ export class LoteService {
             throw new AppError("El lote no existe", 404);
         }
 
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para ver este lote", 403);
-        }
-     
+
 
         let alertas = null;
         let alertasError = null;
 
-        try {
+        //NECESITA REVISION -----------
+        /*try {
             alertas = await TamboEngineService.getAlertasPorLote(
                 lote.establecimiento.idEstablecimiento,
                 idLote
@@ -250,14 +365,255 @@ export class LoteService {
             console.error("Error obteniendo alertas:", error);
             alertasError = "No se pudieron obtener las alertas";
         }
-
+*/
 
         return {
-            ...lote,
+            lote: {
+                ...lote,
+                turno: lote.fechaProduccion ? obtenerTurno(lote.fechaProduccion) : null
+            },
             alertas,
             alertasError
         };
     }
+
+    async editarLote(idLote: string, data: EditarLoteDTO, idEstablecimiento: string) {
+        const establecimiento = await EstablishmentService.obtenerEstablecimiento(idEstablecimiento);
+        const lote = await this.obtenerLoteEditable(idLote);
+
+        if (establecimiento.configuracions[0].tipoSeguimiento !== data.tipoSeguimiento) {
+            throw new AppError("El tipo de seguimiento enviado no coincide con la configuración del establecimiento", 400);
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            switch (data.tipoSeguimiento) {
+                case TipoSeguimiento.RODEO_UNICO:
+                case TipoSeguimiento.RODEO:
+                    return this.editarLoteRodeo(tx, idLote, data, establecimiento.configuracions[0].idConfiguracion, idEstablecimiento);
+
+                case TipoSeguimiento.INDIVIDUAL:
+                    return this.editarLoteIndividual(tx, idLote, data, idEstablecimiento);
+            }
+        })
+
+        return result;
+    }
+
+
+    // ====================================================================================
+    // LISTAR LOTES
+    // Endpoint GET /lotes
+    // Issue #29
+    //
+    // Permite listar lotes de forma paginada utilizando:
+    //
+    // - filtros
+    // - ordenamiento
+    // - contexto multi-tenant
+    //
+    // Incluye:
+    // - cálculo de merma_porcentaje
+    // - paginación
+    // - filtros dinámicos
+    // ====================================================================================
+
+    async listarLotes(
+        idEstablecimiento: string,
+        filtros?: {
+            estado?: boolean;
+            nombre?: string;
+            producto?: string;
+            numeroLote?: number;
+            fecha_desde?: Date;
+            fecha_hasta?: Date;
+            orden?: "asc" | "desc";
+            page?: number;
+            limit?: number;
+        }
+    ) {
+
+        // =========================================================
+        // Filtro base multi-tenant
+        // =========================================================
+        const where: Prisma.LoteProduccionWhereInput = {
+            idEstablecimiento,
+        };
+
+        // =========================================================
+        // Filtro por estado
+        // true  = lote completo/cerrado
+        // false = lote incompleto/modificable
+        // =========================================================
+        if (filtros?.estado !== undefined) {
+            where.estado = filtros.estado;
+        }
+
+        // =========================================================
+        // Filtro por número exacto de lote
+        // =========================================================
+        if (
+            filtros?.numeroLote !== undefined &&
+            !Number.isNaN(filtros.numeroLote)
+        ) {
+            where.numeroLote = filtros.numeroLote;
+        }
+
+        // =========================================================
+        // Filtro por rango de fechas
+        // =========================================================
+        if (filtros?.fecha_desde || filtros?.fecha_hasta) {
+
+            where.fechaProduccion = {};
+
+            if (filtros.fecha_desde) {
+                where.fechaProduccion.gte = filtros.fecha_desde;
+            }
+
+            if (filtros.fecha_hasta) {
+                where.fechaProduccion.lte = filtros.fecha_hasta;
+            }
+        }
+
+        // =========================================================
+        // Filtro textual por nombre de producto
+        // =========================================================
+        if (filtros?.producto || filtros?.nombre) {
+
+            const valorBusqueda =
+                filtros.producto || filtros.nombre;
+
+            where.producto = {
+                is: {
+                    nombre: {
+                        contains: valorBusqueda,
+                        mode: "insensitive",
+                    },
+                },
+            };
+        }
+
+        // =========================================================
+        // Configuración de paginación
+        // =========================================================
+        const page =
+            filtros?.page && filtros.page > 0
+                ? filtros.page
+                : 1;
+
+        const limit =
+            filtros?.limit && filtros.limit > 0
+                ? filtros.limit
+                : 10;
+
+        // =========================================================
+        // Total de registros
+        // =========================================================
+        const totalLotes = await prisma.loteProduccion.count({
+            where,
+        });
+
+        const totalPaginas = Math.ceil(totalLotes / limit);
+
+        // =========================================================
+        // Validación de página inexistente
+        // =========================================================
+        if (page > totalPaginas && totalPaginas > 0) {
+            throw new AppError(
+                "La página solicitada no existe",
+                404
+            );
+        }
+
+        // =========================================================
+        // Consulta principal
+        // =========================================================
+        const lotes = await prisma.loteProduccion.findMany({
+            where,
+
+            include: {
+
+                // Información del producto asociado
+                producto: true,
+
+                // Necesario para calcular merma_porcentaje
+                mermas: true,
+                rodeo: true,
+
+                costosDirectos: true,
+
+                produccionesIndividuales: {
+                    select: {
+                        idProduccionAnimal: true,
+                        idAnimal: true,
+                        litros: true,
+                        estado: true,
+                    },
+                },
+            },
+
+            // =====================================================
+            // Ordenamiento configurable
+            // asc  -> más antiguos primero
+            // desc -> más recientes primero
+            // =====================================================
+            orderBy: {
+                numeroLote: filtros?.orden ?? "desc",
+            },
+
+            skip: (page - 1) * limit,
+
+            take: limit,
+        });
+
+        // =========================================================
+        // Cálculo de merma_porcentaje
+        // Fórmula:
+        // (total_mermas / cantidad_produccion) * 100
+        // =========================================================
+        const lotesTransformados = lotes.map((lote) => {
+            const cantidadProduccion = Number(lote.cantidad);
+
+            const totalMermas = lote.mermas.reduce(
+                (acc: number, merma) =>
+                    acc + Number(merma.cantidad),
+                0
+            );
+
+            // =====================================================
+            // Evita división por cero
+            // =====================================================
+            const merma_porcentaje =
+                cantidadProduccion > 0
+                    ? Number(
+                        (
+                            (totalMermas / cantidadProduccion) * 100
+                        ).toFixed(2)
+                    )
+                    : 0;
+
+            return {
+                lote: {
+                    ...lote,
+                    turno: lote.fechaProduccion ? obtenerTurno(lote.fechaProduccion) : null
+                },
+                merma_porcentaje,
+            };
+        });
+
+        // =========================================================
+        // Response final paginado
+        // =========================================================
+        return {
+            page,
+            limit,
+            totalLotes,
+            totalPaginas,
+            lotes: lotesTransformados,
+        };
+    }
+
+    /*
+
 
     static async listarProduccionDelDia(idUsuario: string) {
         const establecimiento = await prisma.establecimiento.findFirst({ where: { idUsuario } });
@@ -280,34 +636,82 @@ export class LoteService {
         }
         return producciones;
     }
+    */
 
-    static async completarLote(idLote: string, idUsuario: string) {
+    async completarLote(idLote: string, idEstablecimiento: string) {
 
-        const lote = await prisma.loteProduccion.findUnique({
-            where: { idLote },
-            include: { establecimiento: true }
-        });
+        const result = await prisma.$transaction(async (tx) => {
 
-        if (!lote) {
-            throw new AppError("El lote no existe", 404);
-        }
+            const lote = await tx.loteProduccion.findUnique({
+                where: { idLote, idEstablecimiento: idEstablecimiento },
+                include: {
+                    rodeo: true,
+                }
+            });
 
-        if (lote.establecimiento.idUsuario !== idUsuario) {
-            throw new AppError("No tiene permisos para modificar este lote", 403);
-        }
 
-        if (lote.estado) {
-            throw new AppError("El lote ya está completado", 400);
-        }
+            if (!lote) {
+                throw new AppError("El lote no existe o no pertenece al establecimiento", 404);
+            }
 
-        const loteActualizado = await prisma.loteProduccion.update({
-            where: { idLote },
-            data: { estado: true },
-        });
+            if (lote.estado) {
+                throw new AppError("El lote ya está completado", 400);
+            }
 
-        // Disparar en background el análisis de IA al completarse
-        TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);
 
-        return loteActualizado;
+
+            const loteActualizado = await tx.loteProduccion.update({
+                where: { idLote, idEstablecimiento: idEstablecimiento },
+                data: { estado: true },
+            });
+
+            await IALoteService.checkEventCreation({
+                idEstablecimiento: idEstablecimiento,
+                lote: {
+                    idLote: lote.idLote,
+                    cantidad: lote.cantidad.toNumber(),
+                    cantAnimales: lote.cantAnimales
+                },
+                tipoRodeo: lote.rodeo?.tipoRodeo ?? null
+            });
+
+            return loteActualizado;
+
+        })
+
+        return result;
+        // Disparar en background el análisis de IA al completarse (REVISAR)
+        /*await TamboEngineService.analizarSiCorresponde(lote.idEstablecimiento, lote.idLote);*/
+
     }
+
+    async cerrarLotesVencidos() {
+
+        const fechaLimite = new Date();
+        fechaLimite.setDate(fechaLimite.getDate() - 15);
+
+        const lotes = await prisma.loteProduccion.findMany({
+            where: {
+                estado: false,
+                fechaProduccion: { lte: fechaLimite }
+            },
+            select: { idLote: true, idEstablecimiento: true }
+        });
+
+        console.log(`[CRON] Lotes vencidos encontrados: ${lotes.length}`);
+
+        for (const lote of lotes) {
+            try {
+                await this.completarLote(lote.idLote, lote.idEstablecimiento);
+                console.log(`[CRON] Lote cerrado: ${lote.idLote}`);
+            } catch (error) {
+                console.error(`[CRON] Error cerrando lote ${lote.idLote}`, error);
+            }
+        }
+
+    }
+
+
 }
+
+export default new LoteService();

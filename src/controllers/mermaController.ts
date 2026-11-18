@@ -1,56 +1,126 @@
-import { Request, Response } from "express"
-import { MermaService } from "../services/mermaService"
+import { Request, Response, NextFunction } from "express"
+import mermaService from "../services/mermaService"
+import { ApiResponse } from "../utils/ApiResponse";
+import { AppError } from "../utils/AppError";
+import { crearMermaSchema, actualizarMermaSchema } from "../schemas/mermasSchema";
 
-const mermaService = new MermaService()
-
-export class MermaController {
+class MermaController {
 
   async getTipos(req: Request, res: Response) {
-    const tipos = await mermaService.getTipos()
-    res.json(tipos)
-  }
-
-  async create(req: Request, res: Response) {
     try {
-      const merma = await mermaService.create(req.body)
-      res.status(201).json(merma)
+      const tipos = await mermaService.getTipos()
+      res.status(200).json(
+        ApiResponse.success(tipos, "Tipos de merma obtenidos correctamente")
+      )
     } catch (error: any) {
       res.status(400).json({ message: error.message })
     }
+
   }
 
-  async findAll(req: Request, res: Response) {
-    const mermas = await mermaService.findAll()
-    res.json(mermas)
-  }
-
-  async findById(req: Request, res: Response) {
+  async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const merma = await mermaService.findById(req.params.id)
-      if (!merma) {
-        return res.status(404).json({ message: "Merma no encontrada" })
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400);
       }
-      res.json(merma)
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+
+      const parsed = crearMermaSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new AppError(parsed.error.issues.map(e => e.message).join(", "), 400);
+      }
+
+      const merma = await mermaService.create(idEstablecimiento, parsed.data);
+
+      return res.status(201).json(
+        ApiResponse.success(merma, "Merma registrada correctamente")
+      );
+    } catch (error) {
+      next(error);
     }
   }
 
-  async update(req: Request, res: Response) {
+  async findAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const merma = await mermaService.update(req.params.id, req.body)
-      res.json(merma)
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      const idLote =
+        typeof req.query.id_lote === "string"
+          ? req.query.id_lote
+          : undefined;
+
+      const mermas = await mermaService.findAll(idEstablecimiento, idLote)
+      return res.status(200).json(
+        ApiResponse.success(mermas)
+      )
+
+    } catch (error) {
+      next(error)
     }
   }
 
-  async delete(req: Request, res: Response) {
+  async findById(req: Request, res: Response, next: NextFunction) {
     try {
-      await mermaService.delete(req.params.id)
-      res.json({ message: "Merma eliminada correctamente" })
-    } catch (error: any) {
-      res.status(400).json({ message: error.message })
+
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      const merma = await mermaService.findById(req.params.id, idEstablecimiento)
+      return res.status(200).json(
+        ApiResponse.success(merma)
+      )
+
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400);
+      }
+
+      const parsed = actualizarMermaSchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw new AppError(parsed.error.issues.map(e => e.message).join(", "), 400);
+      }
+
+      const merma = await mermaService.update(req.params.id, idEstablecimiento, parsed.data);
+
+      return res.status(200).json(
+        ApiResponse.success(merma, "Merma actualizada correctamente")
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      const idEstablecimiento = req.estAccess?.idEstablecimiento;
+
+      if (!idEstablecimiento) {
+        throw new AppError("No se pudo determinar el establecimiento", 400)
+      }
+
+      await mermaService.delete(req.params.id, idEstablecimiento)
+      return res.status(200).json(
+        ApiResponse.success(null, "Merma eliminada correctamente")
+      );
+    } catch (error) {
+      next(error)
     }
   }
 }
+
+export default new MermaController()

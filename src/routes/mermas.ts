@@ -1,14 +1,53 @@
 import { Router } from "express"
-import { MermaController } from "../controllers/mermaController"
+import MermaController from "../controllers/mermaController"
+import { establecimientoRequireOrgAccess, estContext, orgContext, requireOrgAccess, requireRoles } from "../middleware/orgMiddleware";
+import { authenticate } from "../middleware/authMiddleware";
+import { RolEstablecimiento } from "@prisma/client";
+import { tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = Router()
-const controller = new MermaController()
 
-router.get("/tipos", controller.getTipos.bind(controller))
-router.post("/", controller.create.bind(controller))
-router.get("/", controller.findAll.bind(controller))
-router.get("/:id", controller.findById.bind(controller))
-router.put("/:id", controller.update.bind(controller))
-router.delete("/:id", controller.delete.bind(controller))
+router.use(authenticate);
+
+router.get("/tipos", MermaController.getTipos)
+
+router.use(orgContext);
+router.use(requireOrgAccess);
+router.use(estContext);
+router.use(establecimientoRequireOrgAccess);
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
+
+
+router.post("/", requireRoles({
+  est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]
+}),
+  MermaController.create)
+
+router.get("/", requireRoles({
+  est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]
+}),
+  MermaController.findAll)
+
+router.get("/:id", requireRoles({
+  est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]
+}),
+  MermaController.findById)
+
+router.put("/:id", requireRoles({
+  est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]
+}),
+  MermaController.update)
+
+router.delete("/:id", requireRoles({
+  est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN, RolEstablecimiento.EMPLOYEE]
+}),
+  MermaController.delete)
+
 
 export default router

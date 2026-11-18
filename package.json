@@ -7,14 +7,17 @@
     "dev": "ts-node-dev --respawn --transpile-only --poll src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "ts-node src/lib/seedProductos.ts"
+    "seed": "ts-node src/lib/seedProductos.ts",
+    "seed:prueba": "ts-node src/lib/seedUsuarioPrueba.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prisma": {
     "seed": "ts-node src/lib/seedProductos.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
-    "axios": "^1.15.2",
+    "axios": "^1.21.0",
     "bcrypt": "^6.0.0",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.7",
@@ -24,6 +27,7 @@
     "express-rate-limit": "^8.3.2",
     "jsonwebtoken": "^9.0.3",
     "mailtrap": "^4.4.0",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
     "prisma": "^5.22.0",
     "resend": "^6.9.3",
@@ -36,8 +40,10 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.25",
+    "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.33",
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.23",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
@@ -45,7 +51,8 @@
     "nodemon": "^3.0.1",
     "ts-node": "^10.9.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.9"
   },
   "keywords": [
     "express",

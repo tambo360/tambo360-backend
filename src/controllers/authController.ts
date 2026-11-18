@@ -6,7 +6,7 @@ import { passwordValidationSchema, registerSchema } from "../schemas/authSchema"
 import jwt from "jsonwebtoken";
 
 
-// FUncion para registrar un nuevo usuario
+// FUncion para registrar un nuevo usuario 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { nombre, correo, contraseña } = req.body;
@@ -22,20 +22,19 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return;
     }
 
-    const newUser = await userService.create(parsed.data);
-
+    await userService.create(parsed.data);
 
     const response = ApiResponse.success(
-      newUser,
-      "Usuario registrado exitosamente",
+      null,
+      "Si el correo es válido, te enviamos un mail para continuar con el registro",
       201
     );
-
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
   }
 };
+
 // Funcion para iniciar sesión
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -54,7 +53,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         idUsuario: user.idUsuario,
         verificado: user.verificado,
         fechaCreacion: user.fechaCreacion,
-        establecimientos: user.establecimientos
+        organizaciones: user.organizaciones
       }
     }
     const token = jwt.sign(userData, process.env.JWT_SECRET!, { expiresIn: "1d" }); //
@@ -100,7 +99,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
         idUsuario: result.idUsuario,
         verificado: result.verificado,
         fechaCreacion: result.fechaCreacion,
-        establecimientos: result.establecimientos
+        organizaciones: result.organizaciones
       }
     }
 
@@ -217,11 +216,12 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 // Funcion para obtener los datos del usuario autenticado
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
+    if (!req.user?.id) {
       throw new AppError("No autenticado", 401);
     }
 
     const { id } = req.user;
+
     const user = await userService.findById(id);
 
     if (!user) {

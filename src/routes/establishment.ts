@@ -1,11 +1,35 @@
 import express from "express";
-import { registrarEstablecimiento, listarEstablecimientos, editarNombreEstablecimiento } from "../controllers/establishmentController";
+import { registrarEstablecimiento, listarEstablecimientos,/* editarNombreEstablecimiento*/ getEstablishmentById, registrarCuestionario, getCuestionario, sendInvitation, deleteInvitation, listarRodeos, getInvitation, obtenerOpcionesSeguimiento } from "../controllers/establishmentController";
 import { authenticate } from "../middleware/authMiddleware";
+import { orgContext, requireOrgAccess, establecimientoRequireOrgAccess, estContext, requireRoles } from "../middleware/orgMiddleware";
+import { RolEstablecimiento, RolOrganizacion } from "@prisma/client";
+import { tamboCrudLimiter, tamboGetLimiter } from "../middleware/RateLimit";
 
 const router = express.Router();
 
-router.post('/registrar', authenticate, registrarEstablecimiento);
-router.get('/listar', authenticate, listarEstablecimientos);
-router.patch('/editar-nombre', authenticate, editarNombreEstablecimiento);
+router.use(authenticate);
+router.use(orgContext);
+router.use(requireOrgAccess);
+
+router.use((req, res, next) => {
+    if (req.method === "GET") {
+        return tamboGetLimiter(req, res, next);
+    }
+    return tamboCrudLimiter(req, res, next);
+});
+
+//router.post('/', registrarEstablecimiento); BLOQUEADO (SE CREA AUTOMATICAMENTE AL CREAR UNA ORGANIZACION)
+router.get('/:idEst', getEstablishmentById);
+router.get('/', listarEstablecimientos);
+router.post('/cuestionario', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN], org: [RolOrganizacion.ORG_OWNER]}), registrarCuestionario);
+router.get('/cuestionario/info', estContext, establecimientoRequireOrgAccess, getCuestionario);
+router.patch('/editar-nombre', /* editarNombreEstablecimiento */);
+router.post('/invitacion', estContext, establecimientoRequireOrgAccess, sendInvitation);
+router.get('/invitacion', estContext, establecimientoRequireOrgAccess, getInvitation);
+router.delete('/invitacion/:idInvitacion', estContext, establecimientoRequireOrgAccess, requireRoles({est: [RolEstablecimiento.OWNER, RolEstablecimiento.ADMIN]}), deleteInvitation);
+router.get('/rodeos/get', estContext, establecimientoRequireOrgAccess, listarRodeos);
+
+router.get("/info/opciones-seguimiento", estContext, establecimientoRequireOrgAccess, obtenerOpcionesSeguimiento);
+
 
 export default router;

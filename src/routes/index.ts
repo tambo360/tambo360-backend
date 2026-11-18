@@ -3,22 +3,26 @@ import express from "express";
 import RutasAutenticacion from "./auth";
 import HealthRoutes from "./health";
 import RutasEstablecimientos from "./establishment";
+import RutasOrganizacion from "./organization";
 import RutasLotes from "./batch";
 import RutasMermas from "./mermas";
 import RutasCostos from "./cost";
 import RutasProductos from "./product";
 import RutasDashboard from "./dashboard"
 import RutasLanding from "./landing";
-
-
+import RutasPerfil from "./profile";
 import RutasAlertas from "./alertRoutes";
+import RutasCostoGeneral from "./costoGeneral";
+import RutasConf from "./settings";
 
 const router = express.Router();
 
 // Rutas de la API
 router.use('/auth', RutasAutenticacion);
+router.use('/perfil', RutasPerfil);
 router.use('/health', HealthRoutes);
 router.use('/establecimiento', RutasEstablecimientos);
+router.use('/organizacion', RutasOrganizacion);
 router.use('/lote', RutasLotes);
 router.use('/mermas', RutasMermas);
 router.use('/costos', RutasCostos);
@@ -26,6 +30,6 @@ router.use('/productos', RutasProductos);
 router.use('/alertas', RutasAlertas);
 router.use('/dashboard', RutasDashboard)
 router.use('/landing', RutasLanding)
-
+router.use('/costos-generales', RutasCostoGeneral)
+router.use('/conf', RutasConf)
 export default router;
-    
