@@ -22,15 +22,13 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return;
     }
 
-    const newUser = await userService.create(parsed.data);
-
+    await userService.create(parsed.data);
 
     const response = ApiResponse.success(
-      newUser,
-      "Usuario registrado exitosamente",
+      null,
+      "Si el correo es válido, te enviamos un mail para continuar con el registro",
       201
     );
-
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);

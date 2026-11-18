@@ -28,7 +28,7 @@ async function sendMailViaVercel(to: string, subject: string, text: string, html
 // ---------------------------------------------
 export async function sendVerificationEmail(to: string, link: string) {
   const subject = "Verificá tu cuenta en Tambo360";
-  const text =`
+  const text = `
 Hola,
 
 Recibimos tu solicitud para crear una cuenta en Tambo360.
@@ -46,7 +46,7 @@ Si no solicitaste esta cuenta, podés ignorar este mensaje.
 Equipo Tambo360
 `;
 
-const html = `
+  const html = `
 <div style="background-color:#f4f6f8; padding:40px 0; font-family: Arial, sans-serif;">
   <div style="
       max-width:600px;
@@ -112,7 +112,7 @@ Si no solicitaste este cambio, podés ignorar este mensaje.
 Equipo Tambo360
 `;
 
-const html = `
+  const html = `
 <div style="background-color:#f4f6f8; padding:40px 0; font-family: Arial, sans-serif;">
   <div style="
       max-width:600px;
@@ -359,6 +359,46 @@ Equipo Tambo360
     <p style="font-size:12px; text-align:center;">
       Equipo Tambo360
     </p>
+  </div>
+</div>
+`;
+
+  await sendMailViaVercel(to, subject, text, html);
+}
+
+
+// ---------------------------------------------
+// Función: aviso de intento de registro con correo existente
+// ---------------------------------------------
+export async function sendAccountExistsEmail(to: string, loginLink: string, recoverLink: string) {
+  const subject = "Intento de registro en Tambo360";
+
+  const text = `
+Hola,
+
+Alguien intentó crear una cuenta en Tambo360 con este correo, pero ya tenés una cuenta registrada.
+
+Si fuiste vos, iniciá sesión: ${loginLink}
+Si no recordás tu contraseña, podés recuperarla: ${recoverLink}
+
+Si no fuiste vos, podés ignorar este mensaje. Tu cuenta sigue segura.
+
+Equipo Tambo360
+`;
+
+  const html = `
+<div style="background-color:#f4f6f8; padding:40px 0; font-family: Arial, sans-serif;">
+  <div style="max-width:600px; margin:0 auto; background-color:#ffffff; padding:40px; border-radius:10px; border:1px solid #e5e7eb; box-shadow:0 4px 12px rgba(0,0,0,0.05); text-align:left;">
+    <h2 style="margin-top:0; color:#1f2937; text-align:center;">Ya tenés una cuenta en Tambo360</h2>
+    <p>Hola,</p>
+    <p>Alguien intentó crear una cuenta en <strong>Tambo360</strong> con este correo, pero ya tenés una cuenta registrada.</p>
+    <div style="text-align:center; margin:35px 0;">
+      <a href="${loginLink}" style="background-color:#2563eb; color:#ffffff; padding:14px 24px; text-decoration:none; border-radius:6px; font-weight:bold; display:inline-block;">Iniciar sesión</a>
+    </div>
+    <p style="text-align:center;">¿No recordás tu contraseña? <a href="${recoverLink}">Recuperala acá</a></p>
+    <hr style="margin:30px 0;" />
+    <p style="font-size:12px; text-align:center;">Si no fuiste vos, podés ignorar este mensaje. Tu cuenta sigue segura.</p>
+    <p style="font-size:12px; text-align:center;">Equipo Tambo360</p>
   </div>
 </div>
 `;
