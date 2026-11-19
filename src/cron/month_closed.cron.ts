@@ -38,7 +38,7 @@ export function cierreFinDeMes() {
             console.error("[CRON] ERROR EN PROCESAMIENTO DE CIERRE DE MES", error);
         } finally {
             console.timeEnd(timerLabel); // Imprime: [CRON] Tiempo total de ejecución: 1.234s
-            console.log("TOTAL DE EVENTOS PROCESADOS (CORRECTOS E INCORRECTOS)", eventosProcesados)
+            console.log("TOTAL DE RESUMENES DE MES CREADOS: ", eventosProcesados)
             estaProcesando = false; // Liberar el candado siempre, incluso si hubo error
         }
     }, {

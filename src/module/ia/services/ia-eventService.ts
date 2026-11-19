@@ -7,9 +7,12 @@ import { procesarEventoIA } from "./processorService";
 import { findAmbitoPromedioProductivo } from "../utils";
 import { AppError } from "../../../utils/AppError";
 import IALoteService from "./ia-lote.service";
+import { includeLote, includeMes, EventoLote, EventoMes } from '../types/ia-event.types';
 
 const TIEMPO_BLOQUEO_MS = 2 * 60 * 1000;
 const eventosPorCicloCRON = 10
+
+
 
 /**
  * Crea un evento pendiente.
@@ -309,49 +312,48 @@ export async function reactivarEventoIA({ idEventoIA, intentosAdicionales, }: Re
 
 
 // BUSca eventos pendientes para procesar, obtiene los eventos que están en estado PENDING y que no tienen un bloqueo activo. Esto permite que los procesos de análisis de IA puedan reclamar y procesar estos eventos. SOLO EVENTOS TIPO LOT_CLOSED
+
+/**
+ * Obtiene eventos pendientes de análisis IA según su tipo.
+ *
+ * Nota sobre sobrecarga (Function Overloads):
+ * Las dos primeras declaraciones sin cuerpo le indican a TypeScript el tipo
+ * exacto de retorno según el parámetro `tipo` ('LOT_CLOSED' devuelve EventoLote[],
+ * 'MONTH_CLOSED' devuelve EventoMes[]). La tercera es la implementación real.
+ */
+export async function obtenerEventosPendientes(
+  take: number,
+  tipo: typeof TipoEventoIA.LOT_CLOSED
+): Promise<EventoLote[]>;
+
+export async function obtenerEventosPendientes(
+  take: number,
+  tipo: typeof TipoEventoIA.MONTH_CLOSED
+): Promise<EventoMes[]>;
+
 export async function obtenerEventosPendientes(take: number, tipo: TipoEventoIA) {
   const ahora = new Date();
+  const where = {
+    estado: EstadoEventoIA.PENDING,
+    tipo,
+    OR: [
+      { bloqueadoHasta: null },
+      { bloqueadoHasta: { lte: ahora } },
+    ],
+  };
+
+  if (tipo === TipoEventoIA.LOT_CLOSED) {
+    return prisma.aiAnalysisEvent.findMany({
+      where,
+      take,
+      include: includeLote,
+    });
+  }
+
   return prisma.aiAnalysisEvent.findMany({
-    where: {
-      estado: EstadoEventoIA.PENDING,
-      tipo: tipo,
-      OR: [
-        { bloqueadoHasta: null },
-        { bloqueadoHasta: { lte: ahora } },
-      ],
-    },
-    take: take,
-    include: {
-      lote: {
-        select: {
-          idLote: true,
-          cantidad: true,
-          cantAnimales: true,
-          fechaProduccion: true,
-          rodeo: {
-            select: {
-              tipoRodeo: true
-            }
-          },
-          produccionesIndividuales: {
-            select: {
-              idAnimal: true,
-              litros: true
-            }
-          }
-        }
-      },
-      establecimiento: {
-        select: {
-          idEstablecimiento: true,
-          configuracions: {
-            select: {
-              tipoSeguimiento: true
-            }
-          }
-        }
-      }
-    }
+    where,
+    take,
+    include: includeMes,
   });
 }
 
@@ -430,7 +432,7 @@ export async function procesarEventosLotesPendientes() {
         console.log(`[CRON] Evento ${evento.idEventoIA} no pudo ser procesado, se omite`)
         continue
       }
-      
+
       eventosProcesados++
 
       if (result.error) {
@@ -458,6 +460,78 @@ export async function procesarEventosLotesPendientes() {
 
 }
 
+
+export async function procesarEventosCierreMesPendientes() {
+  let eventosProcesados = 0
+  const eventosPendientes = await obtenerEventosPendientes(eventosPorCicloCRON, TipoEventoIA.MONTH_CLOSED);
+  console.log(`[CRON] EVENTOS PENDIENTES ENCONTRADOS: ${eventosPendientes.length}`);
+
+  for (const evento of eventosPendientes) {
+    try {
+
+      if (!evento.resumenMensual || !evento.idResumenMensual) {
+        console.warn(`[CRON] Evento ${evento.idEventoIA} no tiene Resumen mensual asociado, se omite`);
+        continue;
+      }
+
+
+      const result = await procesarEventoIA({
+        idEventoIA: evento.idEventoIA,
+        tipo: evento.tipo,
+        idEstablecimiento: evento.idEstablecimiento,
+        datos: {
+          idResumenMensual: evento.resumenMensual.idResumenMensual,
+          anio: evento.resumenMensual.anio,
+          mes: evento.resumenMensual.mes,
+          fechaDesde: evento.resumenMensual.fechaDesde.toISOString(),
+          fechaHasta: evento.resumenMensual.fechaHasta.toISOString(),
+          cantLotes: evento.resumenMensual.cantidadLotes,
+          litrosProduccion: evento.resumenMensual.litrosProduccion.toString(),
+          litrosMermas: evento.resumenMensual.litrosMermas.toString(),
+          litrosTotales: evento.resumenMensual.litrosTotales.toString(),
+          litrosLibres: evento.resumenMensual.litrosLibres?.toString() ?? null,
+          costosTotales: evento.resumenMensual.costosTotales.toString(),
+          costoPorLitro: evento.resumenMensual.costoPorLitro?.toString() ?? null,
+          costoPorCategoria: evento.resumenMensual.costosPorCategoria.map(costo => ({
+            idResumenCostoCategoria: costo.idResumenCostoCategoria,
+            categoria: costo.categoria,
+            monto: costo.monto.toString()
+          }))
+        },
+      }, null);
+
+
+      if (!result.procesado) {
+        console.log(`[CRON] Evento ${evento.idEventoIA} no pudo ser procesado, se omite`)
+        continue
+      }
+
+      eventosProcesados++
+
+      if (result.error) {
+        throw new AppError(`[CRON] Error de comunicacion con python, Errores: ${result.error}`, 400)
+      }
+
+      if (!result.resultado) {
+        throw new AppError(`[CRON] Error de respuesta: No vino la respuesta o su formato es incorrecto`, 400)
+      }
+
+
+      console.log(`[CRON] evento: ${evento.idEventoIA} procesado correctamente`);
+      console.log(`[CRON] Estado/Resultado: ${result.resultado.resultado}`);
+      console.log(`[CRON] Alerta de IA creadas: ${result.resultado.alerta ? "SI" : "NO"}`);
+
+    } catch (error) {
+      console.error(`[CRON] Error procesando evento ${evento.idEventoIA}`, error);
+    }
+  }
+
+
+  return {
+    eventosProcesados
+  }
+
+}
 
 
 export async function obtenerPromedioProductivo(tx: Prisma.TransactionClient | null, idEstablecimiento: string, tipoSeguimiento: TipoSeguimiento, tipoRodeo: TipoRodeo | null) {

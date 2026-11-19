@@ -181,7 +181,7 @@ export const crearResumenesMensuales = async (data: crearResumenesMensualesParam
       })
 
       eventosProcesados++
-      console.log("Resumen mensual y evento creado correctamente para el establecimient:", est.idEstablecimiento)
+      console.log("Resumen mensual y evento creado correctamente para el establecimiento:", est.idEstablecimiento)
 
     } catch (error) {
       console.log("Error interno al crear resumen mensual", error)

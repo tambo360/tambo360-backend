@@ -1,11 +1,11 @@
-import { EstadoEjecucionIA, EstadoEventoIA, Prisma } from "@prisma/client";
+import { EstadoEjecucionIA, EstadoEventoIA, Prisma, TipoEventoIA } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { ErrorEjecucionIA, MetricasEjecucionIA, EstadoEjecucionIAType, FinalizarEjecucionParams } from "../types/ia.execution.types";
 import { UpdatePromedioProductivoParams, } from "../types/ia-lote.types";
 import { AlertaIAResponse } from "../types/ia.types";
 import { EjecucionIAError } from "../errors/python-ia.error";
 import { calcularProximoIntento } from "../utils/reintentos";
-import IALoteService  from "./ia-lote.service";
+import IALoteService from "./ia-lote.service";
 
 /**
  * Inicia un nuevo intento.
@@ -90,8 +90,8 @@ export async function iniciarEjecucion(idEventoIA: string, tokenBloqueo: string)
  * Si Python devolvió una alerta, también la guarda.
  * La alerta, la ejecución y el evento se confirman en una transacción.
  */
-export async function finalizarEjecucionExitosa(idEjecucionIA: string, tokenBloqueo: string, updatePromedioData: UpdatePromedioProductivoParams, metricas?: MetricasEjecucionIA, alerta?: AlertaIAResponse | null) {
-    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.COMPLETED, metricas, alerta, updatePromedioData });
+export async function finalizarEjecucionExitosa(idEjecucionIA: string, tokenBloqueo: string, updatePromedioData: UpdatePromedioProductivoParams | null, tipoEvento: TipoEventoIA, metricas?: MetricasEjecucionIA, alerta?: AlertaIAResponse | null) {
+    return finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal: EstadoEjecucionIAType.COMPLETED, metricas, alerta, updatePromedioData, tipoEvento });
 }
 
 /**
@@ -107,10 +107,11 @@ export async function finalizarEjecucionFallida(idEjecucionIA: string, tokenBloq
 interface FinalizarEjecucionConAlertaParams
     extends FinalizarEjecucionParams {
     alerta?: AlertaIAResponse | null;
-    updatePromedioData?: UpdatePromedioProductivoParams | null
+    updatePromedioData?: UpdatePromedioProductivoParams | null,
+    tipoEvento?: TipoEventoIA | null
 }
 
-async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, error, metricas, alerta, updatePromedioData }: FinalizarEjecucionConAlertaParams) {
+async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, error, metricas, alerta, updatePromedioData, tipoEvento }: FinalizarEjecucionConAlertaParams) {
     return prisma.$transaction(async (tx) => {
         const ahora = new Date();
 
@@ -272,9 +273,17 @@ async function finalizarEjecucion({ idEjecucionIA, tokenBloqueo, estadoFinal, er
             });
         }
 
-        if (esExitosa && updatePromedioData) {
+        if (esExitosa && tipoEvento === TipoEventoIA.LOT_CLOSED) {
+            if (!updatePromedioData) {
+                throw new EjecucionIAError(
+                    `La ejecución ${idEjecucionIA} requiere información para actualizar el promedio en eventos de tipo LOT_CLOSED`,
+                    'INFORMACION_FALTANTE'
+                );
+            }
+
             await IALoteService.updatePromedioProductivo(tx, updatePromedioData);
         }
+
 
         return tx.aiAnalysisExecution.findUniqueOrThrow({
             where: {

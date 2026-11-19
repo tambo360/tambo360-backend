@@ -29,7 +29,7 @@ export interface ResultadoProcesamientoIA {
  * 4. Envía el payload a Python.
  * 5. Finaliza la ejecución y el evento.
  */
-export async function procesarEventoIA(payload: AnalisisIARequest, updatePromedioData: UpdatePromedioProductivoParams): Promise<ResultadoProcesamientoIA> {
+export async function procesarEventoIA(payload: AnalisisIARequest, updatePromedioData: UpdatePromedioProductivoParams | null): Promise<ResultadoProcesamientoIA> {
     const evento = await prisma.aiAnalysisEvent.findUnique({
         where: {
             idEventoIA: payload.idEventoIA,
@@ -97,7 +97,7 @@ export async function procesarEventoIA(payload: AnalisisIARequest, updatePromedi
      */
 
     try {
-        await finalizarEjecucionExitosa(ejecucion.idEjecucionIA, tokenBloqueo, updatePromedioData, undefined, respuesta.alerta);
+        await finalizarEjecucionExitosa(ejecucion.idEjecucionIA, tokenBloqueo, updatePromedioData, payload.tipo, undefined, respuesta.alerta);
     } catch (error) {
         // Si falló la transacción (ej. falló updatePromedioProductivo), 
         // marcamos la ejecución como fallida/reintentable para que el CRON lo vuelva a agarrar luego.
